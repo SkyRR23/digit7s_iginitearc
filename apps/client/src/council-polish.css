@@ -1,0 +1,322 @@
+/* Keep the supplied chapel photograph visible during play. */
+/* Open lobbies use the same ten-seat geometry as the match, before the deal exists. */
+#lobby:not(.is-in-match) #seats:not([data-capacity='6']) .table-seat:not(.position-0) {
+  --seat-width: clamp(120px, 15vw, 170px);
+  left: var(--radial-x);
+  right: auto;
+  top: var(--radial-y);
+  bottom: auto;
+  transform: translate(-50%, -50%);
+}
+#lobby:not(.is-in-match) #seats:not([data-capacity='6']) .table-seat.position-0 {
+  left: 50%;
+  right: auto;
+  top: auto;
+  bottom: 2%;
+  transform: translateX(-50%);
+}
+#lobby:not(.is-in-match) .tabletop-panel {
+  border: 2px solid #84562e;
+  border-radius: 22px;
+  background: repeating-linear-gradient(92deg, #25130e 0 38px, #3a2017 39px 44px, #1c0e0a 45px 49px);
+  box-shadow: 0 18px 44px #0009, inset 0 0 0 4px #170b09, inset 0 0 0 6px #a47539;
+}
+#lobby:not(.is-in-match) .tabletop-frame {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  height: auto;
+  padding: 14px;
+  border: 2px solid #b98a4d;
+  border-radius: 17px;
+  background:
+    repeating-linear-gradient(42deg, transparent 0 46px, #be8c4712 47px, transparent 48px 96px),
+    radial-gradient(ellipse at 50% 40%, #69362e, #481e23 67%, #2a1017);
+  box-shadow: inset 0 0 0 5px #251219, inset 0 0 0 7px #a8793e, inset 0 0 45px #180910a8;
+}
+#lobby:not(.is-in-match) .tabletop-frame::before {
+  inset: 14px;
+  border: 1px solid #d2a15d66;
+  border-radius: 9px;
+  background: none;
+  box-shadow: none;
+}
+#lobby:not(.is-in-match) .tabletop-frame::after { display: none; }
+#lobby:not(.is-in-match) #vow-threads { display: none; }
+#lobby:not(.is-in-match) .table-center {
+  position: relative;
+  order: -1;
+  inset: auto;
+  width: 100%;
+  max-width: none;
+  min-height: 68px;
+  margin: 0;
+  padding: 8px;
+  border: 0;
+  border-bottom: 1px solid #bd8f5180;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+#lobby:not(.is-in-match) .table-center .table-crest { display: none; }
+#lobby:not(.is-in-match) .table-center .table-message { margin: 0; text-align: center; }
+#lobby:not(.is-in-match) .tabletop-seats {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+  gap: 10px;
+  width: 100%;
+}
+#lobby:not(.is-in-match) #seats .table-seat,
+#lobby:not(.is-in-match) #seats:not([data-capacity='6']) .table-seat:not(.position-0),
+#lobby:not(.is-in-match) #seats:not([data-capacity='6']) .table-seat.position-0 {
+  position: relative;
+  inset: auto;
+  left: auto;
+  right: auto;
+  top: auto;
+  bottom: auto;
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr);
+  grid-template-areas: 'badges badges' 'portrait name' 'portrait status' 'remove remove';
+  align-items: center;
+  column-gap: 8px;
+  width: 100%;
+  min-height: 100px;
+  padding: 7px;
+  transform: none !important;
+  border: 1px solid #8e673b;
+  border-radius: 8px;
+  background: linear-gradient(145deg, #321b1b, #211417);
+  box-shadow: inset 0 1px #d2a36433, 0 5px 12px #08040588;
+}
+#lobby:not(.is-in-match) #seats .table-seat .seat-badges { grid-area: badges; justify-content: flex-start; margin: 0; }
+#lobby:not(.is-in-match) #seats .table-seat .identity-back { display: none; }
+#lobby:not(.is-in-match) #seats .table-seat .portrait-wrap { grid-area: portrait; width: 43px; height: 43px; margin: 0; }
+#lobby:not(.is-in-match) #seats .table-seat .seat-name { grid-area: name; min-width: 0; }
+#lobby:not(.is-in-match) #seats .table-seat .seat-name h3 { max-width: none; margin: 0; color: #efd8a8; font-size: 12px; }
+#lobby:not(.is-in-match) #seats .table-seat .seat-status { grid-area: status; margin: 0; font-size: 8px; }
+#lobby:not(.is-in-match) #seats .table-seat .seat-seals,
+#lobby:not(.is-in-match) #seats .table-seat .attached-status,
+#lobby:not(.is-in-match) #seats .table-seat .status-icons { display: none; }
+#lobby:not(.is-in-match) #seats .table-seat .remove-bot { grid-area: remove; min-height: 25px; margin-top: 4px; padding: 3px 5px; font-size: 8px; }
+#lobby:not(.is-in-match) #seats .table-seat.empty { display: flex; flex-direction: column; justify-content: center; min-height: 100px; gap: 2px; }
+#lobby:not(.is-in-match) #seats .table-seat.empty .empty-sigil { font-size: 20px; }
+#lobby:not(.is-in-match) #seats .table-seat.empty h3,
+#lobby:not(.is-in-match) #seats .table-seat.empty p { margin: 0; font-size: 9px; }
+/* The live scene is the chapel floor; the meeting table belongs to the old
+   lobby layout and must not cover the room background during a match. */
+body.game-screen .tabletop-frame::before,
+body.game-screen .tabletop-frame::after { display: none; content: none; }
+
+/* Life is represented by a carved heart, not a row of generic card backs. */
+body.game-screen .table-seat .public-seals li.seal-back {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+}
+body.game-screen .table-seat .public-seals li.seal-back button { overflow: visible; }
+body.game-screen .table-seat .public-seals li .life-heart {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  fill: #7e3028;
+  stroke: #e8b66c;
+  stroke-width: 3;
+  filter: drop-shadow(0 3px 2px #160708) drop-shadow(0 0 3px #d2874580);
+}
+body.game-screen .table-seat .public-seals li .life-heart path + path {
+  fill: none;
+  stroke: #f3cf90;
+  stroke-width: 2;
+}
+body.game-screen .table-seat .public-seals li.life-broken {
+  background: #291411;
+  border-color: #69452e;
+  overflow: visible;
+}
+body.game-screen .table-seat .public-seals li.life-broken .broken-heart {
+  position: absolute;
+  inset: -7%;
+  width: 114%;
+  height: 114%;
+  fill: #762a25;
+  stroke: #c27b60;
+  stroke-width: 2;
+  opacity: .8;
+  filter: drop-shadow(0 2px 5px #000);
+  pointer-events: none;
+}
+body.game-screen .table-seat .public-seals li.life-broken span { position: relative; z-index: 1; color: #f3ddbc; text-shadow: 0 1px 3px #130706; }
+body.game-screen .table-seat.death-impact .public-seals li.life-broken .broken-heart path:first-child { animation: heart-left-break .85s ease-out both; }
+body.game-screen .table-seat.death-impact .public-seals li.life-broken .broken-heart path:last-child { animation: heart-right-break .85s ease-out both; }
+@keyframes heart-left-break { 30% { transform: translate(-6px, -5px) rotate(-11deg); } 100% { transform: translate(-2px, 3px) rotate(-5deg); } }
+@keyframes heart-right-break { 30% { transform: translate(6px, -5px) rotate(11deg); } 100% { transform: translate(2px, 3px) rotate(5deg); } }
+
+/* Statuses sit below each seat, never above the upper edge or across the Life row. */
+body.game-screen .table-seat .status-icons,
+body.game-screen #seats:not([data-capacity='6']) .table-seat:not(.position-0) .status-icons {
+  position: absolute;
+  z-index: 8;
+  top: calc(100% + 1px);
+  left: 50%;
+  width: max-content;
+  max-width: min(100%, 250px);
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 3px;
+  transform: translateX(-50%);
+}
+body.game-screen .table-seat .status-icon {
+  width: auto;
+  height: 20px;
+  min-width: 0;
+  min-height: 20px;
+  display: flex;
+  gap: 4px;
+  padding: 2px 5px;
+  border-radius: 4px;
+  background: #21130de9;
+  font: 700 8px/1.1 Georgia,serif;
+  letter-spacing: .04em;
+  white-space: nowrap;
+  cursor: help;
+}
+body.game-screen .status-icon span { font-size: 12px; line-height: 1; }
+body.game-screen .status-icon b { font: inherit; }
+body.game-screen .status-vow_heart { color: #ff938f; border-color: #d56861; }
+body.game-screen .has-lone-heart .portrait-heart { color: #d39c93; opacity: .78; animation: lone-heart 3s ease-in-out infinite; }
+body.game-screen .has-hearthward .portrait-wrap::before {
+  content: '✥';
+  position: absolute;
+  z-index: 8;
+  right: -9px;
+  bottom: -9px;
+  color: #ffb65b;
+  font: 21px Georgia,serif;
+  text-shadow: 0 0 8px #f5792b, 0 0 15px #f87323;
+  animation: ember-ward 2.6s ease-in-out infinite;
+  pointer-events: none;
+}
+body.game-screen .has-piety .portrait-wrap { outline: 2px solid #fff0af; outline-offset: 6px; }
+body.game-screen .has-bound .portrait-wrap { outline: 2px dashed #999185; outline-offset: 5px; }
+body.game-screen #seats[data-capacity='9'] .table-seat.position-0,
+body.game-screen #seats[data-capacity='10'] .table-seat.position-0 { --seat-width: clamp(205px, 22vw, 255px); grid-template-columns: 58px minmax(0, 1fr); }
+body.game-screen #seats[data-capacity='9'] .table-seat.position-0 .seat-name,
+body.game-screen #seats[data-capacity='10'] .table-seat.position-0 .seat-name { width: 76px; }
+@keyframes lone-heart { 50% { opacity: .4; transform: scale(.8); } }
+@keyframes ember-ward { 50% { filter: brightness(1.5); transform: scale(1.18) rotate(8deg); } }
+
+/* Repeated cards occupy one visible stack. Quantity remains explicit. */
+body.game-screen .action-hand.grouped-hand { align-items: end; }
+body.game-screen .grouped-hand .card-stack {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: end;
+  justify-content: center;
+  flex: 0 0 142px;
+  width: 142px;
+  height: calc(var(--hand-height) - 67px);
+  max-height: 215px;
+  min-width: 0;
+  margin: 0;
+}
+body.game-screen .grouped-hand .card-stack + .card-stack { margin-left: -33px; }
+body.game-screen .grouped-hand .card-stack:has(.selected),
+body.game-screen .grouped-hand .card-stack:hover { z-index: 15; }
+body.game-screen .grouped-hand .action-card { height: 100%; }
+body.game-screen .grouped-hand .card-stack:has(.card-stack-count)::before,
+body.game-screen .grouped-hand .card-stack:has(.card-stack-count)::after {
+  content: '';
+  position: absolute;
+  inset: 3px -4px 3px 5px;
+  border: 2px solid #b48348;
+  border-radius: 7px;
+  background: #d1a96e;
+  transform: rotate(3deg);
+  box-shadow: 0 5px 5px #0008;
+}
+body.game-screen .grouped-hand .card-stack:has(.card-stack-count)::after { inset: 2px 4px 4px -5px; transform: rotate(-3deg); }
+body.game-screen .grouped-hand .action-card { position: relative; z-index: 1; }
+body.game-screen .grouped-hand .card-stack-count {
+  position: absolute;
+  display: grid !important;
+  place-items: center;
+  z-index: 4;
+  right: 5px;
+  top: 5px;
+  min-width: 27px !important;
+  min-height: 27px !important;
+  margin: 0 !important;
+  padding: 2px 4px;
+  border: 1px solid #ffe2a0;
+  border-radius: 50%;
+  color: #ffdda0 !important;
+  background: #281315;
+  font: bold 12px Georgia,serif;
+}
+body.game-screen .grouped-hand .stack-controls {
+  position: absolute;
+  z-index: 6;
+  left: 8px;
+  right: 8px;
+  bottom: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2px;
+  height: 25px;
+  padding: 2px 3px;
+  border: 1px solid #ac824d;
+  border-radius: 5px;
+  color: #f7e2ae;
+  background: #26130fe8;
+  font: 700 10px Georgia,serif;
+}
+body.game-screen .grouped-hand .stack-controls button {
+  min-height: 19px;
+  height: 19px;
+  min-width: 25px;
+  padding: 0 3px;
+  border: 0;
+  border-radius: 3px;
+  color: #ffe0a1;
+  background: #61412d;
+  font: bold 10px Georgia,serif;
+}
+@media (max-width: 780px) {
+  body.game-screen .tabletop-frame::before { inset: 4px 4px calc(var(--hand-height) - 6px); border-radius: 15px; }
+  body.game-screen .tabletop-frame::after { width: 30vw; font-size: 55px; }
+  body.game-screen #seats[data-capacity='9'] .table-seat.position-0,
+  body.game-screen #seats[data-capacity='10'] .table-seat.position-0 { --seat-width: min(46vw,170px); grid-template-columns: 44px minmax(0, 1fr); }
+  body.game-screen #seats[data-capacity='9'] .table-seat.position-0 .seat-name,
+  body.game-screen #seats[data-capacity='10'] .table-seat.position-0 .seat-name { width: 60px; }
+  body.game-screen .table-seat .status-icons,
+  body.game-screen #seats:not([data-capacity='6']) .table-seat:not(.position-0) .status-icons { top: calc(100% + 1px); left: 50%; max-width: 115%; gap: 1px; transform: translateX(-50%); }
+  body.game-screen .table-seat .status-icon { height: 14px; min-height: 14px; gap: 2px; padding: 1px 3px; font-size: 6px; }
+  body.game-screen .status-icon span { font-size: 8px; }
+  body.game-screen .grouped-hand .card-stack { width: 100%; height: 100%; max-height: none; flex: none; }
+  body.game-screen .grouped-hand .card-stack + .card-stack { margin-left: 0; }
+  body.game-screen .grouped-hand .card-stack:has(.card-stack-count)::before,
+  body.game-screen .grouped-hand .card-stack:has(.card-stack-count)::after { inset: 2px 2px 2px; }
+  body.game-screen .grouped-hand .card-stack-count { top: 2px; right: 2px; min-width: 18px !important; min-height: 18px !important; font-size: 8px; }
+  body.game-screen .grouped-hand .stack-controls { left: 2px; right: 2px; bottom: 2px; height: 15px; padding: 0 1px; font-size: 7px; }
+  body.game-screen .grouped-hand .stack-controls button { height: 13px; min-height: 13px; min-width: 16px; padding: 0; font-size: 7px; }
+  body.game-screen .grouped-hand .action-card b { margin-bottom: 12px; }
+}
+@media (orientation: landscape) and (max-height: 500px) {
+  body.game-screen .table-seat .status-icons,
+  body.game-screen #seats:not([data-capacity='6']) .table-seat:not(.position-0) .status-icons { top: calc(100% + 1px); }
+  body.game-screen .grouped-hand .card-stack { width: 92px; flex-basis: 92px; height: 87px; }
+  body.game-screen .grouped-hand .card-stack + .card-stack { margin-left: -11px; }
+  body.game-screen .grouped-hand .action-card { width: 90px; height: 87px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  body.game-screen .has-hearthward .portrait-wrap::before,
+  body.game-screen .has-lone-heart .portrait-heart { animation: none; }
+}

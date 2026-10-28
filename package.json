@@ -1,0 +1,34 @@
+{
+  "name": "ashfall-council",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "play": "npm run dev",
+    "dev": "npm run build -w @ashfall/shared && concurrently -k -n shared,server,client \"npm run watch -w @ashfall/shared\" \"npm run dev -w @ashfall/server\" \"npm run dev -w @ashfall/client\"",
+    "doctor": "node scripts/doctor.mjs",
+    "build": "npm run build -w @ashfall/shared && npm run build -w @ashfall/server && npm run build -w @ashfall/client",
+    "typecheck": "npm run build -w @ashfall/shared && tsc --noEmit -p apps/server && tsc --noEmit -p apps/client",
+    "test": "npm run build -w @ashfall/shared && vitest run",
+    "test:browser": "node tests/browser.mjs",
+    "test:browser:transfer": "tsx tests/transfer-browser.ts",
+    "test:browser:bots": "tsx tests/bot-browser.ts",
+    "test:browser:night": "node tests/night-browser.mjs",
+    "test:browser:lifecycle": "node tests/lifecycle-browser.mjs",
+    "simulate:bots": "tsx apps/server/src/simulate.ts --games 100"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "concurrently": "^9.1.0",
+    "playwright": "^1.55.1",
+    "typescript": "^5.9.2",
+    "vitest": "^4.1.12"
+  }
+}

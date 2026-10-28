@@ -1,0 +1,62 @@
+/* Private setup: the glowing green edge marks the selected source, legal
+   destinations, and the two positions that just exchanged places. */
+body.game-screen .private-role-summary {
+  display: grid; grid-template-columns: auto 1fr; align-items: baseline; gap: 3px 10px;
+  margin-top: 15px; padding: 10px 13px; border: 1px solid #a9824e88;
+  border-radius: 8px; background: linear-gradient(100deg, #3a2020, #261a1a);
+}
+body.game-screen .private-role-summary span { color: #d9b271; font: 700 9px sans-serif; letter-spacing: .16em; }
+body.game-screen .private-role-summary b { color: #ffe2a0; font: 700 16px Georgia, serif; }
+body.game-screen .private-role-summary small { grid-column: 1 / -1; color: #dac6a8; font: 11px/1.35 sans-serif; }
+body.game-screen .seal-transfer-warning {
+  margin: 8px 0 0; padding: 8px 10px; border-left: 3px solid #d2a960;
+  color: #e0c8a2; background: #110c0b88; font: 11px/1.4 sans-serif;
+}
+body.game-screen .seal-transfer-warning b { color: #ffe5ad; }
+body.game-screen .private-seal-grid { margin: 14px 0; }
+body.game-screen .private-seal-card { position: relative; overflow: visible; }
+body.game-screen .private-seal-card.swap-selected {
+  transform: translateY(-9px); border-color: #72dd94;
+  box-shadow: 0 0 0 2px #28784a, 0 0 22px #60e99888, inset 0 0 0 3px #273c20;
+}
+body.game-screen .private-seal-card.swap-selected::after,
+body.game-screen .private-seal-card.swap-target::after,
+body.game-screen .private-seal-card.swap-changed::after {
+  content: ''; position: absolute; left: 8%; right: 8%; bottom: -7px; height: 5px;
+  border-radius: 99px; background: #65eb94; box-shadow: 0 0 6px #75ffa5, 0 0 16px #51de7f;
+  pointer-events: none;
+}
+body.game-screen .private-seal-card.swap-target::after { opacity: .5; height: 3px; }
+body.game-screen .private-seal-card.swap-target:hover::after,
+body.game-screen .private-seal-card.swap-hover::after { opacity: 1; height: 6px; }
+body.game-screen .private-seal-card.swap-changed::after { animation: seal-position-confirm 1.1s ease-out both; }
+@keyframes seal-position-confirm { 0%, 30% { opacity: 1; transform: scaleX(.7); } 100% { opacity: 0; transform: scaleX(1); } }
+
+/* All observers receive only a face-down symbol moving between Life rows.
+   Its origin and destination never identify a real hidden card position. */
+.flying-hidden-life {
+  position: fixed; z-index: 96; left: 0; top: 0; width: 52px; height: 60px;
+  display: grid; place-items: center; pointer-events: none; will-change: transform, opacity;
+  filter: drop-shadow(0 0 8px #d8ab68) drop-shadow(0 7px 7px #000c);
+}
+.flying-hidden-life::before {
+  content: ''; position: absolute; inset: 5px 2px; border: 1px solid #dfbf78;
+  border-radius: 45% 45% 50% 50%; background: radial-gradient(circle, #e6d1a6, #73513d 75%, #261719);
+}
+.flying-hidden-life .life-heart { position: relative; z-index: 1; width: 44px; height: 49px; fill: #7e2730; stroke: #f6d58c; stroke-width: 3; }
+.flying-hidden-life .life-heart path + path { stroke: #f6d58c; fill: none; stroke-width: 2; }
+body.game-screen .table-seat.life-transfer-arrival .public-seals {
+  animation: life-transfer-arrive 1.1s ease-out;
+}
+@keyframes life-transfer-arrive { 0% { filter: drop-shadow(0 0 12px #e2ad67); } 100% { filter: none; } }
+@media (max-width: 780px) {
+  body.game-screen .private-role-summary { margin-top: 8px; padding: 7px 9px; }
+  body.game-screen .private-role-summary b { font-size: 13px; }
+  body.game-screen .private-role-summary small { font-size: 10px; }
+  body.game-screen .seal-transfer-warning { font-size: 10px; padding: 6px 8px; }
+  body.game-screen .private-seal-grid { margin: 10px 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  body.game-screen .private-seal-card.swap-changed::after { animation: none; }
+  body.game-screen .table-seat.life-transfer-arrival .public-seals { animation: none; }
+}

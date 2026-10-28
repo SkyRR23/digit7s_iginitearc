@@ -1,0 +1,12 @@
+{
+  "name": "@ashfall/shared", "version": "0.1.0", "private": true, "type": "module",
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" },
+    "./identities": { "types": "./dist/identities.d.ts", "default": "./dist/identities.js" },
+    "./day": { "types": "./dist/day.d.ts", "default": "./dist/day.js" },
+    "./night": { "types": "./dist/night.d.ts", "default": "./dist/night.js" },
+    "./voice": { "types": "./dist/voice.d.ts", "default": "./dist/voice.js" }
+  },
+  "scripts": { "build": "tsc -p .", "watch": "tsc -p . --watch" },
+  "dependencies": { "zod": "^3.24.2" }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "@ashfall/client", "version": "0.1.0", "private": true, "type": "module",
+  "scripts": { "dev": "vite --host 0.0.0.0", "build": "tsc --noEmit && vite build", "preview": "vite preview --host 0.0.0.0" },
+  "dependencies": { "@ashfall/shared": "*", "socket.io-client": "^4.8.1" },
+  "devDependencies": { "vite": "^7.1.7" }
+}

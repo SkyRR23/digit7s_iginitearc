@@ -1,0 +1,683 @@
+/* Digital council UI. Scene art is separate from every live control and label. */
+body.digital-ui {
+  --ivory: #f3efdf; --muted: #bbb9b0; --red: #b81220; --line: #c7c2b45c;
+  --gold: #f3efdf; --panel: #080a0cdb; --heading: Impact, 'Arial Narrow', 'Franklin Gothic Medium', sans-serif;
+  margin: 0; min-width: 320px; min-height: 100dvh; color: var(--ivory);
+  background: #090b0e url('/art/digital-village.webp') center center / cover fixed no-repeat;
+  font-family: 'Segoe UI', Arial, sans-serif;
+}
+body.digital-ui::before {
+  content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background: linear-gradient(90deg, #06080c70, #07090c12 57%, #0506086b), linear-gradient(0deg,#050508c9,transparent 60%);
+}
+body.digital-ui::after { pointer-events: none; }
+body.digital-ui #app { position: relative; z-index: 1; }
+body.digital-ui h1, body.digital-ui h2, body.digital-ui h3 { font-family: var(--heading); font-weight: 500; letter-spacing: .035em; text-transform: uppercase; color: var(--ivory); }
+body.digital-ui p { color: #cfcdc5; }
+body.digital-ui .eyebrow { color: #d3d1c9; font-size: 10px; letter-spacing: .17em; }
+body.digital-ui button, body.digital-ui select, body.digital-ui input {
+  border: 1px solid #b6b3a873; border-radius: 3px; background: #0d0f12eb; color: var(--ivory); box-shadow: none;
+  min-height: 44px; font-size: 13px;
+}
+body.digital-ui button { font-weight: 700; }
+body.digital-ui button:hover:not(:disabled) { background: #343438; transform: none; border-color: #f4efe1; }
+body.digital-ui button.primary { background: linear-gradient(160deg,#c81825,#8d0712); color: #fff7ed; border-color: #ec6c70; }
+body.digital-ui button.primary:hover:not(:disabled) { background: #dd1725; }
+body.digital-ui button:disabled { opacity: .4; }
+body.digital-ui :is(button,a,input,select,[tabindex]):focus-visible { outline: 3px solid #fff0b2; outline-offset: 3px; }
+body.digital-ui input::placeholder { color: #95958f; }
+body.digital-ui select { padding: 8px 11px; }
+body.digital-ui .topbar {
+  position: relative; z-index: 20; width: auto; height: 76px; min-height: 0; margin: 0 24px; padding: 8px 0;
+  border: 0; border-bottom: 1px solid var(--line); background: transparent;
+}
+body.digital-ui .brand { gap: 12px; color: #f3efdf; font: 27px/.95 var(--heading); letter-spacing: .035em; }
+body.digital-ui .brand > .role-symbol { width: 48px; height: 48px; color: #ce1627; }
+body.digital-ui .brand small { display: block; margin-top: 7px; font: 8px 'Segoe UI',sans-serif; letter-spacing: .35em; text-align: center; }
+body.digital-ui .connection { margin: 0; font-size: 10px; color: #dfddd4; }
+body.digital-ui main { position: relative; width: 100%; max-width: 1800px; height: auto; min-height: 0; margin: 0 auto; padding: 0 24px; overflow: visible; }
+body.digital-ui .page-footer { position: relative; margin: 0 24px; padding: 20px 0; border-color: #c7c2b430; color: #c8c4bb; }
+body.digital-ui .debug { display: none; }
+body.digital-ui .entry { display: grid; grid-template-columns: minmax(0,1.35fr) minmax(345px,.8fr); align-items: center; gap: 8%; padding: 45px 2vw; min-height: calc(100dvh - 132px); }
+body.digital-ui .intro { text-align: left; text-shadow: 0 3px 16px #000; }
+body.digital-ui .intro h1 { font: clamp(60px,8.6vw,145px)/.9 var(--heading); letter-spacing: -.015em; margin: 18px 0 28px; }
+body.digital-ui .intro .lede { font: 18px/1.6 Georgia,serif; max-width: 480px; color: #e6e1d5; }
+body.digital-ui .intro-menu { display: grid; gap: 12px; max-width: 430px; margin-top: 40px; }
+body.digital-ui .intro-menu button { display: flex; justify-content: space-between; align-items: center; min-height: 64px; padding: 12px 20px; font: 26px var(--heading); text-transform: uppercase; letter-spacing: .04em; background: #080a0cc9; }
+body.digital-ui .intro-foot { display: flex; justify-content: flex-start; margin-top: 36px; padding-top: 15px; gap: 25px; color: #e1ddd0; border-color: var(--line); }
+body.digital-ui .entry-card { padding: 28px; border: 1px solid #ddd4bf80; border-radius: 5px; background: #080a0ce8; backdrop-filter: blur(8px); box-shadow: 0 20px 60px #0007; }
+body.digital-ui .entry-card::before { display: none; }
+body.digital-ui .entry-card h2 { font-size: 32px; }
+body.digital-ui .entry-card > p { color: #c9c6bc; }
+body.digital-ui .entry-card label, body.digital-ui .entry-card legend { color: #e6e2d9; }
+body.digital-ui .entry-card label[for] { margin-top: 16px; }
+body.digital-ui .entry-card #capacity { width: 100%; }
+body.digital-ui .entry-card #create { margin-bottom: 20px; min-height: 52px; font: 22px var(--heading); text-transform: uppercase; }
+body.digital-ui .avatar-picker { gap: 6px; }
+body.digital-ui .avatar-option .emblem { min-height: 46px; color: #d8d3c5; background: #15171b; border-color: #a9a69d73; border-radius: 2px; }
+body.digital-ui .avatar-option input:checked + .emblem { color: white; border-color: #f44b57; background: #8d111c; box-shadow: 0 0 15px #b80e2852; }
+body.digital-ui .avatar-option > span { color: #ccc9be; }
+body.digital-ui .scope-note { color: #bcb6ac; }
+body.digital-ui #how-to-dialog { max-width: 620px; width: calc(100vw - 30px); padding: 30px; border: 1px solid #ddd6c3; border-radius: 5px; color: #eeeadd; background: #0c0d11f5; }
+body.digital-ui #how-to-dialog::backdrop { background: #000c; backdrop-filter: blur(5px); }
+body.digital-ui #how-to-close { float: right; }
+
+body.digital-ui #lobby .room-heading { position: relative; height: auto; min-height: 0; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 20px 0; }
+body.digital-ui #lobby .room-heading h1 { margin: 0 0 5px; font-size: 37px; }
+body.digital-ui #lobby .room-heading p { margin: 0; font-size: 12px; }
+body.digital-ui #lobby .room-code-box { position: static; padding: 10px 14px; border: 1px solid var(--line); border-radius: 3px; background: #080a0cdb; box-shadow: none; }
+body.digital-ui #lobby .room-code-box > span { color: #ddd9cd; }
+body.digital-ui #lobby .room-code-box > div { gap: 10px; margin-top: 4px; }
+body.digital-ui #lobby .room-code-box strong { color: #fff6df; font: 23px var(--heading); letter-spacing: .08em; }
+body.digital-ui #lobby .room-code-box button { min-height: 36px; padding: 6px 10px; font-size: 11px; }
+body.digital-ui .table-nav { display: none; }
+body.digital-ui #lobby .room-layout { display: grid; grid-template-columns: minmax(0,1fr) 310px; gap: 14px; align-items: stretch; }
+body.digital-ui #lobby .play-column { position: relative; display: block; height: auto; min-width: 0; min-height: 0; }
+body.digital-ui #lobby .tabletop-panel { position: relative; inset: auto; width: 100%; height: auto; padding: 14px; overflow: visible; border: 1px solid var(--line); border-radius: 4px; background: #080a0cde; box-shadow: none; }
+body.digital-ui #lobby .tabletop-frame { position: relative; inset: auto; width: 100%; height: auto; min-height: 0; display: block; border: 0; border-radius: 0; padding: 0; overflow: visible; background: none; box-shadow: none; }
+body.digital-ui #lobby .tabletop-frame::before, body.digital-ui #lobby .tabletop-frame::after { display: none; content: none; }
+body.digital-ui .roster-title { display: flex; align-items: center; justify-content: space-between; margin: 0 0 12px; padding-bottom: 8px; border-bottom: 1px solid var(--line); font-size: 24px; }
+body.digital-ui .roster-title small { font: 11px 'Segoe UI',sans-serif; color: #bdb9af; }
+body.digital-ui #lobby #seats { display: grid; position: relative; inset: auto; width: 100%; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
+body.digital-ui #lobby #seats .table-seat {
+  --seat-width: auto !important; position: relative; inset: auto !important; transform: none !important;
+  display: grid; grid-template-columns: 44px minmax(0,1fr); grid-template-areas: 'portrait name' 'portrait badges' 'status status' 'effects effects';
+  gap: 2px 10px; align-items: center; width: 100%; min-width: 0; min-height: 82px; padding: 10px;
+  border: 1px solid #bab8ad47; border-radius: 3px; background: #121519c9; box-shadow: none; animation: none; color: #f2eee2;
+}
+body.digital-ui #lobby #seats .table-seat.empty { display: flex; min-height: 94px; flex-direction: row; justify-content: flex-start; gap: 12px; color: #9c9b95; border-style: dashed; background: #080a0c73; }
+body.digital-ui #lobby #seats .empty-sigil { display: grid; place-items: center; width: 42px; height: 42px; border: 1px dashed #99988f; border-radius: 50%; font: 25px Georgia,serif; }
+body.digital-ui #lobby #seats .empty h3 { margin: 0; color: #a6a59c; font-size: 18px; }
+body.digital-ui #lobby #seats .empty p, body.digital-ui #lobby #seats .empty .seat-number { display: none; }
+body.digital-ui #lobby #seats .table-seat .portrait-wrap { grid-area: portrait; position: relative; width: 42px; height: 42px; margin: 0; padding: 2px; border: 1px solid #e0dacc; border-radius: 50%; background: #080a0c; box-shadow: none; }
+body.digital-ui #lobby #seats .portrait-wrap > .villager-portrait { display: none; }
+body.digital-ui #lobby #seats .portrait-wrap > .emblem { position: relative; z-index: 1; opacity: 1; width: 100%; height: 100%; padding: 2px; color: #e9e2d3; }
+body.digital-ui #lobby #seats .table-seat .seat-name { grid-area: name; display: flex; align-items: center; justify-content: flex-start; width: auto; gap: 6px; margin: 0; min-width: 0; }
+body.digital-ui #lobby #seats .table-seat .seat-name h3 { max-width: 100%; width: auto; margin: 0; padding: 0; border: 0; border-radius: 0; background: none; color: #f5f0e3; font: 21px/1.1 var(--heading); text-align: left; text-shadow: none; box-shadow: none; overflow: hidden; text-overflow: ellipsis; }
+body.digital-ui #lobby #seats .seat-name small { display: inline; color: #ff5964; font: 8px 'Segoe UI',sans-serif; }
+body.digital-ui #lobby #seats .table-seat .seat-badges { grid-area: badges; min-height: 12px; margin: 0; display: flex; gap: 5px; justify-content: flex-start; }
+body.digital-ui #lobby #seats .seat-badges .seat-number { display: none; }
+body.digital-ui #lobby #seats .seat-badges .host-tag, body.digital-ui #lobby #seats .seat-badges .bot-tag { position: static; min-height: 0; padding: 0; border: 0; border-radius: 0; background: none; color: #bdb7a6; font-size: 8px; }
+body.digital-ui #lobby #seats .table-seat .seat-status { grid-area: status; margin: 3px 0 0; min-height: 0; color: #b9b7ac; font-size: 10px; line-height: 1.3; text-align: left; }
+body.digital-ui #lobby #seats .is-ready .seat-status { color: #89d29a; }
+body.digital-ui #lobby:not(.is-in-match) #seats .table-seat .seat-seals,
+body.digital-ui #lobby:not(.is-in-match) #seats .table-seat .attached-status,
+body.digital-ui #lobby:not(.is-in-match) #seats .table-seat .status-icons { display: none; }
+body.digital-ui #lobby #seats .table-seat .identity-back { display: none; }
+body.digital-ui #lobby #seats .table-seat .remove-bot { position: absolute; right: 6px; bottom: 6px; width: auto; min-height: 30px; margin: 0; padding: 3px 7px; color: #c8c2b7; font-size: 9px; }
+body.digital-ui #lobby #seats .table-seat.is-active { border-color: #ed3c49; background: #3a101aeb; box-shadow: inset 3px 0 #e12234; }
+body.digital-ui #lobby #seats .table-seat.is-active::before { display: none; }
+body.digital-ui #lobby #seats .table-seat.is-valid-target { border-color: #f2d17d; background: #3b2f16b8; box-shadow: inset 3px 0 #e3bc63; cursor: pointer; filter: none; }
+body.digital-ui #lobby #seats .table-seat.is-selected-target, body.digital-ui #lobby #seats .table-seat.is-second-target { border-color: #fff0ab; box-shadow: inset 3px 0 #f4d273,0 0 16px #f4ca563c; }
+body.digital-ui #lobby #seats.targeting .table-seat:not(.is-valid-target):not(.is-selected-target):not(.is-second-target) { filter: brightness(.6); }
+body.digital-ui #lobby #seats .target-callout { grid-area: choose; justify-self: end; position: static; transform: none; min-height: 30px; padding: 4px 10px; border: 1px solid #d8b76a; border-radius: 2px; background: #302719; color: #ffde8b; font-size: 10px; }
+body.digital-ui #lobby #seats .target-callout[hidden] { display: none !important; }
+body.digital-ui #lobby #seats .target-callout:disabled { opacity: 1; color: #fff0c0; }
+body.digital-ui #lobby #seats .hidden-seal-count, body.digital-ui #lobby #seats .history-marker { display: none; }
+body.digital-ui #lobby .controls { position: relative; inset: auto; display: flex; flex-direction: column; align-items: stretch; gap: 12px; max-height: none; margin-top: 14px; padding: 15px 0 0; border: 0; border-top: 1px solid var(--line); background: none; }
+body.digital-ui #lobby .controls p { margin: 0; font-size: 11px; }
+body.digital-ui #lobby .control-buttons { display: flex; flex-wrap: wrap; gap: 10px; }
+body.digital-ui #lobby .control-buttons > #ready, body.digital-ui #lobby .control-buttons > #start { flex: 1; min-height: 50px; font: 21px var(--heading); text-transform: uppercase; }
+body.digital-ui #ready:not(.primary) { color: #a8e6b4; border-color: #508e5f; }
+body.digital-ui #lobby .bot-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; width: 100%; }
+body.digital-ui .bot-controls label { width: auto; font-size: 11px; }
+body.digital-ui .bot-controls select { min-width: 100px; flex: 1; }
+body.digital-ui .scapegoat-setting { display: flex; align-items: center; gap: 9px; margin: 0; color: #c6c1b4; font-size: 11px; white-space: normal; }
+body.digital-ui .scapegoat-setting input { width: 18px; height: 18px; min-height: 18px; padding: 0; accent-color: #c1182c; }
+body.digital-ui #lobby:not(.is-in-match) #action-stage { display: none; }
+body.digital-ui #lobby:not(.is-in-match) #vow-threads { display: none; }
+body.digital-ui #lobby:not(.is-in-match) #seats .table-seat { min-height: 72px; padding: 6px 10px; }
+body.digital-ui .room-footer { padding: 12px 0; color: #aaa49a; }
+body.digital-ui .room-footer p { margin: 0; font-size: 10px; }
+
+/* Match grid: roster | spotlight and hand | public communication. */
+body.digital-ui.game-screen { height: 100dvh; overflow: hidden; --hand-height: 250px; background-image: url('/art/digital-village.webp'); }
+body.digital-ui.game-screen::before { background: linear-gradient(90deg,#06090b5c,#06090b0a 60%,#05070944),linear-gradient(0deg,#050508bd,transparent 65%); }
+body.digital-ui.game-screen:has(#lobby[data-phase='NIGHT'])::before { background: #04101c9e; }
+body.digital-ui.game-screen .topbar { height: 58px; min-height: 0; margin: 0 16px; padding: 6px 0; }
+body.digital-ui.game-screen .topbar .brand { font-size: 22px; }
+body.digital-ui.game-screen .brand > .role-symbol { width: 34px; height: 34px; }
+body.digital-ui.game-screen .connection { font-size: 9px; margin: 0; }
+body.digital-ui.game-screen main { height: calc(100dvh - 58px); padding: 0 16px 12px; overflow: hidden; }
+body.digital-ui.game-screen #lobby.is-in-match { display: flex; flex-direction: column; height: 100%; }
+body.digital-ui.game-screen #lobby .room-heading { flex: 0 0 46px; height: 46px; padding: 5px 0; }
+body.digital-ui.game-screen .room-heading > div:first-child { display: none; }
+body.digital-ui.game-screen #lobby .room-code-box { display: flex; align-items: center; gap: 10px; padding: 0; border: 0; background: none; }
+body.digital-ui.game-screen #lobby .room-code-box > span { font-size: 8px; }
+body.digital-ui.game-screen #lobby .room-code-box > div { margin: 0; }
+body.digital-ui.game-screen #lobby .room-code-box strong { font-size: 14px; }
+body.digital-ui.game-screen #lobby .room-layout { flex: 1; height: auto; min-height: 0; grid-template-columns: minmax(0,1fr) 280px; gap: 12px; overflow: visible; }
+body.digital-ui.game-screen #lobby .play-column { --wing: 235px; display: grid; grid-template-columns: var(--wing) minmax(0,1fr) var(--wing); grid-template-rows: minmax(0,1fr) 250px; gap: 12px; height: 100%; }
+body.digital-ui.game-screen #lobby .tabletop-panel { grid-column: 1 / -1; grid-row: 1; min-height: 0; height: 100%; padding: 0 0 36px; display: flex; flex-direction: column; overflow: hidden; border: 0; background: none; pointer-events: none; }
+body.digital-ui.game-screen #lobby .tabletop-frame { flex: 1; height: 100%; min-height: 0; overflow: auto; scrollbar-width: thin; scrollbar-color: #777268 transparent; }
+body.digital-ui.game-screen #lobby .roster-title { width: var(--wing); position: sticky; top: 0; z-index: 9; margin-bottom: 8px; padding: 7px; background: #090b0fec; font-size: 21px; }
+body.digital-ui .roster-hint { display: none; }
+body.digital-ui.game-screen #lobby #seats { grid-template-columns: var(--wing) minmax(0,1fr) var(--wing); grid-template-rows: repeat(var(--roster-rows),auto); align-items: start; gap: 8px 12px; }
+body.digital-ui.game-screen #lobby #seats .table-seat { grid-column: var(--seat-wing); grid-row: var(--seat-row); pointer-events: auto; display: grid; grid-template-columns: 36px minmax(0,1fr); grid-template-areas: 'portrait name' 'portrait badges' 'seals seals' 'doubt doubt' 'revealed revealed' 'status status' 'effects effects' 'choose choose'; gap: 2px 6px; width: 100%; min-height: 114px; padding: 8px 10px; }
+body.digital-ui.game-screen #lobby #seats .table-seat .portrait-wrap { width: 34px; height: 34px; }
+body.digital-ui.game-screen #lobby #seats .table-seat .seat-name h3 { font-size: 17px; }
+body.digital-ui.game-screen #lobby #seats .table-seat .seat-status { display: block; font-size: 10px; margin: 0; }
+body.digital-ui.game-screen #lobby #seats .table-seat.is-you .seat-name h3 { color: #ff8990; }
+body.digital-ui.game-screen #lobby .tabletop-panel > .controls { position: absolute; bottom: 0; right: 0; width: var(--wing); pointer-events: auto; flex: none; margin: 0; padding: 4px 0 0; border: 0; }
+body.digital-ui.game-screen #lobby .tabletop-panel > .controls :is(.eyebrow,h3,p) { display: none; }
+body.digital-ui.game-screen #lobby .tabletop-panel > .controls #reopen { position: static; min-height: 29px; padding: 3px 7px; border-color: #817b6e; background: #101115; color: #bdb7a9; font-size: 9px; }
+body.digital-ui.game-screen .action-stage { grid-column: 2; grid-row: 1; z-index: 10; position: relative; min-width: 0; min-height: 0; display: flex; flex-direction: column; align-items: stretch; gap: 10px; padding: 0; }
+body.digital-ui .match-hud { position: relative; flex: none; text-align: center; min-height: 62px; padding: 0 55px; }
+body.digital-ui .phase-banner { display: inline-block; min-width: min(280px,100%); padding: 8px 22px; border: 1px solid #c1535b; border-radius: 2px; background: linear-gradient(120deg,#9f0716eb,#510b14f2); font: 25px/1 var(--heading); text-transform: uppercase; }
+body.digital-ui .match-hud p { margin: 6px 0 0; color: #f0e9d8; font-size: 10px; letter-spacing: .05em; }
+body.digital-ui .match-hud p span { padding: 0 5px; color: #a6a096; }
+body.digital-ui .match-hud p b { color: #ff5a69; }
+body.digital-ui .hud-deadline { position: absolute; top: 3px; right: 0; font: 26px var(--heading); color: #fff5dc; }
+body.digital-ui .hud-piles { display: none; }
+body.digital-ui .action-spotlight { flex: 1; display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 12px; min-height: 0; text-align: center; }
+body.digital-ui .spotlight-empty, body.digital-ui .spotlight-global { max-width: 390px; padding: 18px 20px; background: radial-gradient(ellipse,#090a0eab,transparent 75%); text-shadow: 0 3px 10px #000; }
+body.digital-ui .spotlight-empty h2, body.digital-ui .spotlight-global h2 { margin: 6px 0; font-size: clamp(26px,3vw,43px); }
+body.digital-ui .spotlight-empty p, body.digital-ui .spotlight-global p, body.digital-ui .spotlight-instruction { margin: 0; color: #e0d8c8; font: 13px/1.4 Georgia,serif; }
+body.digital-ui .spotlight-player { min-width: 160px; max-width: 260px; padding: 13px 18px; border: 1px solid #d6c8a990; border-radius: 3px; background: #080a0edb; box-shadow: 0 10px 35px #0008; }
+body.digital-ui .spotlight-player header { display: flex; align-items: center; justify-content: center; gap: 10px; }
+body.digital-ui .spotlight-player header .emblem { width: 45px; height: 45px; color: #dc4651; }
+body.digital-ui .spotlight-player h2 { margin: 8px 0; font-size: 28px; }
+/* A short route inside the spotlight replaces lines across unrelated seats. */
+body.digital-ui .action-route { width: 100%; max-width: 620px; padding: 14px 10px; border: 1px solid #c8c0ae42; border-radius: 4px; background: #070b10d9; }
+body.digital-ui .route-state { margin: 0 0 12px; color: #b9b6ad; font: 10px/1.3 'Segoe UI',sans-serif; letter-spacing: .15em; }
+body.digital-ui .planning .route-state { color: #f0cf7f; }
+body.digital-ui .action-actor > span { display: flex; justify-content: center; align-items: center; gap: 9px; margin: 5px 0; }
+body.digital-ui .action-actor .emblem { width: 30px; height: 30px; color: #eee4d0; }
+body.digital-ui .action-actor b { font: 24px/1.1 var(--heading); overflow-wrap: anywhere; }
+body.digital-ui .action-actor .eyebrow { font-size: 9px; color: #c3baab; }
+body.digital-ui .route-card-name { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 8px 0; color: #e65566; }
+body.digital-ui .route-card-name h2 { margin: 0; font-size: 27px; }
+body.digital-ui .route-card-name > span { font: 24px Arial,sans-serif; }
+body.digital-ui .route-targets { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 8px; }
+body.digital-ui .route-targets .spotlight-player { flex: 1; min-width: 120px; max-width: 235px; padding: 10px; border-color: #d9bc6f; }
+body.digital-ui .route-targets .spotlight-player h2 { font-size: 25px; overflow-wrap: anywhere; }
+body.digital-ui .action-direction { color: #edc873; font: 24px Arial,sans-serif; }
+body.digital-ui .route-help { margin: 12px 0 0; font: 12px/1.4 'Segoe UI',sans-serif; color: #c9c0b0; }
+body.digital-ui .action-route.waiting > h2 { margin: 15px 0; font-size: 30px; }
+body.digital-ui .route-targets .spotlight-global { padding: 3px; }
+body.digital-ui .route-targets .spotlight-global h2 { font-size: 26px; }
+body.digital-ui .action-stage:has(.planning) .table-center { display: none; }
+body.digital-ui #action-spotlight .revealed-life-summary { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; margin-top: 6px; }
+body.digital-ui #action-spotlight .revealed-life-badge { display: flex; align-items: center; gap: 4px; min-height: 30px; padding: 4px 7px; color: #171b20; background: #e5decd; font: 600 12px 'Segoe UI',sans-serif; }
+body.digital-ui #action-spotlight .revealed-life-badge .emblem { width: 19px; height: 19px; }
+body.digital-ui #action-confirmation { flex: none; z-index: 20; }
+body.digital-ui #action-confirmation .play-preview { position: relative; inset: auto; transform: none; width: 100%; max-width: 600px; margin: 0 auto; padding: 12px; border: 1px solid #c8c2af9c; border-radius: 3px; color: #eee8db; background: #0a0c10f2; box-shadow: 0 5px 25px #0009; text-align: left; }
+body.digital-ui .play-preview strong { font: 20px var(--heading); color: #fff4dc; }
+body.digital-ui .play-preview p { margin: 6px 0 10px; font-size: 12px; line-height: 1.45; color: #ccc6bb; }
+body.digital-ui .play-preview > div { display: flex; justify-content: flex-end; gap: 8px; }
+body.digital-ui .play-preview label { font-size: 12px; }
+body.digital-ui .play-preview button { min-height: 42px; }
+body.digital-ui.game-screen #lobby .table-center { position: relative; flex: none; inset: auto; transform: none; width: 190px; height: auto; min-height: 0; align-self: center; margin: 0; padding: 0 0 18px; border: 0; background: none; box-shadow: none; }
+body.digital-ui #lobby .table-center::before, body.digital-ui #lobby .table-center::after { display: none; }
+body.digital-ui.game-screen .table-center .table-phase, body.digital-ui.game-screen .table-center .table-timer, body.digital-ui.game-screen .table-center .table-rule { display: none; }
+body.digital-ui.game-screen .table-piles { justify-content: space-between; gap: 35px; margin: 0; }
+body.digital-ui.game-screen .card-pile { width: 60px; height: 82px; filter: none; }
+body.digital-ui.game-screen .pile-card, body.digital-ui.game-screen .draw-pile .pile-card-1 { border: 1px solid #d5cfc0; border-radius: 3px; color: #ddd5c2; background: #0e1117; box-shadow: inset 0 0 0 3px #15181c,inset 0 0 0 4px #b9b2a0,0 5px 12px #000c; }
+body.digital-ui.game-screen .discard-face { background: #15171c; color: #e2d8c3; }
+body.digital-ui.game-screen .card-pile b { width: 22px; height: 22px; color: #f4eddd; background: #970d1c; font-size: 10px; }
+body.digital-ui.game-screen .card-pile small { color: #f4efdf; font: 11px var(--heading); letter-spacing: .08em; }
+body.digital-ui.game-screen .table-message p { color: #e5dfd1; font-size: 12px; text-align: center; }
+body.digital-ui.game-screen .room-footer, body.digital-ui.game-screen .page-footer { display: none; }
+
+/* Face-down public Life art never depends on the private identity. */
+body.digital-ui :is(#seats,#local-life,#action-spotlight) .seat-seals { grid-area: seals; align-self: center; }
+body.digital-ui :is(#seats,#local-life,#action-spotlight) .public-seals { display: flex; justify-content: flex-start; flex-wrap: nowrap; gap: 3px; width: 100%; margin: 0; padding: 0; list-style: none; }
+body.digital-ui :is(#seats,#local-life,#action-spotlight) .public-seals li { position: relative; flex: 1; width: 19px; max-width: 40px; min-width: 0; height: 29px; padding: 2px; display: grid; place-items: center; border: 1px solid #b9b5ab; border-radius: 2px; background: #10141a; box-shadow: inset 0 0 0 2px #10141a,inset 0 0 0 3px #77766f; color: #aaa99e; transform: none; overflow: hidden; }
+body.digital-ui :is(#seats,#local-life,#action-spotlight) .public-seals li button { width: 100%; height: 100%; min-height: 0; padding: 0; border: 0; background: none; color: inherit; }
+body.digital-ui :is(#seats,#local-life,#action-spotlight) .public-seals li .emblem { width: 100%; height: 100%; padding: 0; color: inherit; }
+body.digital-ui :is(#seats,#local-life,#action-spotlight) .public-seals li.revealed { background: #e2ddcc; color: #25252a; border-color: #fff3d4; }
+body.digital-ui :is(#seats,#local-life,#action-spotlight) .public-seals li.revealed span { writing-mode: horizontal-tb; transform: none; text-align: center; font: 7px/1 var(--heading); overflow-wrap: anywhere; }
+body.digital-ui :is(#seats,#local-life,#action-spotlight) .public-seals li.seal-witch { background: #9d1828; color: #fff0dd; border-color: #ff6570; }
+body.digital-ui :is(#seats,#local-life,#action-spotlight) .public-seals li.revealed > button { position: relative; z-index: 1; color: inherit; }
+body.digital-ui #lobby #seats .revealed-life-summary { grid-area: revealed; display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin: 4px 0 2px; }
+body.digital-ui #lobby #seats .revealed-life-badge { display: inline-flex; align-items: center; gap: 5px; min-height: 28px; padding: 3px 7px; border: 1px solid #b8b09c; border-radius: 3px; background: #e3ddcc; color: #15191e; box-shadow: none; font: 600 12px/1.2 'Segoe UI',Arial,sans-serif; white-space: nowrap; }
+body.digital-ui #lobby #seats .revealed-life-badge .emblem { width: 19px; height: 19px; color: inherit; }
+body.digital-ui #lobby #seats .revealed-life-badge b { padding-left: 3px; font-size: 12px; }
+body.digital-ui #lobby #seats .revealed-life-badge.life-witch { border-color: #fa7f8a; color: #fff3e0; background: #8d1527; }
+body.digital-ui #lobby #seats .revealed-life-badge.life-constable { border-color: #f4d183; color: #ffdf91; background: #2d291d; }
+body.digital-ui #lobby #seats .revealed-life-badge:hover { color: #fff5df; background: #333842; }
+body.digital-ui .life-inspection { position: fixed; z-index: 151; width: min(310px,calc(100vw - 20px)); max-height: calc(100dvh - 20px); overflow-y: auto; padding: 18px; border: 1px solid #d7cfb9; border-top: 3px solid #ddd2b8; border-radius: 4px; color: #f3ecdc; background: #0b0e13fc; box-shadow: 0 14px 45px #000d; }
+body.digital-ui .life-inspection .eyebrow { margin: 0 35px 12px 0; font-size: 9px; }
+body.digital-ui .life-inspection-identity { display: flex; align-items: center; gap: 13px; margin-bottom: 12px; }
+body.digital-ui .life-inspection-identity .emblem { width: 62px; height: 62px; flex: none; padding: 7px; border: 1px solid #9d9584; color: #e9dfc6; background: #181c23; }
+body.digital-ui .life-inspection h3 { margin: 0; font: 30px/1.1 var(--heading); overflow-wrap: anywhere; }
+body.digital-ui .life-inspection p:not(.eyebrow) { margin: 8px 0; font-size: 13px; line-height: 1.5; color: #ded6c5; }
+body.digital-ui .life-inspection small { display: block; margin-top: 12px; padding-top: 10px; border-top: 1px solid #8c84754d; font-size: 11px; line-height: 1.5; color: #b4ac9c; }
+body.digital-ui .life-inspection-close { float: right; min-width: 38px; min-height: 38px; padding: 4px; font-size: 24px; }
+body.digital-ui.game-screen #lobby #seats .table-seat .public-seals li { flex: 1 1 0; width: auto; height: 34px; max-width: none; }
+body.digital-ui :is(#seats,#local-life,#action-spotlight) .public-seals li.life-broken { opacity: .5; }
+body.digital-ui :is(#seats,#local-life,#action-spotlight) .attached-status { grid-area: doubt; height: 17px; min-height: 17px; margin: 0; display: block; }
+body.digital-ui .doubt-track { position: relative; display: grid; grid-template-columns: repeat(7,minmax(0,1fr)); gap: 1px; width: 100%; height: 17px; min-height: 17px; }
+body.digital-ui .doubt-tile, body.digital-ui .doubt-tile.filled { display: block; width: 100%; max-width: none; height: 17px; padding: 0; border: 0; border-radius: 0; color: #ed2939; background: none; box-shadow: none; font: bold 21px/17px Arial,sans-serif; text-align: center; text-shadow: 0 0 5px #a40816; }
+body.digital-ui .doubt-tile.unused { display: none; }
+body.digital-ui.game-screen #lobby #seats .attached-status, body.digital-ui.game-screen #lobby #seats .doubt-track { height: 17px; min-height: 17px; margin: 0; }
+body.digital-ui.game-screen #lobby #seats .doubt-tile { height: 17px; font: bold 21px/17px Arial,sans-serif; }
+body.digital-ui .spotlight-player .public-seals { justify-content: center; margin-top: 5px; }
+body.digital-ui .spotlight-player .public-seals li { height: 48px; }
+body.digital-ui .spotlight-player .doubt-track { margin-top: 5px; }
+body.digital-ui.game-screen .local-life { position: relative; grid-column: 1; grid-row: 2; align-self: start; height: 174px; padding: 12px; border: 1px solid var(--line); border-radius: 4px; background: #080a0cde; }
+body.digital-ui .local-life header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+body.digital-ui .local-life header .emblem { width: 30px; height: 30px; color: #db3b49; }
+body.digital-ui .local-life header h2 { flex: 1; min-width: 0; margin: 0; font-size: 18px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+body.digital-ui .local-life header > span { font-size: 7px; letter-spacing: .1em; }
+body.digital-ui #local-life .public-seals li { max-width: 43px; height: 58px; }
+body.digital-ui #local-life .public-seals li.revealed span { font-size: 11px; }
+body.digital-ui #local-life .attached-status { width: 230px; margin-top: 4px; }
+body.digital-ui .inspect-life { position: absolute; right: 10px; bottom: 7px; min-height: 27px; padding: 3px 8px; font-size: 9px; }
+body.digital-ui.game-screen .role-toggle { position: absolute; z-index: 21; inset: auto auto 0 0; display: flex; align-items: center; gap: 8px; width: var(--wing); height: 65px; padding: 4px 12px; border: 1px solid #bcb5a36e; border-radius: 3px; color: #f0ebdd; background: #080a0ee8; box-shadow: none; }
+body.digital-ui .role-toggle > img { width: 51px; height: 55px; object-fit: cover; object-position: 50% 8%; border-radius: 2px; }
+body.digital-ui .role-toggle > span { display: grid; grid-template-columns: 31px 1fr; gap: 2px 8px; align-items: center; text-align: left; }
+body.digital-ui .role-toggle .role-symbol { width: 29px; height: 29px; grid-row: 1 / 3; color: #eee4ce; }
+body.digital-ui .role-toggle b { font: 21px var(--heading); text-transform: uppercase; }
+body.digital-ui .role-toggle small { font: 8px 'Segoe UI',sans-serif; letter-spacing: .12em; color: #bdb5a5; }
+
+body.digital-ui #lobby .council-panel { position: relative; inset: auto; z-index: 12; display: flex; flex-direction: column; min-height: 420px; max-height: 720px; width: auto; height: 100%; padding: 13px; border: 1px solid var(--line); border-radius: 4px; background: #080a0ce6; backdrop-filter: blur(6px); box-shadow: none; overflow: hidden; }
+body.digital-ui.game-screen #lobby .council-panel { min-height: 0; max-height: none; }
+body.digital-ui .panel-heading { flex: none; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid var(--line); gap: 8px; }
+body.digital-ui .panel-heading h2, body.digital-ui .event-heading h2 { margin: 0; font-size: 23px; }
+body.digital-ui .public-label { margin-left: auto; padding: 0; background: none; color: #a7a395; font-size: 8px; }
+body.digital-ui .chat-close { display: none; }
+body.digital-ui #feed { flex: 1; min-height: 100px; max-height: none; padding: 0; margin: 0 0 10px; }
+body.digital-ui .feed { overflow-y: auto; scrollbar-width: thin; scrollbar-color: #686762 transparent; list-style: none; }
+body.digital-ui .feed li { padding: 8px 0; border: 0; border-bottom: 1px solid #b9b5a71f; color: #ddd8ca; font-size: 12px; line-height: 1.45; overflow-wrap: anywhere; }
+body.digital-ui #lobby .feed li { display: block; width: 100%; max-width: none; margin: 0; border-radius: 0; background: none; }
+body.digital-ui .feed li b { display: block; margin-bottom: 3px; color: #e23a49; font: 16px var(--heading); }
+body.digital-ui #chat-form { flex: none; }
+body.digital-ui .chat-row { gap: 6px; }
+body.digital-ui .chat-row input { min-width: 0; padding: 8px; font-size: 12px; }
+body.digital-ui .chat-row button { padding: 6px 10px; }
+body.digital-ui .event-heading { flex: none; margin: 14px 0 0; padding: 10px 0 8px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; }
+body.digital-ui .event-heading > span { font-size: 7px; letter-spacing: .1em; color: #969387; }
+body.digital-ui #event-feed { flex: 1; min-height: 80px; max-height: none; margin: 0; padding: 0; }
+body.digital-ui #event-feed li { color: #beb7a6; font-size: 10px; }
+body.digital-ui .chat-toggle { display: none; }
+body.digital-ui #notice { position: fixed; z-index: 130; left: 50%; top: 65px; bottom: auto; width: max-content; max-width: calc(100vw - 24px); transform: translateX(-50%); margin: 0; padding: 12px 18px; border: 1px solid #cb606a; border-radius: 3px; color: #fff0dd; background: #320d16f5; box-shadow: 0 5px 30px #0009; }
+
+/* Hand and contextual actions. All card text and counts are live data. */
+body.digital-ui.game-screen #lobby .action-dock { position: relative; grid-column: 2 / -1; grid-row: 2; inset: auto; display: flex; flex-direction: column; height: 100%; min-height: 0; margin: 0; padding: 0; border: 0; border-radius: 0; background: #07080cb3; box-shadow: none; overflow: visible; }
+body.digital-ui .action-dock-heading { display: flex; align-items: center; gap: 8px; flex: none; height: 37px; min-height: 37px; padding: 0 6px; }
+body.digital-ui .action-dock-heading > .eyebrow { flex: 1; margin: 0; font-size: 9px; text-transform: uppercase; }
+body.digital-ui .action-dock-heading .turn-clock { display: none; }
+body.digital-ui .day-buttons { display: flex; gap: 6px; flex: none; }
+body.digital-ui .day-buttons button { min-height: 32px; padding: 4px 8px; border-radius: 2px; font-size: 10px; }
+body.digital-ui .hand-heading { display: flex; position: static; flex: none; height: 18px; min-height: 18px; margin: 0; padding: 0 8px; border: 0; }
+body.digital-ui .hand-heading .eyebrow { font-size: 8px; color: #aaa699; }
+body.digital-ui .hand-heading .hand-help { display: none; }
+body.digital-ui .action-hand.grouped-hand { display: flex; position: relative; flex: 1; align-items: flex-start; justify-content: flex-start; gap: 10px; min-height: 0; height: auto; max-height: none; width: 100%; margin: 0; padding: 10px 7px 5px; overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; scrollbar-color: #9c927e transparent; }
+body.digital-ui .grouped-hand .card-stack { position: relative; display: flex; flex-direction: column; align-items: stretch; flex: 0 0 118px; width: 118px; height: auto; min-height: 0; padding: 0; margin: 0 !important; transform: none; }
+body.digital-ui .grouped-hand .card-stack::before, body.digital-ui .grouped-hand .card-stack::after { display: none; }
+body.digital-ui .action-hand[data-hand-size] .action-card { position: relative; flex: none; display: flex; flex-direction: column; width: 100%; height: 150px; min-width: 0; min-height: 0; max-height: none; margin: 0 !important; padding: 4px; border: 2px solid #ded9c9; border-radius: 5px; color: #f8f2e4; background: #07080a; box-shadow: 0 4px 12px #0008; transform: none; transform-origin: center; overflow: visible; transition: transform .18s,box-shadow .18s; }
+body.digital-ui .action-card::before, body.digital-ui .action-card::after { display: none; }
+body.digital-ui .action-hand[data-hand-size] .action-card:hover { transform: translateY(-5px); filter: brightness(1.13); z-index: 22; }
+body.digital-ui .action-hand[data-hand-size] .action-card.selected, body.digital-ui .action-card.selected:nth-child(n) { transform: translateY(-8px); border-color: #ff6870; box-shadow: 0 0 0 2px #b90d23,0 0 20px #ed173f7a; z-index: 23; }
+body.digital-ui .action-hand[data-hand-size] .action-card .action-card-sigil { display: block; width: 100%; height: 90px; min-height: 90px; margin: 0 0 5px; padding: 0; border: 0; border-radius: 1px; background: #111318; box-shadow: none; overflow: hidden; }
+body.digital-ui .action-card-sigil img { width: 100%; height: 100%; object-fit: cover; display: block; }
+body.digital-ui .action-card .action-card-corner { display: none !important; }
+body.digital-ui .action-hand[data-hand-size] .action-card b { display: block; margin: 0; color: #fff8e9; font: 16px/1 var(--heading); text-transform: uppercase; letter-spacing: .025em; }
+body.digital-ui .action-card .card-title-full { display: inline; }
+body.digital-ui .action-card .card-title-short { display: none; }
+body.digital-ui .action-hand[data-hand-size] .action-card > span:not(.action-card-sigil):not(.action-card-corner):not(.card-stack-count) { margin: 5px 0 0; min-height: 0; color: #d2cdc1; font: 9px/1.2 'Segoe UI',sans-serif; }
+body.digital-ui .action-card small { display: none; }
+body.digital-ui .action-card .card-stack-count { position: absolute; z-index: 2; right: -7px; top: -7px; width: auto; min-width: 25px; height: 25px; display: grid; place-items: center; margin: 0; padding: 2px 5px; border: 1px solid #f5e1b7; border-radius: 50%; color: white; background: #8d1020; font-size: 11px; }
+body.digital-ui .card-details-button { width: 100%; min-height: 28px; padding: 3px 5px; margin-top: 3px; border-color: #77736a; color: #d7d0c1; font-size: 9px; }
+body.digital-ui .grouped-hand .stack-controls { position: relative; inset: auto; transform: none; display: flex; justify-content: space-between; align-items: center; gap: 2px; min-height: 26px; margin-top: 3px; padding: 0; border: 0; background: #080a0ce8; color: #e7dfce; font-size: 9px; }
+body.digital-ui .stack-controls button { min-width: 29px; min-height: 26px; padding: 2px 4px; font-size: 10px; }
+body.digital-ui .selection-hint { display: none; }
+body.digital-ui .outcome { padding: 25px; text-align: center; }
+body.digital-ui .outcome h2 { font-size: 30px; }
+body.digital-ui .empty-hand { margin: auto; }
+body.digital-ui .card-explanation { position: fixed; z-index: 150; width: min(350px,calc(100vw - 20px)); max-height: calc(100dvh - 20px); overflow-y: auto; padding: 17px; border: 1px solid #e0d6bf; border-top: 3px solid #d21d34; border-radius: 3px; background: #0a0c10fc; box-shadow: 0 15px 40px #000e; color: #eee6d4; }
+body.digital-ui .card-explanation h3 { margin: 0 35px 10px 0; font-size: 27px; }
+body.digital-ui .card-explanation p { margin: 8px 0 0; color: #e2dacc; font-size: 13px; line-height: 1.5; }
+body.digital-ui .card-explanation .details-target { color: #f3c9ca; font-weight: 600; }
+body.digital-ui .card-explanation .details-interaction { padding-top: 9px; border-top: 1px solid #aea28c45; font-size: 12px; color: #bdb6a9; }
+body.digital-ui .details-close { float: right; min-width: 36px; min-height: 36px; padding: 4px; font-size: 23px; }
+
+/* Private presentation: role first, then the separate Life identities. */
+body.digital-ui .role-panel { position: fixed; z-index: 100; inset: 50% auto auto 50%; transform: translate(-50%,-50%); width: min(1000px,calc(100vw - 30px)); max-height: calc(100dvh - 30px); border: 1px solid #d8cfbc; border-radius: 5px; background: #080a0cf7; box-shadow: 0 0 0 100vmax #030509bb,0 20px 60px #000d; overflow-y: auto; }
+body.digital-ui .role-panel:not(.is-open) { display: none; }
+body.digital-ui .role-panel-inner { padding: 25px; --role-color: #d3a951; }
+body.digital-ui .role-ashbound { --role-color: #de2838; }
+body.digital-ui .role-sleuth { --role-color: #58a9e2; }
+body.digital-ui .role-herbalist { --role-color: #8ca56a; }
+body.digital-ui .role-gossip { --role-color: #b783c9; }
+body.digital-ui .role-hexer { --role-color: #8574ce; }
+body.digital-ui .role-scapegoat { --role-color: #ce9458; }
+body.digital-ui .role-heading { display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+body.digital-ui .role-heading > .eyebrow { color: #d6cdbc; }
+body.digital-ui .role-heading button { width: 42px; min-height: 42px; font-size: 24px; }
+body.digital-ui .role-profile { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); align-items: center; gap: 30px; padding: 15px 0; border: 0; }
+body.digital-ui .role-profile-art { position: relative; width: 100%; height: min(54dvh,510px); border: 0; border-radius: 0; background: radial-gradient(ellipse,var(--role-color),transparent 68%); box-shadow: none; overflow: hidden; }
+body.digital-ui .role-profile-art img { display: block; width: 100%; height: 100%; object-fit: contain; }
+body.digital-ui .role-profile-symbol { color: var(--role-color); width: 82px; height: 82px; padding: 8px; border: 1px solid var(--role-color); border-radius: 50%; }
+body.digital-ui .role-symbol { width: 100%; height: 100%; }
+body.digital-ui .role-profile-copy h2 { margin: 15px 0; font: clamp(34px,5vw,66px)/1 var(--heading); }
+body.digital-ui .role-profile-copy p { color: #eee7d7; font: 16px/1.65 Georgia,serif; }
+body.digital-ui .role-profile-copy .role-privacy { font: 11px/1.5 'Segoe UI',sans-serif; color: #aaa396; border-top: 1px solid var(--line); padding-top: 13px; }
+body.digital-ui .role-availability { display: inline-block; color: #d2cbbb; border: 1px solid #8d877b; border-radius: 2px; padding: 6px 10px; font-size: 10px; }
+body.digital-ui #role-continue { display: flex; justify-content: space-between; width: min(440px,100%); margin: 14px 0 0 auto; min-height: 54px; font: 22px var(--heading); text-transform: uppercase; }
+body.digital-ui .role-panel form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; }
+body.digital-ui .role-panel form label { flex: 1; min-width: 140px; display: grid; gap: 5px; color: #c9c1b0; }
+body.digital-ui .role-panel form select { width: 100%; }
+body.digital-ui .role-panel form button { background: #8f1120; color: #fff2df; }
+body.digital-ui .role-result { display: flex; gap: 12px; flex-wrap: wrap; padding: 14px; background: #162b3a; border: 1px solid #68a5cc; color: #eef7ff; }
+body.digital-ui .role-countdown { color: #ff999d; }
+body.digital-ui .role-panel .council-vote { margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--line); }
+body.digital-ui .role-panel .council-vote h3 { font-size: 23px; }
+body.digital-ui .role-panel .council-vote p { font-size: 12px; }
+body.digital-ui .role-panel .lanternkeeper-note { padding: 9px 12px; border-left: 2px solid #c7b277; background: #28241a; font-size: 12px; }
+body.digital-ui .private-overlay-backdrop { position: fixed; z-index: 91; inset: 0; background: #040609bd; backdrop-filter: blur(8px); }
+body.digital-ui.game-screen .private-modal { position: fixed; z-index: 92; inset: 50% auto auto 50%; transform: translate(-50%,-50%); width: min(1100px,calc(100vw - 28px)); max-height: calc(100dvh - 28px); padding: 26px; border: 1px solid #d8cfbc; border-radius: 5px; background: #090b0ef5; backdrop-filter: none; overflow-y: auto; }
+body.digital-ui .private-modal-heading { display: flex; align-items: center; justify-content: space-between; }
+body.digital-ui .private-modal-heading h2 { margin: 0; font-size: 42px; }
+body.digital-ui .private-close { width: 44px; min-height: 44px; font-size: 25px; border-radius: 2px; }
+body.digital-ui.game-screen .private-role-summary { display: flex; align-items: center; gap: 13px; margin-top: 15px; padding: 10px; border: 1px solid #b9b09d50; border-radius: 3px; background: #171a20; }
+body.digital-ui .private-role-portrait { display: flex; align-items: center; flex: 0 0 105px; height: 75px; width: 105px; border: 0; background: none; box-shadow: none; }
+body.digital-ui .private-role-portrait img { width: 65px; height: 75px; object-fit: cover; object-position: top; }
+body.digital-ui .private-role-portrait .role-symbol { width: 36px; height: 36px; color: #d2c8b1; }
+body.digital-ui .private-role-summary > div:last-child { display: grid; gap: 3px; }
+body.digital-ui.game-screen .private-role-summary span { color: #a79f8d; }
+body.digital-ui.game-screen .private-role-summary b { font: 21px var(--heading); color: #f1e7d2; }
+body.digital-ui.game-screen .private-role-summary small { color: #bab2a0; font: 11px/1.4 'Segoe UI',sans-serif; }
+body.digital-ui .privacy-note { margin: 12px 0; color: #d2c9b6; font-size: 12px; }
+body.digital-ui .seal-transfer-warning { margin: 10px 0; padding: 9px 12px; border-left: 2px solid #d1b26a; background: #252014a1; color: #bdb09a; font-size: 10px; }
+body.digital-ui.game-screen .private-seal-grid { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 14px; margin: 20px 0; overflow: visible; }
+body.digital-ui.game-screen .private-seal-card { position: relative; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; min-height: 240px; padding: 10px 6px; border: 2px solid #c4bdab; border-radius: 4px; color: #efe6d3; background: #11151b; box-shadow: inset 0 0 0 4px #11151b,inset 0 0 0 5px #7c786c,0 8px 18px #0008; overflow: hidden; }
+body.digital-ui.game-screen .private-seal-card > .emblem { position: absolute; z-index: 2; top: 12px; right: 10px; width: 30px; height: 30px; padding: 3px; color: #e8dcc4; background: #11141aca; border-radius: 2px; }
+body.digital-ui.game-screen .private-seal-card:not(.face-up) { justify-content: center; }
+body.digital-ui.game-screen .private-seal-card:not(.face-up) > .emblem { position: static; width: 70px; height: 70px; margin-bottom: 15px; color: #a49c89; background: none; }
+body.digital-ui .life-identity-art { position: absolute; z-index: 0; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: top; }
+body.digital-ui.game-screen .private-seal-card b { position: relative; z-index: 1; width: 100%; padding: 9px 0 3px; font: 22px/1 var(--heading); color: #fff1d7; background: #07090be8; }
+body.digital-ui.game-screen .private-seal-card small { position: relative; z-index: 1; width: 100%; padding-bottom: 6px; background: #07090be8; font-size: 9px; }
+body.digital-ui.game-screen .private-seal-card.face-up { background: #17191e; color: #f5ecd6; }
+body.digital-ui.game-screen .private-seal-card.seal-witch { border-color: #c43746; }
+body.digital-ui.game-screen .private-seal-card.seal-constable { border-color: #e1be61; }
+body.digital-ui.game-screen .private-seal-card.swap-selected { transform: translateY(-7px); border-color: #82e4ab; box-shadow: 0 0 0 2px #3d8962,0 0 22px #69da9270; overflow: visible; }
+body.digital-ui.game-screen .private-allegiance { display: flex; justify-content: space-between; gap: 14px; padding: 9px; border: 1px solid #8d85765e; background: #12171b; color: #e4d6be; font-size: 11px; }
+body.digital-ui .seal-toolbar { display: flex; justify-content: flex-start; gap: 10px; margin-top: 15px; }
+body.digital-ui .private-confirm { display: flex; justify-content: space-between; align-items: center; gap: 14px; margin-top: 14px; }
+body.digital-ui .private-confirm p { margin: 0; font-size: 11px; }
+body.digital-ui #acknowledge { min-width: 40%; min-height: 48px; font: 20px var(--heading); text-transform: uppercase; }
+
+/* Persistent statuses stay on the affected public avatar and row. */
+body.digital-ui.game-screen #lobby #seats .table-seat .status-icons { position: relative; inset: auto; grid-area: effects; display: flex; justify-content: flex-start; gap: 4px; flex-wrap: wrap; width: auto; max-width: 100%; transform: none; margin-top: 3px; }
+body.digital-ui.game-screen #lobby #seats .table-seat .status-icons:empty { display: none; }
+body.digital-ui.game-screen .status-icon { display: flex; align-items: center; gap: 3px; width: auto; height: 25px; min-width: 0; min-height: 25px; padding: 2px 5px; border: 1px solid #92928c; border-radius: 2px; background: #0d1017; color: #e1d5bb; font: 8px 'Segoe UI',sans-serif; }
+body.digital-ui.game-screen .status-icon b { font: inherit; }
+body.digital-ui.game-screen .status-icon span { font-size: 12px; }
+body.digital-ui .status-symbol { display: block; flex: none; width: 15px; height: 15px; }
+body.digital-ui .portrait-chain svg { width: 100%; height: 100%; }
+body.digital-ui .portrait-heart .status-symbol { width: 17px; height: 17px; fill: #c8314a; stroke: #f1b6af; }
+body.digital-ui.game-screen .has-bound .portrait-wrap { outline: 2px dashed #8c9099; outline-offset: 2px; }
+body.digital-ui.game-screen .portrait-chain { font-size: 22px; inset: 6px 0 0; border-bottom-width: 5px; }
+body.digital-ui.game-screen .has-piety .portrait-wrap { box-shadow: 0 0 13px #e7d492; }
+body.digital-ui.game-screen .has-hearthward .portrait-wrap { box-shadow: 0 0 13px #f37d39; }
+body.digital-ui.game-screen .has-asylum .portrait-wrap::after { inset: -4px; border-color: #9ac9e8; font-size: 12px; }
+body.digital-ui.game-screen .portrait-heart { top: -9px; right: -7px; font-size: 16px; }
+body.digital-ui.game-screen .status-vow_heart { border-color: #dc6d91; color: #ff9fbe; }
+body.digital-ui.game-screen .status-vow_heart b { white-space: normal; text-align: left; }
+body.digital-ui.game-screen #night-panel:not([hidden]) { position: absolute; z-index: 30; inset: 76px 0 auto; width: min(500px,100%); max-height: calc(100% - 85px); margin: 0 auto; padding: 18px; border: 1px solid #758da6; border-radius: 4px; background: #09111ef5; transform: none; overflow: auto; }
+body.digital-ui.game-screen #night-panel > p:not(.eyebrow), body.digital-ui.game-screen .night-choice > p { display: block; color: #b9c8d6; font-size: 11px; }
+body.digital-ui.game-screen .night-choice h3 { color: #edf2f5; font-size: 25px; }
+body.digital-ui.game-screen .whisper-peek { position: fixed; z-index: 120; inset: 50% auto auto 50%; transform: translate(-50%,-50%); width: min(410px,calc(100vw - 24px)); padding: 26px; border: 1px solid #ada0c2; border-radius: 3px; color: #efecf4; background: #110c1afc; box-shadow: 0 0 0 100vmax #030208c4; }
+body.digital-ui.game-screen .whisper-peek strong { font: 26px var(--heading); }
+body.digital-ui.game-screen .flying-card { border-color: #d1c9b9; color: #e2d4b9; background: #10151d; }
+body.digital-ui .flying-card img { display: block; width: 100%; height: 100%; object-fit: cover; }
+body.digital-ui.game-screen .effect-label { border-color: #ba6874; color: #f7e8d7; background: #170c15ee; font-size: 9px; }
+body.digital-ui.game-screen .table-seat.is-dead { opacity: .85; }
+body.digital-ui.game-screen.life-reveal-active::after { display: none; }
+body.digital-ui.game-screen.life-reveal-active::before { background: #020308d1; }
+body.digital-ui.game-screen.life-reveal-active #lobby :is(.action-stage,.action-dock,.local-life,.council-panel,.role-toggle) { filter: brightness(.3); }
+body.digital-ui.game-screen.life-reveal-active #seats .table-seat:not(.accusation-seven) { opacity: .25; }
+body.digital-ui.game-screen #lobby #seats .table-seat.accusation-seven { filter: drop-shadow(0 0 12px #e3213e); }
+body.digital-ui.game-screen .is-dead .death-mark { inset: -3px; font: bold 58px/.8 Arial,sans-serif; color: #ee283e; background: none; text-shadow: 0 2px 6px #000; }
+body.digital-ui .recovery-banner { position: fixed; z-index: 150; top: 65px; left: 15px; right: 15px; padding: 12px; border: 1px solid #cf9b5b; background: #302213f5; color: #f2dfbd; }
+
+@media (min-width: 1600px) {
+  body.digital-ui.game-screen #lobby .play-column { --wing: 265px; grid-template-rows: minmax(0,1fr) 280px; }
+  body.digital-ui.game-screen #lobby .room-layout { grid-template-columns: minmax(0,1fr) 320px; }
+  body.digital-ui .grouped-hand .card-stack { flex-basis: 140px; width: 140px; }
+  body.digital-ui .action-hand[data-hand-size] .action-card { height: 180px; }
+  body.digital-ui .action-hand[data-hand-size] .action-card .action-card-sigil { height: 115px; min-height: 115px; }
+}
+@media (max-width: 1100px) {
+  body.digital-ui #lobby .room-layout, body.digital-ui.game-screen #lobby .room-layout { grid-template-columns: minmax(0,1fr); }
+  body.digital-ui #lobby .council-panel { display: none; }
+  body.digital-ui #lobby .council-panel.is-chat-open { display: flex; position: fixed; z-index: 80; inset: 85px 14px 20px auto; width: min(390px,calc(100vw - 28px)); height: auto; min-height: 0; max-height: none; background: #080a0cf5; }
+  body.digital-ui .chat-close { display: block; min-width: 36px; min-height: 36px; padding: 4px; font-size: 22px; }
+  body.digital-ui .chat-toggle { position: fixed; z-index: 60; inset: auto 18px 18px auto; display: flex; align-items: center; gap: 7px; min-height: 44px; padding: 8px 12px; border: 1px solid #d4c7ad; border-radius: 3px; background: #080b12f0; color: #ece2d0; }
+  body.digital-ui.game-screen .chat-toggle { top: 63px; bottom: auto; right: 16px; min-height: 34px; padding: 4px 8px; font-size: 10px; }
+  body.digital-ui.game-screen #lobby .play-column { --wing: 225px; }
+}
+@media (min-width: 681px) and (max-width: 850px) {
+  body.digital-ui.game-screen #lobby .play-column { --wing: 180px; gap: 8px; }
+  body.digital-ui.game-screen #lobby #seats { column-gap: 8px; }
+  body.digital-ui.game-screen #lobby #seats .table-seat .seat-name h3 { font-size: 17px; }
+  body.digital-ui.game-screen #lobby .tabletop-panel > .controls #reopen { font-size: 8px; }
+}
+@media (min-width: 681px) {
+  body.digital-ui.game-screen #lobby #seats:is([data-capacity="8"],[data-capacity="9"],[data-capacity="10"]) .table-seat { grid-template-columns: 30px minmax(0,1fr) 93px; grid-template-areas: 'portrait name seals' 'portrait badges doubt' 'revealed revealed revealed' 'status status status' 'effects effects effects' 'choose choose choose'; min-height: 80px; padding: 7px; gap: 2px 4px; }
+  body.digital-ui.game-screen #lobby #seats:is([data-capacity="8"],[data-capacity="9"],[data-capacity="10"]) .portrait-wrap { width: 28px; height: 28px; }
+  body.digital-ui.game-screen #lobby #seats:is([data-capacity="8"],[data-capacity="9"],[data-capacity="10"]) .public-seals li { height: 30px; }
+}
+@media (max-width: 680px) {
+  body.digital-ui .topbar { height: 60px; margin: 0 14px; }
+  body.digital-ui .brand { font-size: 22px; gap: 7px; }
+  body.digital-ui .brand > .role-symbol { width: 32px; height: 32px; }
+  body.digital-ui .brand small { font-size: 6px; }
+  body.digital-ui .connection { font-size: 9px; }
+  body.digital-ui main { padding: 0 14px; }
+  body.digital-ui .entry { grid-template-columns: 1fr; gap: 30px; padding: 25px 0 45px; }
+  body.digital-ui .intro h1 { font-size: clamp(58px,17vw,90px); margin: 14px 0; }
+  body.digital-ui .intro .lede { font-size: 15px; }
+  body.digital-ui .intro-menu { margin-top: 23px; }
+  body.digital-ui .intro-menu button { min-height: 54px; font-size: 22px; }
+  body.digital-ui .intro-foot { gap: 16px; margin-top: 20px; font-size: 8px; }
+  body.digital-ui .entry-card { padding: 22px; }
+  body.digital-ui #lobby .room-heading { flex-direction: column; align-items: stretch; padding: 20px 0 15px; }
+  body.digital-ui #lobby .room-heading h1 { font-size: 34px; }
+  body.digital-ui #lobby .room-code-box > div { justify-content: space-between; }
+  body.digital-ui #lobby #seats { grid-template-columns: 1fr; }
+  body.digital-ui #lobby .tabletop-panel { padding: 10px; }
+  body.digital-ui #lobby .bot-controls button { flex: 1; }
+  body.digital-ui.game-screen { --hand-height: clamp(184px,27dvh,235px); }
+  body.digital-ui.game-screen .topbar { height: 39px; margin: 0 8px; padding: 3px 0; }
+  body.digital-ui.game-screen .topbar .brand { font-size: 17px; }
+  body.digital-ui.game-screen .brand > .role-symbol { width: 25px; height: 25px; }
+  body.digital-ui.game-screen .brand small { display: none; }
+  body.digital-ui.game-screen .connection { font-size: 8px; }
+  body.digital-ui.game-screen main { height: calc(100dvh - 39px); padding: 0 7px 5px; }
+  body.digital-ui.game-screen #lobby .room-heading { flex-direction: row; flex: 0 0 39px; height: 39px; padding: 3px 0; }
+  body.digital-ui.game-screen #lobby .room-code-box > span { display: none; }
+  body.digital-ui.game-screen #lobby .room-code-box > div { gap: 5px; }
+  body.digital-ui.game-screen #lobby .room-code-box strong { font-size: 12px; }
+  body.digital-ui.game-screen #lobby .room-code-box button { min-height: 31px; padding: 3px 6px; font-size: 9px; }
+  body.digital-ui.game-screen .chat-toggle { top: 44px; right: 8px; min-height: 30px; padding: 3px 6px; }
+  body.digital-ui.game-screen .chat-toggle .control-icon { width: 14px; height: 14px; }
+  body.digital-ui.game-screen #lobby .play-column { display: grid; grid-template-columns: minmax(0,1fr); grid-template-rows: clamp(160px,23dvh,194px) minmax(112px,1fr) 74px var(--hand-height); gap: 6px; height: 100%; }
+  body.digital-ui.game-screen #lobby .tabletop-panel { grid-column: 1; grid-row: 1; padding: 5px; }
+  body.digital-ui.game-screen #lobby .tabletop-frame { overflow: hidden; }
+  body.digital-ui.game-screen #lobby .roster-title { font-size: 16px; height: 20px; margin: 0 0 4px; padding: 0 0 3px; }
+  body.digital-ui.game-screen #lobby #seats { display: grid; grid-template-columns: none; grid-template-rows: minmax(0,1fr); grid-auto-columns: 200px; grid-auto-flow: column; gap: 6px; height: calc(100% - 26px); padding: 0 3px 3px; overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; pointer-events: auto; }
+  body.digital-ui.game-screen #lobby #seats .table-seat { grid-column: auto; grid-row: auto; grid-template-columns: 28px minmax(0,1fr); min-height: 0; height: 100%; padding: 6px; gap: 1px 5px; }
+  body.digital-ui.game-screen #lobby .tabletop-panel { background: #080a0c99; border: 1px solid #b8b09c47; pointer-events: auto; }
+  body.digital-ui.game-screen #lobby .roster-title { width: 100%; padding-right: 85px; }
+  body.digital-ui.game-screen #lobby .roster-title small { margin-left: 8px; margin-right: auto; }
+  body.digital-ui.game-screen .roster-hint { display: inline; margin-left: auto; margin-right: 4px; color: #b7b2a7; font: 8px 'Segoe UI',sans-serif; }
+  body.digital-ui.game-screen #lobby #seats .table-seat .portrait-wrap { width: 25px; height: 25px; }
+  body.digital-ui.game-screen #lobby #seats .table-seat .seat-name h3 { font-size: 17px; }
+  body.digital-ui.game-screen #lobby #seats .seat-name small { font-size: 6px; }
+  body.digital-ui.game-screen #lobby #seats .table-seat .seat-badges { min-height: 8px; }
+  body.digital-ui.game-screen #lobby #seats .seat-badges .host-tag, body.digital-ui.game-screen #lobby #seats .seat-badges .bot-tag { font-size: 6px; }
+  body.digital-ui.game-screen #lobby #seats .table-seat .seat-status { font-size: 7px; }
+  body.digital-ui.game-screen #lobby #seats .table-seat:has(.revealed-life-summary) .seat-badges,
+  body.digital-ui.game-screen #lobby #seats .table-seat:has(.revealed-life-summary) .seat-status { display: none; }
+  body.digital-ui.game-screen #lobby #seats .table-seat:has(.target-callout:not([hidden])) .seat-badges,
+  body.digital-ui.game-screen #lobby #seats .table-seat:has(.target-callout:not([hidden])) .seat-status { display: none; }
+  body.digital-ui #lobby #seats .revealed-life-summary { flex-wrap: nowrap; max-width: 100%; overflow-x: auto; gap: 3px; margin: 1px 0 0; scrollbar-width: none; }
+  body.digital-ui #lobby #seats .revealed-life-badge { flex: none; min-height: 20px; padding: 1px 4px; gap: 3px; font-size: 10px; }
+  body.digital-ui #lobby #seats .revealed-life-badge .emblem { width: 13px; height: 13px; }
+  body.digital-ui #lobby #seats .revealed-life-badge b { font-size: 10px; padding-left: 1px; }
+  body.digital-ui.game-screen #lobby #seats .table-seat .public-seals li { height: 30px; padding: 1px; }
+  body.digital-ui #lobby #seats .public-seals li.revealed span { font-size: 5px; }
+  body.digital-ui #lobby #seats .doubt-track, body.digital-ui #lobby #seats .attached-status { min-height: 10px; height: 10px; }
+  body.digital-ui #lobby #seats .doubt-tile { height: 10px; font-size: 13px; line-height: 10px; }
+  body.digital-ui.game-screen #lobby #seats .table-seat .status-icons { position: relative; inset: auto; gap: 3px; margin: 0; }
+  body.digital-ui.game-screen #lobby #seats .status-icon { padding: 2px 4px; min-height: 23px; height: auto; }
+  body.digital-ui.game-screen #lobby #seats .status-icon b { display: inline; font-size: 8px; }
+  body.digital-ui.game-screen #lobby #seats .target-callout { display: block; font-size: 9px; }
+  body.digital-ui.game-screen #lobby .tabletop-panel > .controls { position: absolute; right: 6px; top: 3px; bottom: auto; width: auto; margin: 0; padding: 0; border: 0; }
+  body.digital-ui.game-screen #lobby .tabletop-panel > .controls #reopen { min-height: 20px; padding: 0 4px; font-size: 7px; }
+  body.digital-ui.game-screen .action-stage { grid-column: 1; grid-row: 2; gap: 3px; padding: 0 5px; }
+  body.digital-ui .action-route { padding: 6px; }
+  body.digital-ui .route-state { margin: 0 0 4px; font-size: 8px; }
+  body.digital-ui .action-actor { display: flex; align-items: center; justify-content: center; gap: 6px; }
+  body.digital-ui .action-actor > span { margin: 0; gap: 4px; }
+  body.digital-ui .action-actor .eyebrow { font-size: 7px; }
+  body.digital-ui .action-actor .emblem { width: 18px; height: 18px; }
+  body.digital-ui .action-actor b { font-size: 16px; }
+  body.digital-ui .route-card-name { gap: 6px; margin: 4px 0; }
+  body.digital-ui .route-card-name h2 { font-size: 19px; }
+  body.digital-ui .route-card-name > span { font-size: 16px; }
+  body.digital-ui .route-targets { gap: 4px; }
+  body.digital-ui .route-targets .spotlight-player { min-width: 105px; padding: 4px; }
+  body.digital-ui .route-targets .spotlight-player h2 { font-size: 19px; margin: 1px 0; }
+  body.digital-ui .route-targets :is(.seat-seals,.attached-status,.revealed-life-summary) { display: none; }
+  body.digital-ui .route-help { font-size: 9px; margin-top: 4px; }
+  body.digital-ui .action-route.waiting > h2 { margin: 5px 0; font-size: 22px; }
+  body.digital-ui .action-spotlight { overflow-y: auto; align-items: safe center; }
+  body.digital-ui.game-screen #lobby .action-stage:has(.action-route) .table-center { display: none; }
+  body.digital-ui .match-hud { min-height: 36px; padding: 0 35px; }
+  body.digital-ui .phase-banner { padding: 4px 15px; min-width: 180px; font-size: 18px; }
+  body.digital-ui .match-hud p { margin-top: 3px; font-size: 8px; }
+  body.digital-ui .hud-deadline { top: 2px; font-size: 18px; }
+  body.digital-ui .spotlight-empty, body.digital-ui .spotlight-global { padding: 3px; }
+  body.digital-ui .spotlight-empty .eyebrow { display: none; }
+  body.digital-ui .spotlight-empty h2, body.digital-ui .spotlight-global h2 { font-size: 25px; margin: 2px 0; }
+  body.digital-ui .spotlight-empty p, body.digital-ui .spotlight-global p { font-size: 10px; }
+  body.digital-ui .spotlight-player { min-width: 125px; max-width: 170px; padding: 5px 9px; }
+  body.digital-ui .spotlight-player .eyebrow { font-size: 7px; }
+  body.digital-ui .spotlight-player h2 { font-size: 20px; margin: 2px 0; }
+  body.digital-ui .spotlight-player header .emblem { width: 23px; height: 23px; }
+  body.digital-ui .spotlight-player .public-seals li { height: 29px; }
+  body.digital-ui .spotlight-player .doubt-track { margin-top: 1px; }
+  body.digital-ui.game-screen #lobby .table-center { width: 136px; height: 65px; padding: 0 0 13px; }
+  body.digital-ui.game-screen .table-piles { gap: 28px; }
+  body.digital-ui.game-screen .card-pile { width: 42px; height: 51px; }
+  body.digital-ui.game-screen .card-pile small { bottom: -13px; font-size: 8px; }
+  body.digital-ui.game-screen .card-pile b { width: 17px; height: 17px; font-size: 8px; }
+  body.digital-ui.game-screen #action-confirmation:has(.play-preview) { position: fixed; z-index: 40; left: 9px; right: 9px; bottom: calc(var(--hand-height) + 86px); }
+  body.digital-ui #action-confirmation .play-preview { padding: 10px; }
+  body.digital-ui .play-preview p { font-size: 11px; }
+  body.digital-ui .play-preview strong { font-size: 18px; }
+  body.digital-ui.game-screen .action-stage:has(.play-preview) .table-center { display: none; }
+  body.digital-ui.game-screen .local-life { grid-column: 1; grid-row: 3; width: 100%; height: 74px; padding: 5px 110px 3px 8px; }
+  body.digital-ui .local-life header { height: 17px; margin: 0 0 3px; gap: 5px; }
+  body.digital-ui .local-life header .emblem { width: 17px; height: 17px; }
+  body.digital-ui .local-life header h2 { font-size: 13px; }
+  body.digital-ui .local-life header > span { display: none; }
+  body.digital-ui #local-life .public-seals { max-width: 185px; }
+  body.digital-ui #local-life .public-seals li { height: 32px; max-width: 30px; padding: 1px; }
+  body.digital-ui #local-life .public-seals li.revealed span { font-size: 7px; }
+  body.digital-ui #local-life .attached-status { width: 160px; height: 11px; margin-top: 2px; min-height: 11px; }
+  body.digital-ui #local-life .doubt-track { height: 11px; min-height: 11px; }
+  body.digital-ui #local-life .doubt-tile { font-size: 15px; line-height: 11px; height: 11px; }
+  body.digital-ui .inspect-life { right: 105px; bottom: 3px; min-height: 18px; padding: 1px 3px; border: 0; font-size: 7px; }
+  body.digital-ui.game-screen .role-toggle { left: auto; right: 5px; bottom: calc(var(--hand-height) + 15px); width: 96px; height: 53px; padding: 3px; gap: 3px; }
+  body.digital-ui .role-toggle > img { width: 31px; height: 44px; }
+  body.digital-ui .role-toggle > span { display: flex; flex-direction: column; gap: 1px; align-items: flex-start; }
+  body.digital-ui .role-toggle .role-symbol { width: 19px; height: 19px; }
+  body.digital-ui .role-toggle b { font-size: 13px; }
+  body.digital-ui .role-toggle small { font-size: 6px; }
+  body.digital-ui.game-screen #lobby .action-dock { grid-column: 1; grid-row: 4; }
+  body.digital-ui .action-dock-heading { height: 34px; min-height: 34px; gap: 3px; padding: 0 2px; }
+  body.digital-ui .action-dock-heading > .eyebrow { font-size: 7px; }
+  body.digital-ui .day-buttons { gap: 3px; }
+  body.digital-ui .day-buttons button { min-height: 30px; padding: 3px 6px; font-size: 8px; }
+  body.digital-ui .hand-heading { height: 15px; min-height: 15px; padding: 0 3px; }
+  body.digital-ui .hand-heading .eyebrow { font-size: 7px; }
+  body.digital-ui .action-hand.grouped-hand { gap: 8px; padding: 9px 3px 3px; }
+  body.digital-ui .grouped-hand .card-stack { flex-basis: 98px; width: 98px; }
+  body.digital-ui .action-hand[data-hand-size] .action-card { height: 123px; padding: 3px; }
+  body.digital-ui .action-hand[data-hand-size] .action-card .action-card-sigil { height: 69px; min-height: 69px; margin-bottom: 4px; }
+  body.digital-ui .action-hand[data-hand-size] .action-card b { font-size: 13px; }
+  body.digital-ui .action-hand[data-hand-size] .action-card > span:not(.action-card-sigil):not(.action-card-corner):not(.card-stack-count) { font-size: 7px; margin-top: 3px; }
+  body.digital-ui .card-details-button { min-height: 28px; }
+  body.digital-ui .grouped-hand .stack-controls { position: absolute; bottom: 33px; left: 2px; right: 2px; min-height: 23px; background: #080a0cf5; }
+  body.digital-ui .stack-controls button { min-height: 23px; }
+  body.digital-ui .role-panel { width: calc(100vw - 20px); max-height: calc(100dvh - 20px); }
+  body.digital-ui .role-panel-inner { padding: 15px; }
+  body.digital-ui .role-profile { grid-template-columns: minmax(0,.9fr) minmax(0,1.1fr); gap: 12px; padding: 12px 0; }
+  body.digital-ui .role-profile-art { height: 285px; }
+  body.digital-ui .role-profile-symbol { width: 52px; height: 52px; padding: 6px; }
+  body.digital-ui .role-profile-copy h2 { font-size: 30px; margin: 10px 0; }
+  body.digital-ui .role-profile-copy p { font-size: 12px; line-height: 1.5; }
+  body.digital-ui .role-profile-copy .role-privacy { font-size: 9px; }
+  body.digital-ui #role-continue { min-height: 48px; font-size: 19px; }
+  body.digital-ui.game-screen .private-modal { padding: 15px; }
+  body.digital-ui .private-modal-heading h2 { font-size: 30px; }
+  body.digital-ui.game-screen .private-role-summary { padding: 6px; }
+  body.digital-ui .private-role-portrait { flex-basis: 70px; width: 70px; height: 52px; }
+  body.digital-ui .private-role-portrait img { width: 42px; height: 52px; }
+  body.digital-ui .private-role-portrait .role-symbol { width: 26px; height: 26px; }
+  body.digital-ui.game-screen .private-role-summary small { font-size: 9px; }
+  body.digital-ui .privacy-note { font-size: 10px; }
+  body.digital-ui .seal-transfer-warning { font-size: 9px; }
+  body.digital-ui.game-screen .private-seal-grid { display: flex; gap: 8px; margin: 14px 0; padding: 6px 3px 12px; overflow-x: auto; }
+  body.digital-ui.game-screen .private-seal-card { flex: 0 0 102px; min-height: 170px; padding: 5px; }
+  body.digital-ui.game-screen .private-seal-card b { font-size: 15px; }
+  body.digital-ui.game-screen .private-seal-card > .emblem { width: 25px; height: 25px; right: 5px; top: 7px; }
+  body.digital-ui .private-confirm { flex-wrap: wrap; }
+  body.digital-ui #acknowledge { width: 100%; }
+  body.digital-ui .seal-toolbar { gap: 6px; }
+  body.digital-ui .seal-toolbar button { flex: 1; padding: 7px; font-size: 11px; }
+  body.digital-ui.game-screen #night-panel:not([hidden]) { top: 37px; max-height: calc(100% - 35px); padding: 10px; }
+  body.digital-ui.game-screen #night-panel .eyebrow { font-size: 8px; }
+  body.digital-ui.game-screen #night-panel > p:not(.eyebrow) { display: none; }
+  body.digital-ui.game-screen .night-choice h3 { font-size: 19px; }
+}
+@media (max-width: 360px) {
+  body.digital-ui .avatar-picker { grid-template-columns: repeat(3,minmax(0,1fr)); }
+  body.digital-ui .avatar-option .emblem { max-width: 66px; height: 52px; }
+}
+@media (max-width: 680px) and (max-height: 730px) {
+  body.digital-ui .action-dock-heading { height: 30px; min-height: 30px; }
+  body.digital-ui .hand-heading { height: 12px; min-height: 12px; }
+  body.digital-ui .action-hand[data-hand-size] .action-card { height: 95px; }
+  body.digital-ui .action-hand[data-hand-size] .action-card .action-card-sigil { height: 47px; min-height: 47px; margin-bottom: 3px; }
+  body.digital-ui .action-hand[data-hand-size] .action-card b { font-size: 12px; }
+  body.digital-ui .card-details-button { min-height: 30px; }
+}
+@media (max-height: 650px) and (min-width: 681px) {
+  body.digital-ui.game-screen .topbar { height: 40px; }
+  body.digital-ui.game-screen main { height: calc(100dvh - 40px); }
+  body.digital-ui.game-screen #lobby .room-heading { flex-basis: 35px; height: 35px; }
+  body.digital-ui.game-screen #lobby .play-column { --wing: 180px; grid-template-columns: var(--wing) minmax(0,1fr) var(--wing); grid-template-rows: minmax(0,1fr) 190px; }
+  body.digital-ui.game-screen .local-life { height: 126px; }
+  body.digital-ui #local-life .public-seals li { height: 38px; }
+  body.digital-ui.game-screen .role-toggle { width: var(--wing); height: 54px; }
+  body.digital-ui .action-route { padding: 5px; }
+  body.digital-ui .route-state { margin-bottom: 4px; font-size: 8px; }
+  body.digital-ui .action-actor .eyebrow, body.digital-ui .route-help { display: none; }
+  body.digital-ui .action-actor b { font-size: 18px; }
+  body.digital-ui .route-card-name { margin: 3px 0; }
+  body.digital-ui .route-card-name h2 { font-size: 20px; }
+  body.digital-ui .route-targets .spotlight-player { min-width: 90px; padding: 4px; }
+  body.digital-ui .route-targets .seat-seals, body.digital-ui .route-targets .attached-status { display: none; }
+  body.digital-ui .action-stage .match-hud { min-height: 45px; }
+  body.digital-ui .phase-banner { font-size: 18px; padding: 5px 12px; }
+  body.digital-ui .spotlight-empty { padding: 2px; }
+  body.digital-ui .spotlight-empty h2 { font-size: 24px; }
+  body.digital-ui.game-screen #lobby .action-stage .table-center { display: none; }
+  body.digital-ui .hud-piles { display: block; position: absolute; right: 0; top: 31px; font-size: 8px; color: #b5ab97; }
+  body.digital-ui .action-dock-heading { height: 30px; min-height: 30px; }
+  body.digital-ui .hand-heading { height: 12px; min-height: 12px; }
+  body.digital-ui.game-screen .action-stage:has(.play-preview) .table-center { display: none; }
+  body.digital-ui .action-hand[data-hand-size] .action-card { height: 105px; }
+  body.digital-ui .action-hand[data-hand-size] .action-card .action-card-sigil { height: 55px; min-height: 55px; }
+  body.digital-ui .action-hand[data-hand-size] .action-card b { font-size: 13px; }
+  body.digital-ui .grouped-hand .stack-controls { position: absolute; bottom: 31px; left: 3px; right: 3px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  body.digital-ui *, body.digital-ui *::before, body.digital-ui *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; scroll-behavior: auto !important; }
+}
