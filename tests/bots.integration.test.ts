@@ -13,6 +13,7 @@ afterEach(async () => { await h.close(); });
 
 function input(client: Client, decision: BotDecision): Input {
   const actionId = randomUUID(); const view = client.view!;
+  if (decision.type === 'chooseBlackCat') return { ...decision, actionId, matchId: view.deal!.matchId };
   if (decision.type === 'acknowledgeDeal') return { type: decision.type, actionId, matchId: view.deal!.matchId };
   if (decision.type === 'councilVote') return { ...decision, actionId, matchId: view.deal!.matchId,
     dayNumber: view.day!.dayNumber } as Input;
@@ -36,6 +37,7 @@ describe('mixed human and server bot match', () => {
     await h.accepted(human, { type: 'ready', expectedVersion: human.view!.version, ready: true });
     await h.accepted(human, { type: 'start', expectedVersion: human.view!.version });
     expect(human.view!.deal?.players).toHaveLength(10);
+    if (human.view!.blackCatChoice && !human.view!.blackCatChoice.submitted) await h.accepted(human,{type:'chooseBlackCat',matchId:human.view!.deal!.matchId,targetId:human.session!.playerId});
     await h.accepted(human, { type: 'acknowledgeDeal', matchId: human.view!.deal!.matchId });
     h.server.store.tickBots(); await h.sync(human);
     const assigned = [human.view!, ...Array.from({ length: 9 }, (_, index) =>
@@ -58,6 +60,7 @@ describe('mixed human and server bot match', () => {
     await h.accepted(human, { type: 'addBot', expectedVersion: human.view!.version, difficulty: 'EASY' });
     await h.accepted(human, { type: 'ready', expectedVersion: human.view!.version, ready: true });
     await h.accepted(human, { type: 'start', expectedVersion: human.view!.version });
+    if (human.view!.blackCatChoice && !human.view!.blackCatChoice.submitted) await h.accepted(human,{type:'chooseBlackCat',matchId:human.view!.deal!.matchId,targetId:human.session!.playerId});
     await h.accepted(human, { type: 'acknowledgeDeal', matchId: human.view!.deal!.matchId });
     h.server.store.tickBots();
     await h.sync(human);
@@ -91,6 +94,7 @@ describe('mixed human and server bot match', () => {
     expect(human.view!.players.filter(player => player.isBot).every(player => player.ready)).toBe(true);
     await h.accepted(human, { type: 'ready', expectedVersion: human.view!.version, ready: true });
     await h.accepted(human, { type: 'start', expectedVersion: human.view!.version });
+    if (human.view!.blackCatChoice && !human.view!.blackCatChoice.submitted) await h.accepted(human,{type:'chooseBlackCat',matchId:human.view!.deal!.matchId,targetId:human.session!.playerId});
     await h.accepted(human, { type: 'acknowledgeDeal', matchId: human.view!.deal!.matchId });
     h.server.store.tickBots(); await h.sync(human);
     expect(human.view!.phase).toBe('DAY');

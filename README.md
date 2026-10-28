@@ -63,20 +63,27 @@ is never silently replaced by a bot.
    tab. The host's deal button becomes available only when every seat is ready and
    connected. The server deals five Life cards per player; more than one Witch card
    may land on one person.
-5. In each tab, tap your face-down Seals, then **Reveal all Seals** privately. Labels are Villager (Human),
+5. Each player first sees their full role portrait, with red Ashbound or gold
+   non-Ashbound glow. Ashbound then see a separate private teammate screen.
+   Continue to the Life-card screen, then **Reveal all Seals** privately. Labels are Villager (Human),
    Ashbound (Witch), and Lanternkeeper (Constable). The private summary tracks
    allegiance and ability independently. Living Ashbound players know their living
    allies, but cannot see allies' Seals. Public seats show only face-down slots.
 6. Before confirming, tap two Seals to swap their positions, drag them, or choose
-   **Shuffle positions**. Choose **Confirm & continue** in every tab. This locks
+   **Shuffle positions**. Ashbound also choose a player for the opening Black Cat
+   and select **Seal opening curse** before confirming. Choices are private;
+   most votes determines the single cursed player, with earliest seat breaking a
+   tie. An Ashbound may choose themselves to disguise their allegiance.
+   Choose **Confirm & continue** in every tab. This locks
    the order, covers the private display,
    and shares only acknowledgement status. The final acknowledgement begins
-   **Day**, deals three action cards each, and starts the first seat's turn.
+   **Day**, deals three action cards each, publicly places the Black Cat, and
+   starts the cursed player's turn.
    **Cover all Seals**, closing the overlay, tab blur, and disconnection
    also cover the display. Covering is a shoulder-surfing aid, not encryption from
    the owner: the owner's authorized private data is already in their browser.
 7. On your turn, **Draw 2** to draw and end, or select one or several cards of the
-   same kind. Tap a highlighted living player (two for Scapegoat or Vow of Hearts),
+   same kind. Tap a highlighted living player (two different other players for Scapegoat),
    review the short effect preview, and confirm. Conspiracy affects everyone and
    needs no target. Cancel removes the selection without playing. There is no
    repeated Play button. Playing does not end the turn; choose **End turn** when
@@ -85,18 +92,32 @@ is never silently replaced by a bot.
 
    Evidence adds two Doubt, Witness fills the row, Alibi and Mercy cleanse,
    Stocks binds, Asylum protects at night, Piety blocks Evidence/Witness, Curse
-   breaks protection, Scapegoat transfers Doubt, Vow links two players, Whisper
+   removes protection or Black Cat, Scapegoat transfers all Doubt and attached
+   effects, Vow gives one Heart that links with other holders, Whisper
    privately inspects one hidden Life card, Hearthward blocks Whisper, and Cinder
-   Shift and Conspiracy move hidden Life cards. Server-controlled random choices
+   Shift and Conspiracy move hidden Life cards. Conspiracy first reveals a random
+   hidden Life card on the Black Cat holder. Scapegoat moves this curse; Curse
+   removes it for the rest of the match. Server-controlled random choices
    never expose hidden card identities in public updates. Playable cards return to
    the discard pile after resolving; only portrait effects and red X marks persist.
 
    At seven Doubt, the server randomly reveals one unrevealed Life card, then
-   clears all seven X marks. No blank accusation slots are drawn.
+   clears the accumulation. Its close-up announces the owner, shows the full Life
+   portrait, and highlights the exact numbered position in the five-card row.
+   Scenes last 6–8 seconds. **Keep open** pauses a scene for reading; **Next**
+   advances it and **Back to table** finishes your presentation. Gameplay, bots
+   and phase timers pause until all readers finish (with an absence safety limit).
+   The corner **?** opens role portraits, all 14 cards and their interactions,
+   and an eight-step illustrated how-to-play guide. Green name tags identify
+   the card actor and recipients. No blank accusation slots are drawn.
    An Ashbound reveal or exhausting a player's hidden Seals kills them, publicly
    reveals their remaining Seals/history, and removes their hand/private access.
    All Ashbound Seals revealed means village victory; only Ashbound living means
    Ashbound victory. The former takes precedence if both become true together.
+
+   The 83-card deck is now focused on pressure: **38 Evidence and 6 Witness**.
+   Utility counts are lower, including 6 Whisper, 3 Hearthward, and 2 Cinder Shift.
+   The revised composition applies to new matches.
 8. Turns have 60-second server deadlines: an idle turn draws and ends; a turn
    that played cards simply ends. The seventh X causes an immediate server-chosen
    reveal. An empty action deck reaches Night after the victory check.

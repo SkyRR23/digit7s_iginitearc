@@ -1,7 +1,7 @@
 export type ActionKind = 'EVIDENCE' | 'WITNESS' | 'ALIBI' | 'STOCKS' | 'ASYLUM' | 'PIETY' | 'CURSE' | 'MERCY' | 'SCAPEGOAT' | 'VOW_OF_HEARTS' | 'CONSPIRACY' | 'WHISPER' | 'HEARTHWARD' | 'CINDER_SHIFT';
 export interface ActionCard { id: string; kind: ActionKind }
-export type ProtectionKind = 'HEARTHWARD' | 'PIETY' | 'ASYLUM' | 'VOW_OF_HEARTS';
-export type StatusKind = 'BOUND' | 'ASYLUM' | 'PIETY' | 'HEARTHWARD' | 'VOW_HEART';
+export type ProtectionKind = 'HEARTHWARD' | 'PIETY' | 'ASYLUM' | 'VOW_OF_HEARTS' | 'BLACK_CAT';
+export type StatusKind = 'BOUND' | 'ASYLUM' | 'PIETY' | 'HEARTHWARD' | 'VOW_HEART' | 'BLACK_CAT';
 export interface PlayerStatus { kind: StatusKind; sourceId: string; duration: 'NEXT_TURN' | 'UNTIL_DAWN' | 'UNTIL_USED'; consumed: boolean }
 export interface VowLink { playerIds: [string, string]; sourceId: string }
 export interface Outcome { winner: 'HUMAN' | 'WITCH'; reason: 'ALL_WITCH_SEALS_REVEALED' | 'ONLY_WITCHES_ALIVE' }

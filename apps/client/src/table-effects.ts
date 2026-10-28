@@ -1,7 +1,9 @@
-import type { RoomView, TableEffect } from '@ashfall/shared';
+import { type RoomView, type TableEffect } from '@ashfall/shared';
 import { emblem } from './art';
 import { lifeHeart } from './tabletop-components';
 import { cardArt } from './card-info';
+import { animateGameMoments } from './game-moments';
+import { gameSoundEnabled, reducedGameMotion } from './game-preferences';
 
 type Point = { x: number; y: number };
 export type TablePositions = Map<string, Point>;
@@ -25,6 +27,7 @@ let seen = new Set<string>();
 let currentMatch = '';
 let soundContext: AudioContext | null = null;
 function sound(kind: 'stamp' | 'cleanse'): void {
+  if (!gameSoundEnabled()) return;
   try {
     soundContext ??= new AudioContext();
     if (soundContext.state !== 'running') return;
@@ -55,7 +58,7 @@ function label(text: string, targetId?: string, kind = ''): void {
   setTimeout(() => item.remove(), 1450);
 }
 function makeTrail(from: Point | undefined, to: Point | undefined, kind: string, delay: number): void {
-  if (!from || !to || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (!from || !to || reducedGameMotion()) return;
   const line = document.createElement('div'); line.className = `effect-trail trail-${kind}`;
   const dx = to.x-from.x, dy = to.y-from.y;
   line.style.left = `${from.x}px`; line.style.top = `${from.y}px`;
@@ -67,7 +70,7 @@ function makeTrail(from: Point | undefined, to: Point | undefined, kind: string,
   animation.finished.then(() => line.remove(), () => line.remove());
 }
 function fly(from: Point | undefined, via: Point | undefined, to: Point | undefined, effect: TableEffect, delay: number): void {
-  if (!from || !to || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (!from || !to || reducedGameMotion()) return;
   const element = document.createElement('div');
   element.className = `flying-card ${effect.type === 'DRAW' ? 'flying-back' : `flying-${effect.cardKind?.toLowerCase() ?? 'card'}`}`;
   element.setAttribute('aria-hidden', 'true');
@@ -81,7 +84,7 @@ function fly(from: Point | undefined, via: Point | undefined, to: Point | undefi
 }
 function flyHiddenLife(from: Point | undefined, to: Point | undefined, targetId: string, delay: number): void {
   if (!from || !to) return;
-  if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  if (reducedGameMotion()) {
     pulse(targetId, 'life-transfer-arrival');
     return;
   }
@@ -109,8 +112,9 @@ function pulse(playerId: string | undefined, className: string): void {
 }
 export function animateTableChanges(previous: RoomView | null, next: RoomView, before: TablePositions): void {
   const match = next.deal?.matchId ?? '';
-  if (!previous || match !== currentMatch) { currentMatch = match; seen = new Set(next.effects?.map(effect => effect.id)); return; }
+  if (!previous || match !== currentMatch) { currentMatch = match; seen = new Set(next.effects?.map(effect => effect.id)); animateGameMoments(null, next, []); return; }
   const effects = (next.effects ?? []).filter(effect => !seen.has(effect.id));
+  animateGameMoments(previous, next, effects);
   for (const effect of next.effects ?? []) seen.add(effect.id);
   if (seen.size > 200) seen = new Set(next.effects?.map(effect => effect.id));
   const after = captureTablePositions();
@@ -118,7 +122,7 @@ export function animateTableChanges(previous: RoomView | null, next: RoomView, b
   const doubt = new Map(previous.day?.players.map(player => [player.playerId, player.doubt]) ?? []);
   const curseTargets = new Set(effects.filter(effect => effect.type === 'PLAY' && effect.cardKind === 'CURSE')
     .map(effect => effect.targetId));
-  const blockedTargets = new Set(effects.filter(effect => effect.type === 'BLOCK').map(effect => effect.targetId));
+  const blockedTargets = new Set(effects.filter(effect => effect.type === 'BLOCK' || effect.type === 'ROLE_BLOCK').map(effect => effect.targetId));
   if (next.role?.peek && next.role.peek.targetId !== previous.role?.peek?.targetId) {
     makeTrail(before.get(next.you?.playerId ?? ''), after.get(next.role.peek.targetId), 'violet', 0);
     pulse(next.role.peek.targetId, 'sleuth-focus');
@@ -141,7 +145,7 @@ export function animateTableChanges(previous: RoomView | null, next: RoomView, b
       if (effect.cardKind === 'WITNESS') setTimeout(() => label('TESTIMONY GIVEN', effect.targetId, 'danger'), delay + 580);
       if (effect.cardKind === 'ALIBI') setTimeout(() => label('ALIBI ACCEPTED', effect.targetId, 'clean'), delay + 580);
       if (effect.cardKind === 'MERCY') setTimeout(() => label('MERCY GRANTED', effect.targetId, 'clean'), delay + 580);
-      if (effect.cardKind === 'CURSE') setTimeout(() => label('PROTECTION BROKEN', effect.targetId, 'danger'), delay + 580);
+      if (effect.cardKind === 'CURSE' && !blockedTargets.has(effect.targetId)) setTimeout(() => label('PROTECTION BROKEN', effect.targetId, 'danger'), delay + 580);
       if (effect.cardKind === 'SCAPEGOAT') setTimeout(() => label('DOUBT TRANSFERRED', effect.secondTargetId, 'danger'), delay + 700);
     } else if (effect.type === 'DRAW') {
       for (let i = 0; i < (effect.count ?? 2); i++) fly(before.get('draw'), undefined,
@@ -153,11 +157,8 @@ export function animateTableChanges(previous: RoomView | null, next: RoomView, b
       const label = document.createElement('b'); label.textContent = `${next.players.find(player => player.id === effect.targetId)?.name ?? 'A villager'} has fallen`;
       notice.append(cross, label); document.body.append(notice); setTimeout(() => notice.remove(), 2100);
     } else if (effect.type === 'REVEAL') {
-      const seal = document.querySelector<HTMLElement>(`[data-player="${effect.targetId}"] [data-seal-slot="${effect.slot}"]`);
-      if (!matchMedia('(prefers-reduced-motion: reduce)').matches)
-        seal?.animate([{ transform: 'rotateY(90deg)', opacity: .3 }, { transform: 'rotateY(0)', opacity: 1 }], { duration: 550, easing: 'ease-out' });
-      const kind = next.deal?.players.find(p => p.playerId === effect.targetId)?.seals.find(s => s.slot === effect.slot);
-      if (kind?.revealed) setTimeout(() => label(`${kind.kind === 'WITCH' ? 'WITCH' : 'INNOCENT'} REVEALED`, effect.targetId), delay + 330);
+      // The central sequence announces, reveals the full portrait, and then
+      // points out the exact slot. Do not race it with an instant second reveal.
     } else if (effect.type === 'DOUBT') {
       const old = doubt.get(effect.targetId ?? '') ?? 0;
       doubt.set(effect.targetId ?? '', Math.min(7, old + (effect.count ?? 1)));

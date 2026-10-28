@@ -1,0 +1,44 @@
+/* One server-owned pause covers the complete presentation, including readers who
+   finish at different times. The guide remains a native dialog above the scene. */
+#presentation-wait {position:fixed;inset:0;z-index:64;display:grid;place-items:center;padding:24px;background:#04090fe6;backdrop-filter:blur(5px);text-align:center;}
+#presentation-wait[hidden] {display:none;}
+#presentation-wait > div {max-width:470px;padding:30px;border:1px solid #99c6b04d;background:radial-gradient(ellipse at top,#4b9d7626,transparent 75%),#0a1119;box-shadow:0 0 80px #64bc8820;}
+#presentation-wait span {font-size:36px;color:#a0e7b4;}
+body.digital-ui #presentation-wait h2 {font:36px/1.15 var(--heading);margin:12px 0;}
+#presentation-wait p {color:#e5dfcf;line-height:1.5;}
+#presentation-wait small {display:block;color:#afa99a;line-height:1.6;}
+#presentation-wait button {margin-top:22px;min-height:44px;}
+.game-moment {pointer-events:auto;}
+.moment-controls {flex-wrap:wrap;max-width:calc(100vw - 24px);}
+.moment-pause-note {flex:0 0 100%;text-align:center;font:10px/1.5 'Segoe UI',sans-serif;color:#c5cdbc;}
+.game-moment .moment-person {border-color:#91dba373;background:linear-gradient(135deg,#285038c9,#0b1516ed);box-shadow:0 0 24px #6cd99426;}
+.game-moment .moment-person strong,body.digital-ui .action-name {color:#bcffd0;text-shadow:0 0 14px #6dce9770;}
+.game-moment .moment-person small {color:#aed4b9;}
+body.digital-ui #lobby #seats .table-seat .seat-name:is(.is-action-actor,.is-action-target) {border:1px solid #9ae2af70;background:linear-gradient(100deg,#245338c9,#11251a9e);box-shadow:0 0 18px #6ed98b2b;padding:4px 6px;border-radius:3px;}
+body.digital-ui.game-screen #lobby #seats .table-seat .seat-name:is(.is-action-actor,.is-action-target) h3 {color:#c5ffd2;text-shadow:0 0 12px #74e79f70;}
+body.digital-ui #action-spotlight .action-name {color:#bcffd0;text-shadow:0 0 14px #6dce9770;}
+.action-name-label {flex:0 0 auto;color:#b0efbf;font:8px/1.2 'Segoe UI',sans-serif;letter-spacing:.06em;margin-left:auto;}
+.guide-cards {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;}
+body.digital-ui #how-to-dialog.game-guide[open] {display:flex;flex-direction:column;overflow:hidden;}
+.game-guide .guide-heading,.game-guide .guide-tabs {flex-shrink:0;}
+.game-guide #guide-panel {overflow:auto;min-height:0;padding-right:5px;}
+.guide-card {display:grid;grid-template-columns:100px minmax(0,1fr);gap:15px;padding:14px;background:#0e151e;border:1px solid #c6ab6d45;align-items:start;}
+.guide-card img {width:100%;height:auto;max-height:170px;object-fit:contain;}
+body.digital-ui .guide-card h3 {font:27px/1.1 var(--heading);color:#f1dfb9;margin:0 0 5px;}
+.guide-card-brief {color:#b9d0bc;font:11px/1.5 'Segoe UI',sans-serif;}
+.guide-card dl {margin:12px 0 0;font:12px/1.55 'Segoe UI',sans-serif;}
+.guide-card dt {color:#dec88f;font-weight:700;margin-top:8px;}
+.guide-card dd {margin:2px 0 0;color:#d8cdb9;}
+.guide-life-note h3 .status-art {width:24px;height:24px;vertical-align:middle;}
+@media(max-width:680px) {
+  .guide-cards {grid-template-columns:minmax(0,1fr);}
+  .guide-card {grid-template-columns:74px minmax(0,1fr);gap:10px;padding:10px;}
+  .guide-tabs {gap:4px;}
+  body.digital-ui .guide-tabs button {padding:7px 5px;font-size:11px;}
+  .moment-pause-note {font-size:9px;}
+  .game-moment .moment-content {max-height:calc(100dvh - 110px);}
+}
+@media(max-height:600px) and (orientation:landscape) {
+  .moment-pause-note {font-size:9px;}
+  .game-moment .moment-content {max-height:calc(100dvh - 90px);}
+}

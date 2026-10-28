@@ -1,0 +1,369 @@
+/* Motion has a beginning, a readable hold, and a finish. The game clock stays live. */
+/* Keep a tall action inside its own viewport, above a separately spaced pile row. */
+body.digital-ui .action-spotlight { overflow-y: auto; overflow-x: hidden; align-items: safe center; flex-wrap: nowrap; }
+body.digital-ui .action-spotlight > * { flex-shrink: 0; }
+body.digital-ui .action-stage { container: action-area / size; }
+body.digital-ui.game-screen #lobby .action-stage .table-center { padding-top: 12px; }
+@media (min-width: 681px) and (min-height: 601px) {
+  @container action-area (max-height: 600px) {
+    body.digital-ui .action-route.resolved,body.digital-ui .action-route.planning { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 5px 10px; padding: 10px; }
+    body.digital-ui .action-route .route-state { grid-column: 1 / -1; margin-bottom: 3px; }
+    body.digital-ui .action-route .action-actor { grid-column: 1; }
+    body.digital-ui .action-route .route-card-name { grid-column: 2; margin: 3px 0; }
+    body.digital-ui .action-route .route-card-name > span { display: none; }
+    body.digital-ui .action-route .route-targets,body.digital-ui .action-route .route-help { grid-column: 1 / -1; }
+    body.digital-ui .action-route .route-help { margin: 5px 0 0; }
+  }
+  @container action-area (max-height: 460px) {
+    body.digital-ui #action-spotlight .route-targets :is(.seat-seals,.attached-status,.revealed-life-summary) { display: none; }
+    body.digital-ui .action-route .route-state { display: none; }
+    body.digital-ui .action-route .action-actor b { font-size: 19px; }
+    body.digital-ui .action-route .route-card-name h2 { font-size: 23px; }
+    body.digital-ui .action-route .spotlight-player { padding: 5px 9px; }
+    body.digital-ui .action-route .spotlight-player h2 { font-size: 22px; }
+    body.digital-ui .action-route .spotlight-player .emblem { width: 28px; height: 28px; }
+  }
+}
+.moment-people { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 7px; margin: 13px auto 9px; max-width: 520px; }
+.moment-person { display: flex; align-items: center; gap: 8px; min-width: 0; max-width: 230px; padding: 9px 12px; border: 1px solid #b8b09c55; background: #0b0e13eb; text-align: left; }
+.moment-person .emblem { width: 32px; height: 32px; flex-shrink: 0; color: #e4d8bd; }
+.moment-person > div { min-width: 0; }
+.moment-person small { display: block; color: #c2b9a8; font: 8px/1.4 'Segoe UI',sans-serif; letter-spacing: .1em; }
+.moment-person strong { display: block; color: #fff1d8; font: 23px/1.2 Impact,'Arial Narrow',sans-serif; overflow-wrap: anywhere; }
+.moment-target { border-color: color-mix(in srgb,var(--accent) 65%,transparent); box-shadow: inset 0 0 20px color-mix(in srgb,var(--accent) 8%,transparent); }
+.moment-target :is(.emblem,strong),.moment-direction,.moment-group { color: var(--accent); }
+.moment-direction { font: 22px Georgia,serif; }
+@media (max-width: 680px), (max-height: 600px) {
+  .moment-people { gap: 5px; margin: 9px auto; }
+  .moment-person { gap: 5px; padding: 6px 8px; max-width: 42%; }
+  .moment-person .emblem { width: 23px; height: 23px; }
+  .moment-person strong { font-size: 18px; }
+  .moment-person small { font-size: 7px; }
+}
+/* Red identifies a private ally; green identifies the current turn for everyone. */
+body.digital-ui.game-screen #lobby #seats .table-seat.is-you .seat-name h3 { color: #f5f0e3; }
+body.digital-ui #lobby #seats .table-seat .seat-name { position: relative; isolation: isolate; }
+body.digital-ui #lobby #seats .table-seat .seat-name h3 { position: relative; min-width: 0; }
+body.digital-ui.game-screen #lobby #seats .table-seat.is-teammate .seat-name h3 {
+  color: #ffb2b8; padding: 2px 5px; border-radius: 2px; background: #7624336b;
+  box-shadow: inset 0 -1px #d94b5d80,0 0 10px #ce33441c;
+}
+body.digital-ui #lobby #seats .table-seat .ally-tag {
+  display: inline-flex; align-items: center; gap: 4px; padding: 1px 5px; border: 1px solid #c95b697a;
+  border-radius: 2px; color: #ffc0c6; background: #63202e99; font: 700 8px/1.2 'Segoe UI',sans-serif; letter-spacing: .08em;
+}
+body.digital-ui #lobby #seats .table-seat.is-teammate .seat-badges { display: flex; }
+body.digital-ui #lobby #seats .table-seat.is-active {
+  border-color: #88d8a46b; background: linear-gradient(110deg,#18372ce8,#101c1aeb);
+  box-shadow: inset 3px 0 #73d99a,0 0 17px #70d99c16;
+}
+body.digital-ui.game-screen #lobby #seats .table-seat.is-active .seat-name h3,
+body.digital-ui .turn-name,
+body.digital-ui .match-hud p b.turn-name { color: #b4f6cb; text-shadow: 0 0 10px #76e7a57a,0 0 22px #56d68c3d; }
+body.digital-ui.game-screen #lobby .tabletop-frame { scroll-padding-top: 44px; }
+body.digital-ui #lobby #seats .table-seat.is-active .seat-status { color: #b9ddc6; }
+body.digital-ui #lobby #seats .seat-name small { color: #d1cbbd; flex-shrink: 0; }
+body.digital-ui #lobby #seats .is-active .seat-name small { color: #b4f6cb; }
+.turn-dust { position: absolute; z-index: -1; inset: -3px 0; pointer-events: none; overflow: hidden; border-radius: 4px; }
+.turn-dust::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 40% 65%,#73eaa932,transparent 72%); }
+.turn-dust i { position: absolute; width: 2px; height: 2px; left: 8%; bottom: 0; background: #c7ffdd; border-radius: 50%; box-shadow: 0 0 5px 1px #71e8a5; opacity: 0; animation: turn-mote 3.2s ease-out infinite; }
+.turn-dust i:nth-child(2) { left: 25%; animation-delay: -.6s; }
+.turn-dust i:nth-child(3) { left: 43%; animation-delay: -1.8s; animation-duration: 3.8s; }
+.turn-dust i:nth-child(4) { left: 62%; animation-delay: -2.6s; }
+.turn-dust i:nth-child(5) { left: 79%; animation-delay: -1.2s; animation-duration: 4s; }
+.turn-dust i:nth-child(6) { left: 92%; animation-delay: -2.2s; }
+@keyframes turn-mote { 0% { opacity: 0; transform: translate(0,4px) scale(.7); } 20% { opacity: .8; } 80% { opacity: .4; } 100% { opacity: 0; transform: translate(-7px,-25px) scale(.35); } }
+body.digital-ui #lobby #seats .table-seat.is-valid-target { box-shadow: inset 3px 0 #e3bc63,inset 0 0 18px #e3bc6310,0 0 14px #e3bc6325; }
+body.digital-ui #role-power:has(.power-ready) { background: radial-gradient(ellipse at left,#c6a65e1a,transparent 75%); box-shadow: inset 0 0 15px #d3ba6920,0 0 13px #e5c46c15; }
+body.digital-ui .phase-icon { filter: drop-shadow(0 0 7px #e4c98235); }
+body.digital-ui .phase-banner[data-phase-icon='moon'] .phase-icon { filter: drop-shadow(0 0 7px #8ebbed55); }
+body.digital-ui .spotlight-player.is-teammate h2 { color: #ffb2b8; text-shadow: 0 0 12px #d94b5d40; }
+body.digital-ui .private-team { margin: 16px 0; padding: 14px 16px; border: 1px solid #c6546666; border-left: 3px solid #da6575; border-radius: 3px; background: radial-gradient(ellipse at top left,#72273548,transparent 85%),#170f15; box-shadow: inset 0 0 30px #b83d4b0b; }
+body.digital-ui .team-heading { display: flex; align-items: center; gap: 12px; }
+body.digital-ui .team-heading > .emblem { width: 30px; height: 30px; flex: 0 0 auto; color: #e58b96; filter: drop-shadow(0 0 8px #d94b5d44); }
+body.digital-ui .team-heading span { display: block; color: #d4a7ae; font: 9px/1.5 'Segoe UI',sans-serif; letter-spacing: .1em; }
+body.digital-ui .team-heading b { display: block; color: #ffd4d8; font: 25px/1.25 var(--heading); }
+body.digital-ui .private-team p { margin: 12px 0 8px; font: 14px/1.4 'Segoe UI',sans-serif; color: #f4e4df; }
+body.digital-ui .team-names { display: flex; flex-wrap: wrap; gap: 8px; padding: 0; margin: 0 0 10px; list-style: none; }
+body.digital-ui .team-names li { display: inline-flex; align-items: center; gap: 8px; min-width: 0; max-width: 100%; padding: 8px 12px; border: 1px solid #e0778866; border-radius: 2px; background: #6f273d55; color: #ffd4da; }
+body.digital-ui .team-names .emblem { width: 24px; height: 24px; flex-shrink: 0; }
+body.digital-ui .team-names strong { font: 23px/1.2 var(--heading); overflow-wrap: anywhere; }
+body.digital-ui .private-team > small { display: block; color: #d0b8ba; font: 11px/1.5 'Segoe UI',sans-serif; }
+body.digital-ui .role-panel:has(.private-team) .role-profile-art { height: min(37dvh,330px); }
+body.digital-ui .opening-curse { margin: 14px 0; padding: 15px; border: 1px solid #ac86c481; border-left: 3px solid #bd93dc; background: #22182be6; }
+body.digital-ui .opening-curse h3 { display: flex; align-items: center; gap: 9px; margin: 0; color: #e6cdfa; font: 26px var(--heading); }
+body.digital-ui .opening-curse .status-symbol { width: 32px; height: 32px; filter: drop-shadow(0 0 7px #a977cd55); }
+body.digital-ui .opening-curse p { font: 12px/1.5 'Segoe UI',sans-serif; }
+body.digital-ui .opening-curse label,body.digital-ui .opening-curse small { display: block; margin: 8px 0; font: 11px/1.5 'Segoe UI',sans-serif; color: #d3bbdf; }
+body.digital-ui .opening-curse select { width: min(100%,350px); min-height: 44px; margin: 0 8px 8px 0; }
+body.digital-ui .opening-curse button { min-height: 44px; }
+body.digital-ui .status-black_cat { color: #e1b6ff; border-color: #b57cd080; background: #291633; box-shadow: 0 0 10px #a879bc20; }
+body.digital-ui.game-screen .private-allegiance { flex-wrap: wrap; align-items: baseline; }
+body.quiet-motion .turn-dust i { display: none; }
+@media (prefers-reduced-motion: reduce) { .turn-dust i { display: none; } }
+body.digital-ui .game-preferences { display: flex; gap: 5px; margin-left: auto; margin-right: 18px; }
+body.digital-ui .game-preferences button { min-height: 32px; padding: 5px 8px; font-size: 10px; background: #0a0e12a8; }
+/* Hover information must never intercept a player-target click. */
+#card-explanation[role='tooltip'],#life-inspection[role='tooltip'] { pointer-events: none; }
+body.digital-ui [data-card] { cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+body.digital-ui [data-card][aria-disabled='true'] { cursor: default; touch-action: pan-x; }
+body.dragging-card,body.dragging-card * { cursor: grabbing !important; }
+body.dragging-card #card-explanation[role='tooltip'] { display: none; }
+body.digital-ui.dragging-card #seats .target-callout { display: none !important; }
+.dragged-card { position: fixed; z-index: 160; width: 112px; padding: 5px; border: 2px solid #eee1bd; outline: 2px solid #050709; border-radius: 3px; background: #090b0f; transform: translate(-50%,-78%) rotate(-7deg); box-shadow: 10px 20px 30px #000a; pointer-events: none; text-align: center; }
+.dragged-card img { width: 100%; display: block; }
+.dragged-card b { display: block; color: #f3ead7; margin: 5px 0; font: 18px/1 Impact,'Arial Narrow',sans-serif; text-transform: uppercase; }
+.dragged-card.drag-valid { border-color: #c5df98; box-shadow: 0 0 20px #9fbd6d70,10px 20px 30px #000a; }
+.drag-hint { position: absolute; top: calc(100% + 12px); left: 50%; width: 190px; transform: translateX(-50%) rotate(7deg); padding: 8px; border: 1px solid #d9c9a25c; background: #070a0ff0; color: #efe7d4; font: 11px/1.4 'Segoe UI',sans-serif; }
+body.digital-ui #seats .table-seat.is-drag-over { outline: 3px solid #d5e9ac; outline-offset: -3px; box-shadow: inset 0 0 35px #a4c77035; }
+body.digital-ui .phase-banner { display: inline-flex; align-items: center; justify-content: center; gap: 10px; }
+.phase-icon { flex: 0 0 auto; width: 29px; height: 29px; }
+body.digital-ui .phase-banner[data-phase-icon='sun'] { color: #f4e1aa; border-color: #d4b66d80; background: linear-gradient(110deg,#30291ce6,#121518ed); }
+body.digital-ui .phase-banner[data-phase-icon='moon'] { color: #d6e9ff; border-color: #98b9d17a; background: linear-gradient(110deg,#162c45ed,#10151eed); }
+body.digital-ui.game-screen::after { content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none; background: transparent; transition: background-color 1.6s ease; }
+body.digital-ui.game-screen:has(#lobby[data-phase='NIGHT'])::after { background-color: #001f4a30; }
+body.digital-ui.game-screen:has(#lobby[data-phase='DAWN'])::after { background-color: #e2ba5d12; }
+body.digital-ui.game-screen:has(#lobby[data-phase='GAME_OVER'])::after { background-color: #05040945; }
+
+/* The corner power is an action; the small question mark opens private reference. */
+body.digital-ui.game-screen:has(#power-dock:not([hidden])) #role-toggle { display: none; }
+body.digital-ui .power-dock { position: absolute; left: 0; bottom: 0; z-index: 35; width: var(--wing,220px); display: flex; align-items: stretch; gap: 0; height: 65px; border: 1px solid #c4baa36b; border-radius: 3px; background: #080b0ff0; }
+body.digital-ui .power-dock[hidden] { display: none; }
+body.digital-ui #role-power { position: relative; flex: 1; display: flex; align-items: center; gap: 10px; min-width: 0; text-align: left; padding: 8px 10px; border: 0; background: transparent; }
+body.digital-ui #role-power > span:nth-child(2) { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+body.digital-ui #role-power b { font: 18px/1 var(--heading); text-transform: uppercase; color: #f2e8d5; }
+body.digital-ui #role-power small { font-size: 9px; line-height: 1.3; color: #c0b7a6; }
+body.digital-ui .power-symbol { color: #f2ddaa; flex-shrink: 0; }
+body.digital-ui .power-symbol svg { width: 34px; height: 34px; }
+body.digital-ui #power-info { flex: 0 0 32px; min-width: 32px; border: 0; border-left: 1px solid #c4baa32e; font: 20px Georgia,serif; background: transparent; }
+body.digital-ui #role-power[aria-pressed='true'] { background: #b7954d22; box-shadow: inset 0 0 0 1px #e9cd86; }
+.power-ready { position: absolute; top: 6px; left: 5px; width: 5px; height: 5px; border-radius: 50%; background: #f2d993; box-shadow: 0 0 8px #f2d993aa; }
+body.digital-ui .power-aiming { text-align: center; padding: 12px; }
+body.digital-ui .power-aiming img { display: block; margin: 0 auto; width: 110px; height: 120px; object-fit: contain; filter: drop-shadow(0 0 20px #d7c18d30); }
+body.digital-ui .power-aiming h2 { font-size: clamp(24px,3vw,38px); margin: 6px 0; }
+body.digital-ui .power-aiming p { max-width: 360px; margin: 8px auto; font-size: 12px; line-height: 1.5; }
+body.digital-ui .power-aiming strong { color: #f3d794; display: block; font-size: 15px; }
+body.digital-ui .power-aiming small { display: block; margin-top: 10px; font-size: 10px; color: #b8b3a8; }
+body.digital-ui.power-targeting #night-panel { visibility: hidden; pointer-events: none; }
+body.digital-ui .power-confirmation { width: min(440px,calc(100vw - 28px)); max-height: calc(100dvh - 40px); overflow-y: auto; box-sizing: border-box; padding: 26px; color: #f1ebda; border: 1px solid #d4c29599; border-radius: 3px; background: radial-gradient(ellipse at top,#2d2a26,#0b0e13 75%); box-shadow: 0 25px 80px #000c; text-align: center; }
+.power-confirmation::backdrop { background: #030509b8; backdrop-filter: blur(4px); }
+body.digital-ui .power-confirmation > img { height: 150px; width: 135px; object-fit: contain; display: block; margin: 10px auto; }
+body.digital-ui .power-confirmation h2 { font: 30px/1.1 var(--heading); margin: 14px 0; }
+body.digital-ui .power-confirmation p { font-size: 14px; line-height: 1.6; }
+body.digital-ui .power-confirmation .power-cost { font-size: 11px; color: #b9b1a2; }
+.power-decisions { display: flex; gap: 10px; margin-top: 20px; }
+.power-decisions button { flex: 1; min-height: 48px; }
+body.digital-ui .role-panel.role-investigation { width: min(460px,calc(100vw - 28px)); }
+body.digital-ui .role-investigation :is(.role-profile,.role-availability,.council-vote,.role-notices) { display: none; }
+body.digital-ui .role-investigation #close-peek { width: 100%; min-height: 48px; }
+body.digital-ui .role-investigation .role-result { flex-wrap: wrap; font-size: 18px; }
+
+/* Central close-up: the illustration is the hero, with actor and target readable. */
+.game-moment { --accent: #d62f3c; position: fixed; inset: 0; z-index: 65; display: grid; place-items: center; pointer-events: none; isolation: isolate; overflow: clip; color: #f4eddb; }
+.game-moment.tone-ivory { --accent: #e5c98d; }
+.game-moment.tone-blue { --accent: #9bbce6; }
+.game-moment.tone-sage { --accent: #afc799; }
+.moment-veil { position: absolute; inset: 0; z-index: -1; background: radial-gradient(ellipse at 50% 45%,#070a0de8 0%,#070a0db5 32%,#04060b55 65%,transparent 85%); animation: moment-veil var(--moment-duration) ease both; }
+.moment-content { position: relative; width: min(560px,calc(100vw - 36px)); text-align: center; padding: 18px 26px; box-sizing: border-box; animation: moment-entrance var(--moment-duration) cubic-bezier(.16,.8,.25,1) both; }
+.moment-ink { position: absolute; left: 50%; top: 48%; width: min(1050px,110vw); height: min(620px,85vh); transform: translate(-50%,-50%); z-index: -1; overflow: hidden; animation: ink-strike var(--moment-duration) steps(3,end) both; }
+.moment-ink svg { width: 100%; height: 100%; overflow: visible; }
+.ink-slash { fill: #060709; stroke: none; opacity: .88; }
+.ink-ray { fill: var(--accent); stroke: none; opacity: .28; }
+.moment-card:not(.moment-heavy) .ink-ray { opacity: .13; }
+.moment-heavy .moment-content { animation-name: moment-impact; }
+.moment-heavy .moment-art { filter: drop-shadow(6px 9px 0 #000a) drop-shadow(0 0 28px color-mix(in srgb,var(--accent) 30%,transparent)); }
+.moment-heavy .ink-slash { filter: drop-shadow(0 -1px 0 color-mix(in srgb,var(--accent) 40%,transparent)); }
+.moment-content::before { content: ''; position: absolute; inset: 12% 0; z-index: -1; background: radial-gradient(ellipse,color-mix(in srgb,var(--accent) 15%,transparent),transparent 65%); }
+.moment-rule { display: block; width: 160px; max-width: 60%; height: 1px; margin: 10px auto; background: linear-gradient(90deg,transparent,var(--accent),transparent); }
+.moment-eyebrow { margin: 9px 0 13px; color: #e5dac4; font: 11px/1.4 'Segoe UI',sans-serif; letter-spacing: .2em; text-transform: uppercase; }
+.moment-art { display: grid; place-items: center; width: 188px; height: 188px; margin: 0 auto; color: var(--accent); filter: drop-shadow(0 0 25px color-mix(in srgb,var(--accent) 25%,transparent)); }
+.moment-card .moment-art { border: 2px solid #08090b; outline: 1px solid #ddd2b489; outline-offset: -6px; background: #080a0c; transform: rotate(-3deg); box-shadow: 8px 12px 35px #000c; }
+.moment-art img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.moment-card .moment-art img { padding: 8px; box-sizing: border-box; }
+.moment-power .moment-art { height: 220px; }
+.moment-art .phase-icon { width: 120px; height: 120px; stroke-width: 1; }
+.moment-art > svg:not(.phase-icon) { width: 130px; height: 160px; }
+.moment-seal,.moment-verdict { font: 130px/1 Georgia,serif; }
+.moment-death-sigil { font: 200px/.7 Georgia,serif; transform: rotate(-8deg); }
+body.digital-ui .moment-content h2 { margin: 15px 0 6px; font: clamp(36px,5.2vw,66px)/.98 var(--heading); letter-spacing: .035em; color: #f8f0de; text-shadow: 0 3px 20px #000; }
+.moment-route { margin: 6px auto; color: var(--accent); font-size: 19px; font-weight: 600; max-width: 95%; overflow-wrap: anywhere; }
+.moment-route span { font-weight: 400; }
+.moment-description { margin: 10px auto 15px; max-width: 400px; font: 13px/1.5 'Segoe UI',sans-serif; color: #d7cdbb; }
+body.digital-ui .moment-skip { position: absolute; right: 24px; bottom: 24px; pointer-events: auto; padding: 8px 14px; min-height: 44px; border-color: #e7d9bd55; background: #090c10cc; color: #d8d0c1; font-size: 11px; }
+.moment-reveal .moment-art { animation: seal-uncover .7s cubic-bezier(.15,.7,.2,1) both; }
+.moment-death .moment-art { animation: lantern-out .8s ease-out both; }
+.moment-phase .moment-art { animation: phase-arrives 1.2s cubic-bezier(.1,.7,.2,1) both; }
+.moment-victory .moment-content { animation-duration: var(--moment-duration); }
+.moment-victory .moment-rule { width: 300px; }
+@keyframes moment-entrance { 0% { opacity: 0; transform: translateY(30px) scale(.88); filter: blur(5px); } 18%,80% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); } 100% { opacity: 0; transform: translateY(-10px) scale(1.035); filter: blur(2px); } }
+@keyframes moment-impact { 0% { opacity: 0; transform: translate(35px,8px) scale(1.15) rotate(-3deg); } 8% { opacity: 1; transform: translate(-4px,0) scale(1.035) rotate(-1deg); } 12%,62% { opacity: 1; transform: translate(0,0) scale(1) rotate(0); } 83% { opacity: 1; transform: translate(-3px,0) scale(1.015); } 100% { opacity: 0; transform: translate(-45px,-4px) scale(1.05); } }
+@keyframes ink-strike { 0% { opacity: 0; clip-path: inset(0 100% 0 0); } 9%,77% { opacity: 1; clip-path: inset(0); } 100% { opacity: 0; clip-path: inset(0 0 0 100%); } }
+@keyframes moment-veil { 0%,100% { opacity: 0; } 16%,80% { opacity: 1; } }
+@keyframes seal-uncover { 0%,20% { transform: perspective(600px) rotateY(90deg); filter: brightness(.2); } 100% { transform: perspective(600px) rotateY(0); filter: brightness(1); } }
+@keyframes lantern-out { 0% { opacity: 0; transform: scale(1.3) rotate(5deg); } 30% { opacity: 1; transform: scale(.95); } 100% { opacity: .75; transform: scale(1); } }
+@keyframes phase-arrives { from { opacity: 0; transform: translateY(18px) rotate(-25deg); } to { opacity: 1; transform: translateY(0) rotate(0); } }
+.game-moment.moment-quiet .moment-content,.game-moment.moment-quiet .moment-veil,.game-moment.moment-quiet .moment-art { animation: none; }
+.game-moment.moment-quiet .moment-ink { display: none; }
+body.quiet-motion *,body.quiet-motion *::before,body.quiet-motion *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; scroll-behavior: auto !important; }
+@media (max-width: 680px) {
+  body.digital-ui.game-screen { --hand-height: max(226px,27dvh); }
+  body.digital-ui .action-dock-heading { min-height: 44px; height: 44px; }
+  body.digital-ui .day-buttons button { min-height: 40px; }
+  body.digital-ui .game-preferences { gap: 3px; margin: 0 7px 0 auto; }
+  body.digital-ui .game-preferences button { padding: 3px 4px; min-height: 32px; font-size: 8px; }
+  body.digital-ui .phase-icon { width: 23px; height: 23px; }
+  body.digital-ui .power-dock { left: auto; right: 5px; bottom: calc(var(--hand-height) + 12px); width: 156px; height: 60px; }
+  body.digital-ui #role-power { gap: 5px; padding: 5px; }
+  body.digital-ui #role-power b { font-size: 14px; }
+  body.digital-ui #role-power small { font-size: 8px; }
+  body.digital-ui .power-symbol svg { width: 25px; height: 25px; }
+  body.digital-ui #power-info { flex-basis: 40px; min-width: 40px; }
+  body.digital-ui .inspect-life { right: 164px; min-height: 26px; font-size: 9px; }
+  body.digital-ui #local-life .public-seals { max-width: min(185px,calc(100vw - 190px)); }
+  body.digital-ui .power-aiming { padding: 2px 5px; }
+  body.digital-ui .power-aiming img { width: 55px; height: 65px; }
+  body.digital-ui .power-aiming h2 { font-size: 22px; margin: 3px 0; }
+  body.digital-ui .power-aiming p { font-size: 10px; margin: 3px auto; }
+  body.digital-ui .power-aiming small { font-size: 8px; margin-top: 4px; }
+  .moment-art { width: 160px; height: 160px; }
+  .moment-power .moment-art { height: 190px; }
+  .moment-content { padding: 14px; }
+  .moment-route { font-size: 17px; }
+  .moment-description { font-size: 12px; }
+  body.digital-ui .moment-skip { right: 12px; bottom: 12px; }
+}
+@media (max-width: 680px) and (max-height: 730px) {
+  body.digital-ui.game-screen { --hand-height: 198px; }
+  body.digital-ui.game-screen #lobby .play-column { grid-template-rows: clamp(112px,20dvh,145px) minmax(70px,1fr) 74px var(--hand-height); }
+}
+@media (max-height: 600px) {
+  .moment-art,.moment-power .moment-art { width: 100px; height: 100px; }
+  .moment-art .phase-icon { width: 85px; height: 85px; }
+  .moment-eyebrow { margin: 4px 0; }
+  body.digital-ui .moment-content h2 { margin: 9px 0 5px; font-size: 34px; }
+  .moment-description { margin: 5px auto; }
+  .moment-rule { margin: 5px auto; }
+  .moment-seal,.moment-verdict,.moment-death-sigil { font-size: 90px; }
+}
+/* Short landscape screens need two useful columns, rather than overlapping layers. */
+@media (orientation: landscape) and (max-height: 600px) and (max-width: 1100px) {
+  body.digital-ui.game-screen { --hand-height: 148px; }
+  body.digital-ui.game-screen .topbar { height: 40px; margin: 0 8px; padding: 3px 0; }
+  body.digital-ui.game-screen main { height: calc(100dvh - 40px); padding: 0 8px 6px; }
+  body.digital-ui.game-screen #lobby .room-heading { flex: 0 0 34px; height: 34px; }
+  body.digital-ui.game-screen #lobby .room-layout { display: grid; grid-template-columns: minmax(0,1fr); gap: 0; }
+  body.digital-ui.game-screen #lobby .play-column { --wing: clamp(165px,26vw,220px); display: grid; grid-template-columns: var(--wing) minmax(0,1fr); grid-template-rows: minmax(0,1fr) var(--hand-height); gap: 7px 10px; }
+  body.digital-ui.game-screen #lobby .tabletop-panel { grid-column: 1; grid-row: 1; padding: 0; overflow: hidden; }
+  body.digital-ui.game-screen #lobby .tabletop-frame { height: 100%; overflow: auto; pointer-events: auto; }
+  body.digital-ui.game-screen #lobby .roster-title { width: 100%; height: 22px; min-height: 22px; padding: 2px; margin: 0 0 3px; font-size: 16px; }
+  body.digital-ui.game-screen .roster-hint { display: none; }
+  body.digital-ui.game-screen #lobby #seats { display: flex; flex-direction: column; gap: 5px; height: auto; padding: 0; overflow: visible; }
+  body.digital-ui.game-screen #lobby #seats .table-seat { flex: none; height: auto; width: 100%; min-height: 90px; padding: 5px; }
+  body.digital-ui.game-screen #lobby #seats .table-seat .public-seals li { height: 27px; }
+  body.digital-ui.game-screen #lobby #seats .table-seat .seat-name h3 { font-size: 17px; }
+  body.digital-ui.game-screen #lobby .tabletop-panel > .controls { position: fixed; top: 45px; left: auto; right: 48px; bottom: auto; width: auto; z-index: 25; }
+  body.digital-ui.game-screen #lobby .tabletop-panel > .controls #reopen { min-height: 25px; font-size: 8px; padding: 3px 6px; }
+  body.digital-ui.game-screen #lobby .action-stage { grid-column: 2; grid-row: 1; min-height: 0; padding: 0; gap: 2px; }
+  body.digital-ui .match-hud { min-height: 38px; padding: 0 45px; }
+  body.digital-ui .phase-banner { min-width: 130px; padding: 3px 12px; font-size: 18px; }
+  body.digital-ui .phase-icon { width: 22px; height: 22px; }
+  body.digital-ui .match-hud p { margin: 3px 0; font-size: 9px; }
+  body.digital-ui .hud-piles { display: none; }
+  body.digital-ui .action-spotlight { min-height: 0; overflow-y: auto; align-items: safe center; }
+  body.digital-ui .action-route { padding: 5px; }
+  body.digital-ui .route-state { margin: 0 0 3px; font-size: 7px; }
+  body.digital-ui .action-actor { display: flex; align-items: center; justify-content: center; gap: 5px; }
+  body.digital-ui .action-actor .eyebrow,body.digital-ui .route-help { display: none; }
+  body.digital-ui .action-actor > span { margin: 0; }
+  body.digital-ui .action-actor b { font-size: 15px; }
+  body.digital-ui .action-actor .emblem { width: 17px; height: 17px; }
+  body.digital-ui .route-card-name { margin: 3px 0; }
+  body.digital-ui .route-card-name h2 { font-size: 19px; }
+  body.digital-ui .route-card-name > span { font-size: 15px; }
+  body.digital-ui .route-targets .spotlight-player { padding: 3px 6px; min-width: 90px; }
+  body.digital-ui .route-targets .spotlight-player h2 { margin: 1px 0; font-size: 17px; }
+  body.digital-ui .route-targets :is(.seat-seals,.attached-status,.revealed-life-summary) { display: none; }
+  body.digital-ui .action-route.waiting > h2 { margin: 4px 0; font-size: 21px; }
+  body.digital-ui.game-screen #lobby .action-stage .table-center { display: none; }
+  body.digital-ui.game-screen #lobby .action-dock { grid-column: 2; grid-row: 2; }
+  body.digital-ui .action-dock-heading { height: 32px; min-height: 32px; padding: 0 2px; gap: 4px; }
+  body.digital-ui .action-dock-heading > .eyebrow { font-size: 7px; }
+  body.digital-ui .day-buttons { gap: 3px; }
+  body.digital-ui .day-buttons button { min-height: 30px; padding: 3px 6px; font-size: 8px; }
+  body.digital-ui .hand-heading { height: 10px; min-height: 10px; padding: 0 3px; }
+  body.digital-ui .hand-heading .eyebrow { font-size: 7px; }
+  body.digital-ui .action-hand.grouped-hand { gap: 7px; padding: 7px 3px 3px; }
+  body.digital-ui .grouped-hand .card-stack { flex-basis: 90px; width: 90px; }
+  body.digital-ui .action-hand[data-hand-size] .action-card { height: 70px; padding: 3px; }
+  body.digital-ui .action-hand[data-hand-size] .action-card .action-card-sigil { height: 31px; min-height: 31px; margin-bottom: 3px; }
+  body.digital-ui .action-hand[data-hand-size] .action-card b { font-size: 12px; }
+  body.digital-ui .action-hand[data-hand-size] .action-card > span:not(.action-card-sigil):not(.action-card-corner):not(.card-stack-count) { font-size: 7px; margin-top: 2px; }
+  body.digital-ui .card-details-button { min-height: 24px; height: 24px; padding: 2px; font-size: 9px; }
+  body.digital-ui .stack-controls { bottom: 26px; }
+  body.digital-ui.game-screen .local-life { position: absolute; grid-column: auto; grid-row: auto; width: var(--wing); height: 91px; left: 0; right: auto; bottom: 56px; padding: 5px; }
+  body.digital-ui .local-life header { height: 17px; margin-bottom: 3px; }
+  body.digital-ui .local-life header h2 { font-size: 13px; }
+  body.digital-ui .local-life header > span { display: none; }
+  body.digital-ui #local-life .public-seals { max-width: 100%; }
+  body.digital-ui #local-life .public-seals li { height: 30px; }
+  body.digital-ui .inspect-life { right: 5px; bottom: 3px; min-height: 26px; font-size: 9px; }
+  body.digital-ui .power-dock { left: 0; right: auto; bottom: 0; width: var(--wing); height: 51px; }
+  body.digital-ui #role-power { padding: 4px 6px; gap: 6px; }
+  body.digital-ui #role-power b { font-size: 15px; }
+  body.digital-ui #role-power small { font-size: 8px; }
+  body.digital-ui .power-symbol svg { width: 25px; height: 25px; }
+  body.digital-ui #power-info { flex-basis: 35px; min-width: 35px; }
+  body.digital-ui.game-screen #lobby .council-panel:not(.is-chat-open) { display: none; }
+  body.digital-ui.game-screen #lobby .council-panel.is-chat-open { display: flex; position: fixed; z-index: 95; inset: 44px 8px 8px auto; width: min(360px,calc(100vw - 16px)); background: #090d13fa; }
+  body.digital-ui .chat-close { display: block; }
+  body.digital-ui .chat-toggle { display: flex; position: fixed; top: 44px; right: 8px; min-height: 30px; padding: 3px 7px; }
+  body.digital-ui .chat-toggle > span:last-child { display: none; }
+  body.digital-ui.game-screen #action-confirmation:has(.play-preview) { position: fixed; z-index: 45; inset: 80px 10px auto calc(clamp(165px,26vw,220px) + 25px); max-height: calc(100dvh - 90px); overflow-y: auto; }
+  body.digital-ui.game-screen #lobby[data-phase='NIGHT'] .action-stage { grid-row: 1 / -1; }
+  body.digital-ui.game-screen #lobby[data-phase='NIGHT'] .action-dock { visibility: hidden; }
+  body.digital-ui.game-screen #lobby[data-phase='NIGHT'] #night-panel:not([hidden]) { inset: 45px 0 auto; width: 100%; max-height: calc(100% - 45px); padding: 10px; }
+  body.digital-ui #action-confirmation .play-preview { padding: 9px; }
+  body.digital-ui .power-confirmation { padding: 14px; }
+  body.digital-ui .power-confirmation > img { height: 55px; margin: 3px auto; }
+  body.digital-ui .power-confirmation h2 { font-size: 24px; margin: 8px 0; }
+  body.digital-ui .power-confirmation p { font-size: 12px; line-height: 1.4; margin: 8px 0; }
+  body.digital-ui .power-confirmation .power-cost { font-size: 10px; }
+  body.digital-ui .power-decisions { margin-top: 10px; }
+}
+@media (orientation: landscape) and (max-height: 600px) and (max-width: 1100px), (max-width: 360px) and (max-height: 730px) {
+  body.digital-ui #action-spotlight .route-targets :is(.seat-seals,.attached-status,.revealed-life-summary) { display: none; }
+  body.digital-ui .action-route.resolved,body.digital-ui .action-route.planning { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); align-items: center; gap: 3px 8px; width: 100%; padding: 4px; }
+  body.digital-ui .route-state { display: none; }
+  body.digital-ui .action-route .action-actor { grid-column: 1; margin: 0; }
+  body.digital-ui .action-route .action-actor b { font-size: 14px; }
+  body.digital-ui .action-route .action-actor .eyebrow { display: none; }
+  body.digital-ui .route-card-name { grid-column: 2; margin: 0; }
+  body.digital-ui .route-card-name h2 { font-size: 17px; }
+  body.digital-ui .route-card-name > span { display: none; }
+  body.digital-ui .route-targets { grid-column: 1 / -1; align-items: center; gap: 4px; }
+  body.digital-ui .route-targets::before { content: 'Target'; color: #bcb3a2; font-size: 8px; }
+  body.digital-ui .route-targets .spotlight-player { min-width: 0; padding: 2px 5px; }
+  body.digital-ui .route-targets .spotlight-player > .eyebrow { display: none; }
+  body.digital-ui .route-targets .spotlight-player header { display: flex; align-items: center; justify-content: center; gap: 4px; }
+  body.digital-ui .route-targets .spotlight-player h2 { font-size: 15px; margin: 0; }
+  body.digital-ui .route-targets .spotlight-player .emblem { width: 15px; height: 15px; }
+  body.digital-ui .route-help { display: none; }
+  body.digital-ui .action-route.waiting .action-actor { display: none; }
+  body.digital-ui .action-route.waiting > h2 { font-size: 20px; margin: 3px 0; }
+}
+@media (orientation: landscape) and (max-height: 350px) and (max-width: 1100px) {
+  body.digital-ui .action-route.resolved,body.digital-ui .action-route.planning { grid-template-columns: minmax(0,.8fr) minmax(0,1fr) minmax(0,.8fr); gap: 3px; }
+  body.digital-ui .route-targets { grid-column: 3; grid-row: 1; flex-direction: column; gap: 1px; }
+  body.digital-ui .action-route .action-actor { grid-row: 1; }
+  body.digital-ui .route-card-name { grid-row: 1; }
+  body.digital-ui .route-targets::before,body.digital-ui .route-targets .action-direction { display: none; }
+  body.digital-ui .route-targets .spotlight-player { border: 0; padding: 0; background: none; }
+  body.digital-ui .route-targets .spotlight-player h2 { font-size: 13px; }
+  body.digital-ui .route-targets .spotlight-player header::before { content: '→'; color: #df7d77; font-size: 11px; }
+  body.digital-ui .route-targets .spotlight-player .emblem { display: none; }
+  body.digital-ui .route-targets .spotlight-global h2 { font-size: 13px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .game-moment .moment-content,.game-moment .moment-art,.game-moment .moment-veil { animation: none; }
+  .moment-ink { display: none; }
+}

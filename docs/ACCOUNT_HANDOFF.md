@@ -14,6 +14,42 @@ Node.js 22.12+ is required. This is an npm workspaces TypeScript project: `apps/
 
 ## Current project state
 
+October 28 continuation: see `docs/GAME_FEEL.md` for the local animation and
+direct role-power pass, including the owner's authorized change that targeted
+cards and role powers require other players. The earlier self-targeting rule is
+superseded. No online hosting was added.
+
+The follow-up pass adds private Ashbound teammate names at match start and in
+private reference panels, red ALLY name tags during play, and green active-turn
+names with drifting dust. Available powers and valid targets have subtle glow.
+Team markers use only server-authorized living ally IDs and respect converted
+allegiances, neutral Scapegoats, deaths, reconnects, and rematches.
+
+The owner's subsequent mechanics change is implemented: Scapegoat transfers all
+Doubt and attached effects, including Hearts, Black Cat, protections, Bound, and
+remedies. Ashbound seal an opening Black Cat vote in the private Life reveal;
+the cursed player starts Day 1. Conspiracy reveals a random Life card on the cat
+holder before shifting; Curse removes the marker. See `docs/GAME_FEEL.md` for
+the exact digital voting and duplicate-effect rules. Card and private-power
+close-ups now label recipients, and the action panel/pile overlap is corrected.
+
+The next readability pass uses 6–8 second cinematic scenes with Keep open, Next,
+and Back to table. Life reveals announce the owner, show a full public Life
+portrait, and then give the exact five-card position its own six-second scene.
+The event aura fades before the foreground. Opening role portrait, Ashbound team,
+and Life cards are separate private screens with red/gold allegiance glows.
+The corner question mark opens an illustrated three-tab field guide with roles,
+all 14 cards and their interactions, and how to play; bundled
+screenshots come from demonstration matches and exclude unrelated overlays.
+The 83-card deck now has 38 Evidence / 6 Witness and fewer utility cards.
+
+Close-ups now pause the authoritative server: players, bots and phase timers wait
+until connected readers finish, then the exact remaining time resumes. Early
+finishers see a neutral waiting screen; private powers share no role or target
+details with other players. Reconnect replays only an unfinished current scene.
+Absent readers have a 45-second minimum safety limit. Green PLAYED/TARGET name
+tags identify public card actors and recipients, while red ALLY badges remain.
+
 - A playable 6–10 player vertical slice is implemented, including human and server bot seats, private Life cards, 14 playable action cards, Day turns, Night choices, voting, Dawn, victory checks, reconnect recovery, and rematch lobbies.
 - The **digital UI overhaul has already been implemented in code**. It is not only a set of mockups. `docs/digital-ui-overhaul.md` describes the live components, art assets, responsiveness, privacy handling, and browser verification.
 - The current role set is Villager, Ashbound, Sleuth, Herbalist, Gossip, Hexer, and Scapegoat. The client has individual role illustrations and symbols in `apps/client/public/art/roles/` and `apps/client/src/role-art.ts`.

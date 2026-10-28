@@ -1,0 +1,48 @@
+body.digital-ui .game-preferences #game-help {width:32px;min-width:32px;min-height:32px;padding:3px;border-radius:50%;font:bold 19px Georgia,serif;color:#eed7a6;border-color:#cebc8c88;}
+body.digital-ui #how-to-dialog.game-guide {width:min(1120px,calc(100vw - 24px));max-width:none;max-height:calc(100dvh - 24px);padding:24px;border:1px solid #cbb98e;border-radius:4px;background:#0a0e14fa;color:#eee5d1;overflow-y:auto;box-sizing:border-box;}
+.game-guide::backdrop {background:#020408d9;backdrop-filter:blur(5px);}
+.guide-heading {display:flex;justify-content:space-between;align-items:center;gap:15px;}
+body.digital-ui .guide-heading h2 {font:36px/1.1 var(--heading);margin:5px 0 14px;}
+.guide-heading #guide-close {min-width:44px;min-height:44px;padding:0;font-size:26px;background:none;}
+.guide-tabs {display:flex;gap:8px;padding-bottom:15px;margin-bottom:18px;border-bottom:1px solid #d5c6a44d;}
+.guide-tabs button {min-height:44px;flex:1;max-width:240px;background:#131b25;color:#cfbea1;}
+.guide-tabs [aria-selected='true'] {border-color:#e6c581;background:#5a402433;color:#ffe8b1;box-shadow:inset 0 -2px #e6c581;}
+.game-guide p {font:13px/1.65 'Segoe UI',sans-serif;color:#ddd0b8;}
+.guide-lead {max-width:700px;}
+.guide-roles {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;}
+.guide-role {display:flex;align-items:center;gap:18px;padding:15px;border:1px solid #bb9a554d;background:radial-gradient(ellipse at left,#96753a20,transparent 75%),#0e141d;min-width:0;}
+.guide-role > img {width:125px;height:210px;object-fit:contain;flex-shrink:0;filter:drop-shadow(0 0 11px #d9b26d25);}
+.guide-role.guide-ashbound {border-color:#d15c6d66;background:radial-gradient(ellipse at left,#8d243c28,transparent 75%),#0e141d;}
+.guide-role h3,.guide-life-note h3 {margin:0 0 9px;font:25px/1.15 var(--heading);color:#edd4a1;}
+.guide-role.guide-ashbound h3 {color:#f9a8b4;}
+.guide-life-note {margin-top:18px;padding:16px;border-left:3px solid #c0a467;background:#29251c66;}
+.guide-walkthrough {display:grid;grid-template-columns:210px minmax(0,1fr);gap:24px;}
+.guide-step-list {display:flex;flex-direction:column;gap:6px;}
+.guide-step-list button {display:flex;align-items:center;gap:10px;text-align:left;min-height:48px;padding:9px;background:#101925;font:12px/1.3 'Segoe UI',sans-serif;color:#c4b9a2;border-color:#7c786344;}
+.guide-step-list b {display:grid;place-items:center;flex:0 0 25px;height:25px;border:1px solid #b49e7055;border-radius:50%;font:12px 'Segoe UI',sans-serif;}
+.guide-step-list [aria-current] {border-color:#d5b979;background:#b89a4c1a;color:#ffe3a2;}
+body.digital-ui .guide-step h3 {font:32px/1.2 var(--heading);margin:5px 0 14px;}
+.guide-step figure {margin:0;background:#05080d;border:1px solid #c3b18a55;}
+.guide-step figure img {display:block;width:100%;height:clamp(150px,38dvh,380px);object-fit:contain;}
+.guide-step figcaption {padding:7px 10px;border-top:1px solid #bfae7a33;color:#b1a58f;font:10px/1.4 'Segoe UI',sans-serif;}
+.guide-step > p {min-height:85px;}
+.guide-step footer {display:flex;justify-content:space-between;gap:10px;margin-top:15px;}
+.guide-step footer button {min-height:44px;}
+@media(max-width:680px) {
+  body.digital-ui #how-to-dialog.game-guide {padding:14px;width:calc(100vw - 16px);max-height:calc(100dvh - 16px);}
+  body.digital-ui .guide-heading h2 {font-size:28px;}
+  .guide-roles {grid-template-columns:minmax(0,1fr);}
+  .guide-role {gap:12px;padding:10px;}
+  .guide-role > img {width:95px;height:180px;}
+  .guide-role h3 {font-size:22px;}
+  .game-guide p {font-size:12px;}
+  .guide-walkthrough {grid-template-columns:minmax(0,1fr);gap:15px;}
+  .guide-step-list {flex-direction:row;overflow-x:auto;gap:5px;padding-bottom:5px;}
+  .guide-step-list button {padding:5px;min-width:38px;min-height:40px;justify-content:center;}
+  .guide-step-list button span {display:none;}
+  .guide-step-list b {border:0;}
+  .guide-step figure img {height:30dvh;}
+  body.digital-ui.game-screen .connection {font-size:0;max-width:8px;overflow:hidden;}
+  body.digital-ui.game-screen .game-preferences {margin-right:2px;gap:3px;}
+  body.digital-ui.game-screen .game-preferences #game-help {min-width:28px;width:28px;min-height:28px;}
+}

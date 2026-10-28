@@ -1,0 +1,55 @@
+import { roleArt, roleDescriptions } from './role-art';
+import { CARD_INFO, cardArt, cardTitle } from './card-info';
+import { statusSymbol } from './status-art';
+import type { ActionKind } from '@ashfall/shared';
+
+const roles = ['VILLAGER','ASHBOUND','SLEUTH','HERBALIST','GOSSIP','HEXER','SCAPEGOAT'];
+export const GUIDE_STEPS = [
+  { title:'Gather your council', image:'lobby', text:'Create a room for 6–10 players. Share its invite code with friends, or fill empty seats with bots. Everyone must be ready before the host deals the cards.' },
+  { title:'Meet your role and team', image:'portrait', text:'Your full portrait reveals your fixed role. Ashbound see a red glow and a separate private teammate screen; other roles have a gold glow. Continue to your five Life cards. Your role stays with you, while Life cards can change your allegiance.' },
+  { title:'Inspect your five Lives', image:'life', text:'Reveal your Life cards privately. You may swap their positions before confirming. Ashbound must also seal their opening Black Cat vote. Its final holder is shown publicly and takes the first turn. Conspiracy reveals one of that holder’s hidden Lives; Scapegoat moves the curse and Curse removes it.' },
+  { title:'Play a card on another player', image:'card-play', text:'Drag a card onto a highlighted player, or tap it and then choose a player. Phones use a brief hold to drag; quick swipes browse the hand. Read the preview and confirm. Scapegoat transfers all Doubt and attached effects between two other players. You may keep playing, then End turn. Draw 2 is the alternative and ends your turn immediately.' },
+  { title:'Use your role power', image:'power', text:'Tap the role icon in the corner, choose a highlighted player, then read the explanation and answer Yes or No. Gossip needs two other players. Sleuth, Herbalist and Gossip act during Day; Hexer acts at Night. Role powers do not use your card turn. The question mark beside your power opens your private role information.' },
+  { title:'Understand a Life reveal', image:'revelation', text:'Seven Doubt reveals one random hidden Life card. First comes an announcement, then a full Life portrait, then the exact numbered position in the five-card row. A Villager Life does not prove the owner’s allegiance. An Ashbound Life reveal, or revealing every Life on a player, eliminates them. Doubt then clears. Gameplay, bots and the turn timer pause throughout the close-up. Keep open gives you reading time; Back to table finishes your sequence. Play resumes when everyone finishes, with a safety limit for absent players.' },
+  { title:'Survive Night and Dawn', image:'night', text:'When the draw deck runs out, Night begins and public chat falls silent. Ashbound privately vote to attack someone outside their team. A hidden Lanternkeeper Life allows protection of another player. Confirm your choices before the timer ends. Dawn announces the result; unused cards stay in hand and the discard pile reshuffles for the next Day.' },
+  { title:'Win the hunt', image:'victory', text:'The Village wins when every Ashbound Life card is revealed. The Ashbound win when every surviving non-neutral player is Ashbound. A Scapegoat role wins individually only through a completed council vote eliminating them. Open your private role information to vote. The host can reopen the room after the match; everyone readies again.' },
+] as const;
+let active: 'roles' | 'cards' | 'howto' = 'howto';
+const tabs=['roles','cards','howto'] as const;
+let step = 0;
+let dialog: HTMLDialogElement;
+let returnFocus: HTMLElement | null = null;
+
+function render(): void {
+  const current = GUIDE_STEPS[step]!;
+  dialog.innerHTML = `<header class="guide-heading"><div><span class="eyebrow">ASHFALL FIELD GUIDE</span><h2 id="guide-title">Know the council</h2></div><button id="guide-close" type="button" aria-label="Close game guide">×</button></header>
+    <div class="guide-tabs" role="tablist" aria-label="Game guide sections">${tabs.map(tab=>`<button type="button" id="guide-${tab}" role="tab" aria-controls="guide-panel" aria-selected="${active===tab}" tabindex="${active===tab?0:-1}">${tab==='roles'?'Roles & portraits':tab==='cards'?'Cards & effects':'How to play'}</button>`).join('')}</div>
+    <section id="guide-panel" role="tabpanel" aria-labelledby="guide-${active}" tabindex="0">${active === 'roles' ? `<p class="guide-lead">Every role is shown here for reference. This guide never reveals who has which role in your match.</p><div class="guide-roles">${roles.map(role => `<article class="guide-role ${role === 'ASHBOUND' || role === 'HEXER' ? 'guide-ashbound' : ''}"><img src="${roleArt(role)}" alt="${role.toLowerCase().replaceAll('_',' ')} portrait" loading="lazy"><div><h3>${role.replaceAll('_',' ')}</h3><p>${roleDescriptions[role]}</p></div></article>`).join('')}</div><aside class="guide-life-note"><h3>A role is different from a Life card</h3><p>Five Life cards determine survival and allegiance. Receiving an Ashbound Life makes you Ashbound for the rest of the match, even if it later moves away. The Lanternkeeper is a Life card, not a fixed role: its night protection moves with the hidden card and ends when that Life is revealed. The neutral Scapegoat keeps its individual win condition.</p></aside>`
+      : active==='cards'?`<p class="guide-lead">All 14 playable cards, with their exact targets and effects. This is a reference library, not anyone’s hand.</p><div class="guide-cards">${(Object.keys(CARD_INFO) as ActionKind[]).map(kind=>{const card=CARD_INFO[kind];return `<article class="guide-card" data-guide-card="${kind}"><img src="${cardArt(kind)}" alt="${cardTitle(kind)} card artwork" loading="lazy"><div><h3>${cardTitle(kind)}</h3><b class="guide-card-brief">${card.brief}</b><dl><dt>Choose</dt><dd>${card.target}</dd><dt>Effect</dt><dd>${card.effect}</dd><dt>Interactions</dt><dd>${card.interaction}</dd></dl></div></article>`;}).join('')}</div><aside class="guide-life-note"><h3>${statusSymbol('BLACK_CAT')} Opening Black Cat</h3><p>The Black Cat is a starting curse marker rather than a drawable action card. Ashbound secretly choose its first holder, who starts Day 1. Conspiracy reveals one hidden Life on its current holder; Scapegoat moves it, and Curse removes it.</p></aside>`
+      : `<div class="guide-walkthrough"><nav class="guide-step-list" aria-label="How to play steps">${GUIDE_STEPS.map((item,index) => `<button type="button" data-guide-step="${index}" ${index === step ? 'aria-current="step"' : ''}><b>${index + 1}</b><span>${item.title}</span></button>`).join('')}</nav><article class="guide-step"><span class="eyebrow">STEP ${step + 1} OF ${GUIDE_STEPS.length}</span><h3>${current.title}</h3><figure><img src="/guide/${current.image}.png" alt="Example game screenshot: ${current.title}" loading="eager"><figcaption>Example match • these are demonstration players and cards</figcaption></figure><p>${current.text}</p><footer><button type="button" id="guide-prev" ${step === 0 ? 'disabled' : ''}>← Previous</button><button type="button" id="guide-next">${step === GUIDE_STEPS.length - 1 ? 'Back to step 1' : 'Next step →'}</button></footer></article></div>`}</section>`;
+  dialog.querySelector('#guide-close')?.addEventListener('click', () => dialog.close());
+  for (const tab of tabs) dialog.querySelector(`#guide-${tab}`)?.addEventListener('click', () => { active = tab; render(); dialog.querySelector<HTMLButtonElement>(`#guide-${tab}`)?.focus(); });
+  dialog.querySelector('.guide-tabs')?.addEventListener('keydown', event => {
+    const key = (event as KeyboardEvent).key;
+    if (!['ArrowLeft','ArrowRight','Home','End'].includes(key)) return;
+    event.preventDefault(); active=key==='Home'?'roles':key==='End'?'howto':tabs[(tabs.indexOf(active)+(key==='ArrowLeft'?2:1))%tabs.length]!; render(); dialog.querySelector<HTMLButtonElement>(`#guide-${active}`)?.focus();
+  });
+  const changeStep = (index: number) => { step = index; render(); dialog.querySelector<HTMLHeadingElement>('.guide-step h3')?.scrollIntoView({block:'nearest'}); dialog.querySelector<HTMLButtonElement>('#guide-next')?.focus({preventScroll:true}); };
+  dialog.querySelectorAll<HTMLButtonElement>('[data-guide-step]').forEach(button => button.addEventListener('click', () => changeStep(Number(button.dataset.guideStep))));
+  dialog.querySelector('#guide-prev')?.addEventListener('click', () => changeStep(Math.max(0,step - 1)));
+  dialog.querySelector('#guide-next')?.addEventListener('click', () => changeStep((step + 1) % GUIDE_STEPS.length));
+}
+export function openGameGuide(tab: 'roles' | 'cards' | 'howto' = 'howto'): void {
+  active = tab; returnFocus = document.activeElement as HTMLElement | null; render();
+  if (!dialog.open) dialog.showModal();
+  dialog.querySelector<HTMLButtonElement>('#guide-close')?.focus();
+}
+export function installGameGuide(): void {
+  dialog = document.getElementById('how-to-dialog') as HTMLDialogElement;
+  dialog.className = 'game-guide'; dialog.setAttribute('aria-labelledby','guide-title');
+  dialog.addEventListener('close', () => { if (returnFocus?.isConnected) returnFocus.focus({preventScroll:true});document.dispatchEvent(new Event('ashfall:guide-closed')); });
+  const button = document.createElement('button'); button.id = 'game-help'; button.type = 'button'; button.textContent = '?'; button.setAttribute('aria-label','Open roles, cards and how to play guide'); button.title = 'Roles, cards & how to play';
+  document.querySelector('.game-preferences')?.append(button);
+  button.addEventListener('click', () => openGameGuide());
+  document.addEventListener('ashfall:open-guide',()=>openGameGuide('cards'));
+}

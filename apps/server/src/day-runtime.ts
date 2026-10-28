@@ -20,7 +20,8 @@ export function describeDayEvent(event: DayEvent, state: DayState, name: (id: st
     case 'ROLE_BLOCK': return `${target} was protected from a harmful effect.`;
     case 'DOUBT': return `${target} gained ${event.count} Doubt.`;
     case 'CLEANSE': return `${target} lost ${event.count} Doubt.`;
-    case 'STATUS': return event.statusKind === 'VOW_HEART' ? `${target}'s Heart ${event.count ? 'awaits another' : 'has faded'}.`
+    case 'STATUS': return event.statusKind === 'BLACK_CAT' ? `${target}${event.count ? ' carries the Black Cat curse. Conspiracy will reveal one of their hidden Life cards.' : ' is free of the Black Cat curse.'}`
+      : event.statusKind === 'VOW_HEART' ? `${target}'s Heart ${event.count ? 'awaits another' : 'has faded'}.`
       : event.statusKind ? `${target} is ${event.count ? `under ${event.statusKind.toLowerCase()}` : `free of ${event.statusKind.toLowerCase()}`}.` : '';
     case 'VOW': return event.cardKind ? `Shared suspicion carried one Doubt from ${actor} to ${target}.`
       : event.count ? `${actor} and ${target} are bound by a Vow of Hearts.` : `${actor} and ${target} are no longer bound by their Vow.`;

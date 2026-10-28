@@ -43,6 +43,7 @@ export function installLifeDetails(): void {
   });
   document.addEventListener('pointerout', event => {
     if (pinned) return;
+    if (!anchor?.contains(event.target as Node) || anchor.contains(document.activeElement)) return;
     const next = (event as PointerEvent).relatedTarget as Node | null;
     if (!anchor?.contains(next) && !popup?.contains(next)) close();
   });
@@ -52,7 +53,7 @@ export function installLifeDetails(): void {
     if (control) show(control,false);
   });
   document.addEventListener('focusout', event => {
-    if (!pinned && !popup?.contains((event as FocusEvent).relatedTarget as Node | null)) close();
+    if (!pinned && anchor?.contains(event.target as Node) && !popup?.contains((event as FocusEvent).relatedTarget as Node | null)) close();
   });
   document.addEventListener('click', event => {
     const control = (event.target as HTMLElement).closest<HTMLElement>('[data-revealed-life]');

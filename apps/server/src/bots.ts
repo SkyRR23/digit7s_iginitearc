@@ -1,6 +1,7 @@
-import type { BotDifficulty, DayIntent, NightIntent, ProtectionKind, RoomView } from '@ashfall/shared';
+import { cardRequiresOtherPlayer, type BotDifficulty, type DayIntent, type NightIntent, type ProtectionKind, type RoomView } from '@ashfall/shared';
 
 export type BotDecision = DayIntent | NightIntent | { type: 'acknowledgeDeal' } |
+  { type: 'chooseBlackCat'; targetId: string } |
   { type: 'useRole'; targetId: string; secondTargetId?: string } | { type: 'closeSleuth' } |
   { type: 'councilVote'; targetId: string };
 export interface BotMemory {
@@ -37,10 +38,13 @@ function updatePublicMemory(view: RoomView, memory: BotMemory): void {
 
 /** Legal actions are derived only from the same per-player DTO sent to a human client. */
 export function enumerateLegalBotActions(view: RoomView): BotDecision[] {
+  if(view.presentation)return [];
   const me = view.you?.playerId;
   if (!me) return [];
   if (view.phase === 'PRIVATE_DEAL') {
     const player = view.deal?.players.find(candidate => candidate.playerId === me);
+    if (player && !player.acknowledged && view.blackCatChoice && !view.blackCatChoice.submitted)
+      return view.deal!.players.filter(candidate => candidate.alive).map(candidate => ({ type: 'chooseBlackCat', targetId: candidate.playerId }));
     return player && !player.acknowledged && view.private ? [{ type: 'acknowledgeDeal' }] : [];
   }
   if (view.phase === 'NIGHT' && view.night && view.deal) {
@@ -98,15 +102,14 @@ export function enumerateLegalBotActions(view: RoomView): BotDecision[] {
     if (card.kind === 'SCAPEGOAT') {
       for (const first of living) for (const second of living) {
         if (first.playerId === second.playerId || first.playerId === me || second.playerId === me ||
-          !state(first.playerId).doubt || state(second.playerId).doubt >= 7) continue;
+          !(state(first.playerId).doubt || state(first.playerId).statuses?.length || state(first.playerId).remedy)) continue;
         actions.push({ type: 'playCard', cardId: card.id, targetId: first.playerId, secondTargetId: second.playerId });
       }
       continue;
     }
     for (const target of living) {
       const id = target.playerId;
-      const otherOnly = ['STOCKS','WHISPER','CINDER_SHIFT'];
-      if (otherOnly.includes(card.kind) && id === me) continue;
+      if (cardRequiresOtherPlayer(card.kind) && id === me) continue;
       if (card.kind === 'VOW_OF_HEARTS' && linked(id)) continue;
       if (card.kind === 'CINDER_SHIFT' && (!ownHidden || !target.seals.some(seal => !seal.revealed))) continue;
       if (['HEARTHWARD','PIETY','ASYLUM','STOCKS'].includes(card.kind) &&
@@ -131,6 +134,10 @@ export function chooseBotDecision(view: RoomView, difficulty: BotDifficulty, mem
   updatePublicMemory(view, memory);
   const legal = enumerateLegalBotActions(view);
   if (!legal.length) return null;
+  if (legal[0]!.type === 'chooseBlackCat') {
+    const allies = new Set([view.you!.playerId, ...view.private?.witchTeammateIds ?? []]);
+    return pick(legal.filter(action => action.type === 'chooseBlackCat' && !allies.has(action.targetId)), memory) ?? pick(legal,memory);
+  }
   if (legal[0]!.type === 'closeSleuth' || legal[0]!.type === 'useRole') return pick(legal, memory);
   if (legal[0]!.type === 'acknowledgeDeal' || legal[0]!.type === 'revealSeal') return pick(legal, memory);
   if (difficulty === 'EASY') {

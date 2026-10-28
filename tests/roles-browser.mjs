@@ -15,15 +15,15 @@ try {
   await page.locator('#ready').click();
   await page.locator('#start:not([disabled])').click();
   await page.locator('#role-toggle:not([hidden])').waitFor();
-  await page.locator('#role-toggle').click();
+  if (!await page.locator('#role-panel.is-open').count()) await page.locator('#role-toggle').click();
   const role = await page.locator('#role-panel h2').textContent();
   assert.ok(role && role.trim().length > 0);
   const bounds = await page.locator('#role-panel').boundingBox();
   assert.ok(bounds && bounds.x >= 0 && bounds.x + bounds.width <= 390, 'Private role drawer fits the mobile viewport');
   await page.screenshot({ path: 'test-results/roles-mobile.png' });
-  await page.locator('#role-close').click();
-  await page.locator('[data-open-private-seals]').first().click();
-  assert.equal((await page.locator('.private-role-summary b').textContent())?.trim(), role?.trim());
+  await page.locator('#role-continue').click();
+  if(await page.locator('#role-panel.is-open[data-opening-step="team"]').count()) await page.locator('#role-continue').click();
+  assert.equal(await page.locator('.private-role-summary').count(),0,'Opening Life cards have their own screen');
   assert.match(await page.locator('.seal-transfer-warning').textContent() ?? '', /face-down hearts moving between players/);
   await page.screenshot({ path: 'test-results/seals-mobile.png' });
   await page.locator('#reveal-all').click();
@@ -34,6 +34,12 @@ try {
   await page.screenshot({ path: 'test-results/seals-swap-mobile.png' });
   await page.locator('[data-private-seal]').nth(1).click();
   await page.waitForFunction(() => document.querySelectorAll('.private-seal-card.swap-changed').length === 2);
+  if (await page.locator('#black-cat-target').count()) {
+    const target=await page.locator('#black-cat-target option').nth(1).getAttribute('value');
+    await page.locator('#black-cat-target').selectOption(target);
+    await page.locator('#seal-black-cat:not([disabled])').click();
+    await page.locator('.opening-curse strong').waitFor();
+  }
   await page.locator('#acknowledge:not([disabled])').click();
   await page.waitForFunction(() => document.querySelector('#lobby')?.dataset.phase === 'DAY', { timeout: 15000 });
   const transfer = await page.evaluate(async () => {
@@ -56,7 +62,7 @@ try {
   assert.equal(transfer.anonymous, true);
   await page.waitForTimeout(400);
   await page.screenshot({ path: 'test-results/hearts-transfer-mobile.png' });
-  await page.locator('#role-toggle').click();
+  await page.locator('#power-info').click();
   assert.equal(await page.locator('#vote-action').count(), 1);
   await page.setViewportSize({ width: 1280, height: 800 });
   const desktop = await page.locator('#role-panel').boundingBox();

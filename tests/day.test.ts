@@ -30,9 +30,11 @@ describe('expanded council card rules', () => {
     expect(s.rules.accusationThreshold).toBe(7);
     for (const [kind, count] of Object.entries(originalPrototypePreset.cardCounts))
       expect(all.filter(card => card.kind === kind)).toHaveLength(count);
-    expect(all.filter(card => card.kind === 'WHISPER')).toHaveLength(24);
-    expect(all.filter(card => card.kind === 'HEARTHWARD')).toHaveLength(12);
-    expect(all.filter(card => card.kind === 'CINDER_SHIFT')).toHaveLength(4);
+    expect(all.filter(card => card.kind === 'WHISPER')).toHaveLength(6);
+    expect(all.filter(card => card.kind === 'HEARTHWARD')).toHaveLength(3);
+    expect(all.filter(card => card.kind === 'CINDER_SHIFT')).toHaveLength(2);
+    expect(all.filter(card => card.kind === 'EVIDENCE' || card.kind === 'WITNESS')).toHaveLength(44);
+    expect(all.filter(card => card.kind === 'EVIDENCE').length / all.length).toBeGreaterThan(.45);
   });
   it('Evidence adds two, caps at seven, and the server reveals exactly one random Life card immediately', () => {
     const s = fixture(); s.doubt.p1 = 6;
@@ -105,16 +107,71 @@ describe('expanded council card rules', () => {
     const cursed = play(s, 'CURSE', 'p1', { protection: 'PIETY' }).state;
     expect(publicDay(cursed).players[1]!.statuses?.map(item => item.kind)).toEqual(['ASYLUM']);
   });
-  it('Scapegoat transfers only what fits; the transferred marks do not trigger a Vow', () => {
+  it('Scapegoat transfers all Doubt, clears overflow at seven, and does not mirror transferred marks', () => {
     const s = fixture(); s.doubt.p1 = 3; s.doubt.p2 = 5;
     s.vows = [{ playerIds: ['p2','p3'], sourceId: 'p0' }];
     s.statuses = { p2: [{ kind:'VOW_HEART', sourceId:'p0', duration:'UNTIL_USED', consumed:false }],
       p3: [{ kind:'VOW_HEART', sourceId:'p0', duration:'UNTIL_USED', consumed:false }] };
     const result = play(s, 'SCAPEGOAT', 'p1', { secondTargetId: 'p2' });
-    expect(result.state.doubt.p1).toBe(1);
+    expect(result.state.doubt.p1).toBe(0);
     expect(result.state.doubt.p2).toBe(0); // seventh mark revealed and row cleared
     expect(result.state.doubt.p3).toBe(0);
     expect(result.events.filter(event => event.type === 'REVEAL')).toHaveLength(1);
+  });
+  it('moves the complete effect bundle, reconnects Hearts, preserves remedy expiry, and synchronizes wards', () => {
+    const s = fixture(); s.doubt.p1 = 4; s.doubt.p2 = 1;
+    s.statuses!.p1 = ['BOUND','ASYLUM','PIETY','HEARTHWARD','VOW_HEART','BLACK_CAT'].map(kind => ({
+      kind: kind as import('@ashfall/shared').StatusKind, sourceId: 'p0', duration: 'UNTIL_USED', consumed: false,
+    }));
+    s.statuses!.p3 = [{ kind: 'VOW_HEART', sourceId: 'p0', duration: 'UNTIL_USED', consumed: false }];
+    s.vows = [{ playerIds: ['p1','p3'], sourceId: 'p0' }]; s.wards.p1 = true;
+    s.herbalRemedies!.p1 = { sourceId: 'p4', activeDay: 1, consumed: false };
+    const result = play(s,'SCAPEGOAT','p1',{secondTargetId:'p2'});
+    expect(publicDay(result.state).players[1]!.statuses).toEqual([]);
+    expect(publicDay(result.state).players[2]!.statuses?.map(status=>status.kind).sort())
+      .toEqual(['BOUND','ASYLUM','PIETY','HEARTHWARD','VOW_HEART','BLACK_CAT'].sort());
+    expect(result.state.doubt).toMatchObject({p1:0,p2:5,p3:0});
+    expect(result.state.vows).toEqual([{playerIds:['p3','p2'],sourceId:'p0'}]);
+    expect(result.state.wards).toMatchObject({p1:false,p2:true});
+    expect(result.state.herbalRemedies?.p1).toBeUndefined();
+    expect(result.state.herbalRemedies?.p2).toEqual({sourceId:'p4',activeDay:1,consumed:false});
+    expect(result.state.identity).toEqual(s.identity);
+  });
+  it('allows a zero-Doubt source carrying only the Black Cat and merges duplicate Hearts without self-links', () => {
+    const s = fixture();
+    s.statuses!.p1 = [{kind:'BLACK_CAT',sourceId:'p1',duration:'UNTIL_USED',consumed:false}, {kind:'VOW_HEART',sourceId:'p0',duration:'UNTIL_USED',consumed:false}];
+    s.statuses!.p2 = [{kind:'VOW_HEART',sourceId:'p0',duration:'UNTIL_USED',consumed:false}];
+    s.vows = [{playerIds:['p1','p2'],sourceId:'p0'}];
+    const result = play(s,'SCAPEGOAT','p1',{secondTargetId:'p2'});
+    expect(result.state.vows).toEqual([]);
+    expect(publicDay(result.state).players[2]!.statuses?.map(status=>status.kind).sort()).toEqual(['BLACK_CAT','VOW_HEART']);
+    expect(publicDay(result.state).players[1]!.statuses).toEqual([]);
+  });
+  it('a receiving remedy blocks the entire Scapegoat bundle before anything moves', () => {
+    const s = fixture(); s.doubt.p1 = 5;
+    s.statuses!.p1 = [{kind:'BLACK_CAT',sourceId:'p1',duration:'UNTIL_USED',consumed:false}];
+    s.herbalRemedies!.p2 = {sourceId:'p4',activeDay:1,consumed:false};
+    const result = play(s,'SCAPEGOAT','p1',{secondTargetId:'p2'});
+    expect(result.state.doubt.p1).toBe(5); expect(result.state.doubt.p2).toBe(0);
+    expect(publicDay(result.state).players[1]!.statuses?.[0]?.kind).toBe('BLACK_CAT');
+    expect(result.events.some(event=>event.type==='ROLE_BLOCK')).toBe(true);
+  });
+  it('Curse removes Black Cat, and Conspiracy reveals only its current holder before shifting', () => {
+    let s = fixture(); s.statuses!.p1 = [{kind:'BLACK_CAT',sourceId:'p1',duration:'UNTIL_USED',consumed:false}];
+    s = play(s,'SCAPEGOAT','p1',{secondTargetId:'p2'}).state;
+    const result = play(s,'CONSPIRACY');
+    expect(result.events.filter(event=>event.type==='REVEAL').map(event=>event.targetId)).toEqual(['p2']);
+    expect(result.events.findIndex(event=>event.type==='REVEAL')).toBeLessThan(result.events.findIndex(event=>event.type==='CONSPIRACY'));
+    const removed = play(s,'CURSE','p2').state;
+    expect(publicDay(removed).players[2]!.statuses).toEqual([]);
+    expect(play(removed,'CONSPIRACY').events.some(event=>event.type==='REVEAL')).toBe(false);
+  });
+  it('Black Cat death resolves before the Conspiracy ring and never shifts a dead player’s cards', () => {
+    const s = fixture(); s.statuses!.p5 = [{kind:'BLACK_CAT',sourceId:'p5',duration:'UNTIL_USED',consumed:false}];
+    s.hands.p0![0]!.kind = 'CONSPIRACY';
+    const result = run(s,{type:'playCard',cardId:s.hands.p0![0]!.id,targetId:'p0'},'p0',max=>Math.min(2,max-1));
+    expect(result.state.identity.players.find(player=>player.id==='p5')!.alive).toBe(false);
+    expect(result.state.identity.cards.filter(card=>card.ownerId==='p5')).toEqual(s.identity.cards.filter(card=>card.ownerId==='p5').map(card=>({...card,revealed:true})));
   });
   it('Vow mirrors direct Doubt once per card, never recursively', () => {
     let s = fixture(); s = play(s, 'VOW_OF_HEARTS', 'p1').state;
@@ -157,13 +214,12 @@ describe('expanded council card rules', () => {
     expect(result.state.doubt.p1).toBe(0);
     expect(result.state.doubt.p2).toBe(0);
   });
-  it('permits self-targeted Evidence and Witness while Stocks and Whisper require another player', () => {
-    const s = fixture();
-    expect(play(s, 'EVIDENCE', 'p0').state.doubt.p0).toBe(2);
-    expect(play(s, 'WITNESS', 'p0').events.filter(event => event.type === 'REVEAL')).toHaveLength(1);
-    expect(() => play(s, 'STOCKS', 'p0')).toThrow('another living player');
-    expect(() => play(s, 'WHISPER', 'p0')).toThrow('another living player');
-  });
+  it.each<ActionKind>(['EVIDENCE','WITNESS','ALIBI','MERCY','STOCKS','ASYLUM','PIETY','HEARTHWARD','WHISPER','CINDER_SHIFT','SCAPEGOAT','CURSE','VOW_OF_HEARTS'])(
+    '%s rejects self-targeting without spending the card or changing match state', kind => {
+      const s = fixture(); const before = structuredClone(s);
+      expect(() => play(s, kind, 'p0', kind === 'SCAPEGOAT' ? { secondTargetId: 'p1' } : {})).toThrow('another living player');
+      expect(s).toEqual(before);
+    });
   it('Curse breaks a Vow for both linked players', () => {
     let s = fixture(); s = play(s, 'VOW_OF_HEARTS', 'p1').state;
     s = play(s, 'VOW_OF_HEARTS', 'p2').state;

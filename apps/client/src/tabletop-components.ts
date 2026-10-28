@@ -4,6 +4,8 @@ import { cardGlyph } from './card-art';
 import { cardArt, CARD_INFO, cardTitle } from './card-info';
 import { chainOverlay, statusSymbol } from './status-art';
 import { lifeSymbol } from './life-details';
+import { teammates } from './team-info';
+import { actionPeople } from './action-people';
 
 const escape = (value: string) => value.replace(/[&<>"']/g, character =>
   ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]!);
@@ -11,6 +13,7 @@ export const lifeHeart = () => '<svg class="life-heart" viewBox="0 0 80 90" aria
 const brokenHeart = () => '<svg class="broken-heart" viewBox="0 0 80 90" aria-hidden="true"><path d="M36 80 10 49C-7 29 10 2 31 15l9 8-8 18 9 5-10 14zM45 76l25-27C87 29 70 2 49 15l-7 8 7 22-9 6 5 11z"/></svg>';
 
 export interface TableSelection {
+  power?: { name: string; description: string; art: string };
   selectedCardId: string;
   selectedCardKind: ActionCard['kind'] | null;
   selectedTargetId: string;
@@ -56,6 +59,7 @@ const statusInfo = {
   PIETY: ['✦','Blessed: blocks the next Evidence or Witness.'],
   HEARTHWARD: ['♨','Warded: blocks the next Whisper.'],
   VOW_HEART: ['♥','Linked Heart: direct Doubt from a played card shares one Doubt with each other Heart holder. Lasts until Curse removes this Heart or this player dies.'],
+  BLACK_CAT: ['◆','Black Cat curse: Conspiracy reveals one random hidden Life card on this player before Life cards shift. Scapegoat moves the curse; Curse removes it.'],
 } as const;
 
 export function renderPlayerSeat(view: RoomView, player: PublicPlayer, absoluteIndex: number,
@@ -65,6 +69,10 @@ export function renderPlayerSeat(view: RoomView, player: PublicPlayer, absoluteI
   const counters = view.day?.players.find(candidate => candidate.playerId === player.id);
   const alive = dealt?.alive !== false;
   const active = view.phase === 'DAY' && view.day?.activePlayerId === player.id;
+  const teammate = teammates(view).some(ally => ally.id === player.id);
+  const action = actionPeople(view);
+  const actionActor = action.actorId === player.id;
+  const actionTarget = action.targetIds.includes(player.id);
   const validTarget = selection.validTargetIds.includes(player.id);
   const selectedTarget = selection.selectedTargetId === player.id;
   const secondTarget = selection.secondTargetId === player.id;
@@ -78,16 +86,17 @@ export function renderPlayerSeat(view: RoomView, player: PublicPlayer, absoluteI
   const vow = view.day?.vows?.find(link => link.playerIds.includes(player.id));
   const partners = [...new Set(view.day?.vows?.filter(link => link.playerIds.includes(player.id)).flatMap(link => link.playerIds.filter(id => id !== player.id)) ?? [])]
     .map(id => view.players.find(other => other.id === id)?.name ?? 'Council member');
-  return `<article class="seat table-seat position-${position} ${you ? 'is-you' : ''} ${player.ready && player.connected ? 'is-ready' : ''} ${alive ? 'is-alive' : 'is-dead'} ${active ? 'is-active' : ''} ${validTarget ? 'is-valid-target' : ''} ${selectedTarget ? 'is-selected-target' : ''} ${secondTarget ? 'is-second-target' : ''} ${statuses.map(status => `has-${status.kind.toLowerCase()}`).join(' ')} ${vow ? 'has-vow' : heart ? 'has-lone-heart' : ''}"
+  return `<article class="seat table-seat position-${position} ${you ? 'is-you' : ''} ${teammate ? 'is-teammate' : ''} ${player.ready && player.connected ? 'is-ready' : ''} ${alive ? 'is-alive' : 'is-dead'} ${active ? 'is-active' : ''} ${validTarget ? 'is-valid-target' : ''} ${selectedTarget ? 'is-selected-target' : ''} ${secondTarget ? 'is-second-target' : ''} ${statuses.map(status => `has-${status.kind.toLowerCase()}`).join(' ')} ${vow ? 'has-vow' : heart ? 'has-lone-heart' : ''}"
       data-player="${player.id}" data-seat-index="${absoluteIndex}" data-table-position="${position}" ${validTarget ? 'tabindex="0" role="button"' : ''}
-      aria-label="Seat ${absoluteIndex + 1}, ${escape(player.name)}, ${state}${targetLabel}">
+      aria-label="Seat ${absoluteIndex + 1}, ${escape(player.name)}, ${state}${teammate ? ', your Ashbound teammate' : ''}${targetLabel}">
     <div class="seat-badges"><span class="seat-number">${String(absoluteIndex + 1).padStart(2, '0')}</span>
       ${player.id === view.hostId ? '<span class="host-tag">HOST</span>' : ''}
       ${player.isBot ? `<span class="bot-tag">BOT · ${player.botDifficulty}</span>` : ''}
+      ${teammate ? '<span class="ally-tag">ALLY <span aria-hidden="true">◆</span></span>' : ''}
     </div>
     ${dealt && you && view.private ? `<button class="private-seal-trigger identity-back" type="button" data-open-private-seals aria-label="Open your private Life cards">${emblem('lantern')}</button>` : ''}
     <div class="portrait-wrap"><span class="villager-portrait portrait-${player.avatar}" aria-hidden="true"></span>${emblem(player.avatar)}<span class="speaking-indicator" data-speaking="false" aria-label="Not speaking"></span>${heart ? `<span class="portrait-heart" aria-hidden="true">${statusSymbol('VOW_HEART')}</span>` : ''}${statuses.some(s => s.kind === 'BOUND') ? `<span class="portrait-chain" aria-hidden="true">${chainOverlay}</span>` : ''}${!alive ? '<span class="death-mark" aria-label="Eliminated">×</span>' : ''}</div>
-    <div class="seat-name"><h3>${escape(player.name)}</h3>${you ? '<small>YOU</small>' : ''}</div>
+    <div class="seat-name ${actionActor ? 'is-action-actor' : ''} ${actionTarget ? 'is-action-target' : ''}">${active ? '<span class="turn-dust" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></span>' : ''}<h3>${escape(player.name)}</h3>${you ? '<small>YOU</small>' : ''}${actionActor||actionTarget ? `<span class="action-name-label">${actionActor?'PLAYED': 'TARGET'}</span>` : ''}</div>
     <p class="seat-status">${state}${counters ? ` · ${counters.handCount} cards` : ''}</p>
     ${renderSeals(view, player.id)}
     ${renderDoubt(view, player.id)}
@@ -95,7 +104,7 @@ export function renderPlayerSeat(view: RoomView, player: PublicPlayer, absoluteI
     <div class="status-icons" aria-label="Active statuses">${counters?.remedy ? `<button type="button" class="status-icon status-remedy" title="Herbal remedy: blocks one harmful targeted effect or night attack until Dawn." aria-label="Herbal remedy active">${statusSymbol('REMEDY')}<b>REMEDY</b></button>` : ''}${statuses.map(status => {
       const info = status.kind === 'VOW_HEART' && !vow ? ['♥','Heart waiting: another Vow card must place a Heart on someone else before Doubt is shared. Lasts until Curse removes it or this player dies.'] : statusInfo[status.kind];
       const explanation = `${status.kind === 'VOW_HEART' && partners.length ? `Heart linked with ${partners.join(', ')}. ` : ''}${info[1]}`;
-      return `<button type="button" class="status-icon status-${status.kind.toLowerCase()}" title="${escape(explanation)}" aria-label="${escape(explanation)}">${statusSymbol(status.kind)}<b>${status.kind === 'VOW_HEART' ? vow ? `WITH ${escape(partners.join(', '))}` : 'HEART WAITING' : status.kind === 'HEARTHWARD' ? 'WARDED' : status.kind === 'PIETY' ? 'BLESSED' : status.kind}</b></button>`;
+      return `<button type="button" class="status-icon status-${status.kind.toLowerCase()}" title="${escape(explanation)}" aria-label="${escape(explanation)}">${statusSymbol(status.kind)}<b>${status.kind === 'VOW_HEART' ? vow ? `WITH ${escape(partners.join(', '))}` : 'HEART WAITING' : status.kind === 'HEARTHWARD' ? 'WARDED' : status.kind === 'PIETY' ? 'BLESSED' : status.kind.replaceAll('_', ' ')}</b></button>`;
     }).join('')}</div>
     ${history}
     ${canRemoveBot ? `<button class="remove-bot small" data-remove-bot="${player.id}">Remove Bot</button>` : ''}
@@ -138,7 +147,7 @@ export function renderActionCard(card: ActionCard, selected: boolean, disabled: 
   const detail: Record<ActionCard['kind'], string> = {
     EVIDENCE: '+2 Doubt', WITNESS: 'Reveal a Life card', ALIBI: 'Remove 2 Doubt', STOCKS: 'Skip next turn',
     ASYLUM: 'Night shield', PIETY: 'Bless one player', CURSE: 'Break protection', MERCY: 'Cleanse and unbind',
-    SCAPEGOAT: 'Transfer Doubt', VOW_OF_HEARTS: 'Give one Heart', CONSPIRACY: 'Shift hidden lives',
+    SCAPEGOAT: 'Transfer all Doubt & effects', VOW_OF_HEARTS: 'Give one Heart', CONSPIRACY: 'Shift hidden lives',
     WHISPER: 'Secret insight', HEARTHWARD: 'Block one Whisper', CINDER_SHIFT: 'Random Life swap',
   };
   const sigil = ({ EVIDENCE:'✜',WITNESS:'◉',ALIBI:'⚖',STOCKS:'⛓',ASYLUM:'☾',PIETY:'✦',CURSE:'☠',MERCY:'✧',SCAPEGOAT:'↝',VOW_OF_HEARTS:'♥',CONSPIRACY:'◌',WHISPER:'!',HEARTHWARD:'◇',CINDER_SHIFT:'↭' } as const)[card.kind];

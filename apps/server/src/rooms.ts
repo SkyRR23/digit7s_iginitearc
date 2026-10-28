@@ -1,5 +1,5 @@
 import { createHash, randomBytes, randomInt, randomUUID, timingSafeEqual } from 'node:crypto';
-import { AVATARS, canStart, RECONNECT_GRACE_MS, SEATS, type BotDifficulty, type Command, type FeedEntry,
+import { AVATARS, canStart, PRESENTATION_DURATION, publicPresentationPlan, RECONNECT_GRACE_MS, SEATS, type BotDifficulty, type Command, type FeedEntry,
   type PublicPlayer, type Reply, type RoomView, type Session, type TableEffect } from '@ashfall/shared';
 import { acknowledgeIdentities, arrangeIdentities, privateIdentities, publicIdentities, type IdentityMatch } from '@ashfall/shared/identities';
 import { createIdentityDeal } from './deal.js';
@@ -24,6 +24,9 @@ interface Room {
   code: string; version: number; phase: RoomView['phase']; hostId: string; capacity: number;
   players: Player[]; feed: FeedEntry[]; match: IdentityMatch | null; day: DayState | null;
   scapegoatEnabled: boolean; roles: Roles | null; votes: Record<string, string>; voteDay: number; voteComplete: boolean;
+  blackCatVotes?: Record<string, string>;
+  presentation?: {id:string;startedAt:number;until:number;remainingMs:number|null;waiters:Set<string>;completed:Set<string>;
+    previousPhase:RoomView['phase'];events:TableEffect[];ownerId?:string;privateAction?:{kind:import('@ashfall/shared').SpecialRole;targetIds:string[]}} | null;
 }
 type Binding = { room: Room; player: Player };
 class RoomError extends Error {
@@ -50,12 +53,13 @@ export class RoomStore {
     private dayFactory: DayFactory = createServerDay,
     private identityFactory: IdentityFactory = createIdentityDeal,
     private randomIndex: (max: number) => number = randomInt,
-    private botOptions: BotRuntimeOptions = {}) {}
+    private botOptions: BotRuntimeOptions = {}, private presentations = true) {}
 
   execute(socketId: string, command: Command): Reply {
     try {
       this.sweep();
       const bound = this.bindings.get(socketId);
+      const presentationBefore = bound?.room.presentation?.id;
       const cache = bound?.player.receipts ?? this.bootstrap.get(socketId) ?? new Map<string, Receipt>();
       this.bootstrap.set(socketId, cache);
       const fingerprint = JSON.stringify(command);
@@ -78,7 +82,8 @@ export class RoomStore {
         if (after.player.receipts !== cache) {
           after.player.receipts.set(command.actionId, receipt);
         }
-        if (command.type === 'nightAttack' || command.type === 'nightProtect' || command.type === 'arrangeSeals' ||
+        if (presentationBefore !== after.room.presentation?.id) this.publish(after.room);
+        else if (command.type === 'finishPresentation' || command.type === 'nightAttack' || command.type === 'nightProtect' || command.type === 'arrangeSeals' || command.type === 'chooseBlackCat' ||
           command.type === 'useRole' && after.room.roles?.[after.player.id]?.kind !== 'HERBALIST' || command.type === 'closeSleuth')
           this.send(socketId, this.view(after.room, after.player.id));
         else this.publish(after.room);
@@ -127,10 +132,20 @@ export class RoomStore {
     const bound = this.bindings.get(socketId);
     if (!bound) fail('NO_SESSION', 'Join a gathering before taking an action.');
     const { room, player } = bound;
+    if(room.presentation && ['drawCards','endTurn','playCard','playCards','shiftSeal','revealSeal','nightAttack','nightProtect','useRole','councilVote'].includes(command.type))
+      fail('CINEMATIC','The table is paused while players finish the close-up.');
     if ('expectedVersion' in command && command.expectedVersion !== room.version)
       fail('STALE', 'The gathering changed. Review the updated seats and try again.');
     switch (command.type) {
       case 'sync': break;
+      case 'finishPresentation': {
+        if(room.match?.id!==command.matchId)fail('MATCH_CHANGED','That match has ended.');
+        if(!room.presentation)break;
+        if(room.presentation.id!==command.presentationId)fail('STALE_PRESENTATION','That close-up has already ended.');
+        if(room.presentation.waiters.delete(player.id)) {room.presentation.completed.add(player.id);player.privateVersion++;}
+        if(!room.presentation.waiters.size)this.resumePresentation(room,this.now());
+        break;
+      }
       case 'addBot':
         this.requireHost(room, player); this.requireOpenLobby(room);
         if (room.players.length >= room.capacity) fail('FULL', 'All seats are taken.');
@@ -165,12 +180,15 @@ export class RoomStore {
         break;
       case 'useRole':
         this.useRole(room, player, command.matchId, command.targetId, command.secondTargetId);
+        if(!player.isBot)this.beginPresentation(room,room.phase,[],PRESENTATION_DURATION.power,player.id,
+          {kind:room.roles![player.id]!.kind,targetIds:[command.targetId,...(command.secondTargetId?[command.secondTargetId]:[])]});
         break;
       case 'closeSleuth': {
         if (room.match?.id !== command.matchId) fail('MATCH_CHANGED', 'That match has ended.');
         const role = room.roles?.[player.id];
         if (!role?.peek?.open) fail('ABILITY', 'No investigation is open.');
         role.peek.open = false; player.privateVersion++;
+        if(room.presentation?.ownerId===player.id)this.resumePresentation(room,this.now());
         break;
       }
       case 'councilVote':
@@ -192,6 +210,7 @@ export class RoomStore {
         room.match = this.identityFactory(room.players.map(p => p.id));
         room.roles = assignRoles(room.match, ROLE_PRESETS[room.capacity]!, room.scapegoatEnabled, this.randomIndex);
         room.votes = {}; room.voteDay = 0; room.voteComplete = false;
+        room.blackCatVotes = {};
         room.phase = 'PRIVATE_DEAL';
         this.event(room, 'Five Seals have been dealt to each player. Inspect yours privately, then acknowledge.');
         break;
@@ -203,6 +222,18 @@ export class RoomStore {
         player.privateVersion++;
         break;
       }
+      case 'chooseBlackCat': {
+        if (!room.match || room.match.id !== command.matchId) fail('MATCH_CHANGED', 'That deal has ended.');
+        if (room.phase !== 'PRIVATE_DEAL') fail('PHASE', 'The opening curse is already sealed.');
+        const actor = room.match.players.find(p => p.id === player.id);
+        if (!actor?.alive || !actor.everWitch || room.roles?.[player.id]?.kind === 'SCAPEGOAT')
+          fail('ABILITY', 'Only Ashbound may choose the opening Black Cat.');
+        if (actor.acknowledged || Object.hasOwn(room.blackCatVotes ?? {}, player.id)) fail('LOCKED_CHOICE', 'Your opening choice is already sealed.');
+        if (!room.match.players.some(p => p.id === command.targetId && p.alive)) fail('TARGET', 'Choose a living player.');
+        (room.blackCatVotes ??= {})[player.id] = command.targetId;
+        player.privateVersion++;
+        break;
+      }
       case 'acknowledgeDeal': {
         if (!room.match || room.match.id !== command.matchId)
           fail('MATCH_CHANGED', 'That deal has ended. Review the current gathering.');
@@ -210,6 +241,8 @@ export class RoomStore {
         if (!actor?.alive) fail('NOT_ALIVE', 'Only living players may acknowledge their Seals.');
         if (actor.acknowledged) break;
         if (room.phase !== 'PRIVATE_DEAL') fail('PHASE', 'The private deal has ended.');
+        if (actor.everWitch && room.roles?.[player.id]?.kind !== 'SCAPEGOAT' && !Object.hasOwn(room.blackCatVotes ?? {}, player.id))
+          fail('BLACK_CAT_REQUIRED', 'Choose the opening Black Cat before confirming your Life cards.');
         const next = acknowledgeIdentities(room.match, player.id);
         if (next !== room.match) {
           room.match = next;
@@ -217,6 +250,15 @@ export class RoomStore {
           if (next.players.every(p => p.acknowledged)) {
             const initial = this.dayFactory(next, this.now());
             initial.state.neutralIds = Object.entries(room.roles ?? {}).filter(([, role]) => role.kind === 'SCAPEGOAT').map(([id]) => id);
+            const votes = Object.values(room.blackCatVotes ?? {});
+            const cursed = next.players.filter(p => p.alive).reduce((best, candidate) =>
+              votes.filter(id => id === candidate.id).length > votes.filter(id => id === best.id).length ? candidate : best);
+            initial.state.activePlayerId = cursed.id;
+            (initial.state.statuses ??= {})[cursed.id] = [...initial.state.statuses?.[cursed.id] ?? [],
+              { kind: 'BLACK_CAT', sourceId: cursed.id, duration: 'UNTIL_USED', consumed: false }];
+            for (const event of initial.events) if (event.type === 'DAY_STARTED') event.actorId = cursed.id;
+            initial.events.unshift({ type: 'STATUS', targetId: cursed.id, statusKind: 'BLACK_CAT', count: 1 });
+            room.blackCatVotes = {};
             this.commitDay(room, initial);
           }
         }
@@ -265,6 +307,8 @@ export class RoomStore {
     player.socketId = socketId;
     player.connected = true;
     player.reconnectUntil = null;
+    if(room.presentation&&!room.presentation.completed.has(player.id)&&(!room.presentation.ownerId||room.presentation.ownerId===player.id))
+      room.presentation.waiters.add(player.id);
     this.bindings.set(socketId, { room, player });
     this.event(room, `${player.name} returned to their seat.`);
     this.migrateHost(room);
@@ -279,6 +323,8 @@ export class RoomStore {
     bound.player.socketId = null;
     bound.player.connected = false;
     bound.player.reconnectUntil = this.now() + this.graceMs;
+    if(bound.room.presentation?.waiters.delete(bound.player.id)&&!bound.room.presentation.waiters.size)
+      this.resumePresentation(bound.room,this.now());
     this.event(bound.room, `${bound.player.name} disconnected. Their seat is briefly reserved.`);
     this.migrateHost(bound.room);
     this.publish(bound.room);
@@ -293,9 +339,11 @@ export class RoomStore {
       for (let steps = 0; steps < 100 && this.rooms.has(room.code); steps++) {
         const expiry = Math.min(...room.players.map(p => p.reconnectUntil ?? Infinity));
         const deadline = room.day?.deadline ?? Infinity;
-        const due = Math.min(expiry, deadline);
+        const presentationEnd=room.presentation?.until??Infinity;
+        const due = Math.min(expiry, deadline, presentationEnd);
         if (due > this.now() || !Number.isFinite(due)) break;
-        if (expiry <= deadline) this.removeMany(room, room.players.filter(p => p.reconnectUntil !== null && p.reconnectUntil <= due), due);
+        if (expiry <= Math.min(deadline,presentationEnd)) this.removeMany(room, room.players.filter(p => p.reconnectUntil !== null && p.reconnectUntil <= due), due);
+        else if(presentationEnd<=deadline)this.resumePresentation(room,due);
         else if (room.day) {
           const result = expireDay(room.day, due) ?? expireNight(room.day, due, this.randomIndex);
           if (!result) break;
@@ -308,6 +356,7 @@ export class RoomStore {
   }
 
   private removeMany(room: Room, players: Player[], now: number): void {
+    if(room.presentation)this.resumePresentation(room,now);
     const retained = !!room.day;
     for (const player of players) {
       if (player.abandoned) continue;
@@ -335,8 +384,9 @@ export class RoomStore {
   }
 
   private openLobby(room: Room, message: string): void {
+    room.presentation=null;
     room.effects = [];
-    room.phase = 'LOBBY'; room.match = null; room.day = null;
+    room.phase = 'LOBBY'; room.match = null; room.day = null; room.blackCatVotes = {};
     room.roles = null; room.votes = {}; room.voteDay = 0; room.voteComplete = false;
     room.players = room.players.filter(p => !p.abandoned);
     room.players.forEach(p => { p.ready = p.isBot; });
@@ -353,6 +403,8 @@ export class RoomStore {
       fail('ABILITY', 'This role ability is unavailable.');
     const target = room.match.players.find(p => p.id === targetId && p.alive);
     if (!target) fail('TARGET', 'Choose a living player.');
+    if (targetId === player.id || secondTargetId === player.id)
+      fail('SELF_TARGET', 'Choose another living player for your role power.');
     if (role.kind === 'HEXER') {
       if (room.phase !== 'NIGHT' || !day.night || this.now() >= day.deadline!) fail('PHASE', 'Hexing is available during Night.');
       if (secondTargetId) fail('TARGET', 'Hexer takes one target.');
@@ -413,6 +465,8 @@ export class RoomStore {
       }
       changed = true;
     }
+    if(room.presentation?.privateAction?.kind==='SLEUTH'&&!room.roles[room.presentation.ownerId!]?.peek?.open)
+      this.resumePresentation(room,this.now());
     if (changed) this.publish(room);
   }
 
@@ -471,7 +525,30 @@ export class RoomStore {
     }
     room.players = room.players.filter(player => player !== bot);
   }
+  private beginPresentation(room:Room, previousPhase:RoomView['phase'], events:TableEffect[], duration:number,
+    ownerId?:string, privateAction?:NonNullable<Room['presentation']>['privateAction']):void {
+    if(!this.presentations||!room.day||!duration)return;
+    if(room.presentation)this.resumePresentation(room,this.now());
+    const now=this.now();
+    const waiters=new Set(room.players.filter(player=>!player.isBot&&player.connected&&!player.abandoned&&(!ownerId||ownerId===player.id)).map(player=>player.id));
+    room.presentation={id:randomUUID(),startedAt:now,until:now+(waiters.size?Math.max(45_000,duration+15_000):duration),
+      remainingMs:room.day.deadline===null?null:Math.max(0,room.day.deadline-now),waiters,completed:new Set(),previousPhase,events,
+      ...(ownerId?{ownerId,privateAction}:{} )};
+    room.day.deadline=null;
+    room.version++;
+  }
+  private resumePresentation(room:Room, now:number):void {
+    const presentation=room.presentation;if(!presentation)return;
+    const elapsed=Math.max(0,now-presentation.startedAt);
+    if(room.day) {
+      if(room.day.phase!=='GAME_OVER'&&presentation.remainingMs!==null)room.day.deadline=now+presentation.remainingMs;
+      for(const peek of Object.values(room.day.privatePeeks??{}))
+        if(peek&&peek.expiresAt>presentation.startedAt)peek.expiresAt+=elapsed;
+    }
+    room.presentation=null;room.version++;
+  }
   private commitDay(room: Room, result: DayResult): void {
+    const previousPhase=room.phase;
     room.day = result.state;
     room.match = result.state.identity;
     room.phase = result.state.phase;
@@ -488,6 +565,14 @@ export class RoomStore {
         const target = room.players.find(p => p.id === targetId); if (target) target.privateVersion++;
       }
     }
+    for (const [id, role] of Object.entries(room.roles ?? {})) if (role.kind === 'HERBALIST' && role.activeTargetId) {
+      const movedTo = Object.entries(room.day.herbalRemedies ?? {}).find(([, remedy]) => remedy.sourceId === id && !remedy.consumed)?.[0];
+      if (movedTo && movedTo !== role.activeTargetId) {
+        role.activeTargetId = movedTo;
+        role.notices.push('Your remedy moved with Scapegoat.');
+        const owner = room.players.find(p => p.id === id); if (owner) owner.privateVersion++;
+      }
+    }
     for (const [id, role] of Object.entries(room.roles ?? {})) if (role.kind === 'HERBALIST' && role.activeTargetId &&
       !room.day.herbalRemedies?.[role.activeTargetId]) {
       role.activeTargetId = null;
@@ -496,7 +581,7 @@ export class RoomStore {
     }
     if (room.day && room.voteDay !== room.day.dayNumber) { room.votes = {}; room.voteDay = room.day.dayNumber; room.voteComplete = false; }
     const visualTypes = new Set(['PLAY', 'DRAW', 'DEATH', 'REVEAL_PENDING', 'REVEAL', 'NIGHT', 'DAWN', 'DOUBT', 'CLEANSE', 'STATUS', 'VOW', 'CONSPIRACY', 'TRANSFER', 'BLOCK', 'ROLE_BLOCK', 'TURN_SKIPPED']);
-    room.effects = [...(room.effects ?? []), ...result.events.filter(event => visualTypes.has(event.type)).map(event => ({
+    const newEffects:TableEffect[]=result.events.filter(event => visualTypes.has(event.type)).map(event => ({
       id: randomUUID(), type: event.type as TableEffect['type'],
       ...(event.actorId ? { actorId: event.actorId } : {}), ...(event.targetId ? { targetId: event.targetId } : {}),
       ...(event.cardKind ? { cardKind: event.cardKind } : {}), ...(event.count !== undefined ? { count: event.count } : {}),
@@ -504,12 +589,15 @@ export class RoomStore {
       ...(event.secondTargetId ? { secondTargetId: event.secondTargetId } : {}),
       ...(event.statusKind ? { statusKind: event.statusKind } : {}),
       ...(event.blocked !== undefined ? { blocked: event.blocked } : {}),
-    }))].slice(-24);
+    }));
+    room.effects = [...(room.effects ?? []), ...newEffects].slice(-24);
     const name = (id: string) => room.players.find(p => p.id === id)?.name ?? 'A player';
     for (const event of result.events) {
       const message = describeDayEvent(event, result.state, name);
       if (message) this.event(room, message);
     }
+    const plan=publicPresentationPlan(previousPhase,{phase:room.phase,deal:publicIdentities(room.match!),hasOutcome:!!room.day.outcome},result.events);
+    this.beginPresentation(room,previousPhase,newEffects,plan.reduce((total,step)=>total+step.duration,0));
   }
   private event(room: Room, text: string): void {
     room.version++;
@@ -520,9 +608,17 @@ export class RoomStore {
     // Explicit allowlist. Never spread internal player or room objects into a DTO.
     return {
       effects: (room.effects ?? []).map(effect => ({ ...effect })),
+      presentation:room.presentation?{
+        id:room.presentation.id,scope:room.presentation.ownerId?room.presentation.ownerId===viewerId?'PRIVATE':'WAIT':'PUBLIC',
+        until:room.presentation.until,remainingMs:room.presentation.remainingMs,awaitingYou:room.presentation.waiters.has(viewerId),
+        ...(!room.presentation.ownerId?{previousPhase:room.presentation.previousPhase,events:room.presentation.events.map(event=>({...event}))}:{}),
+        ...(room.presentation.ownerId===viewerId&&room.presentation.privateAction?{privateAction:{...room.presentation.privateAction,targetIds:[...room.presentation.privateAction.targetIds]}}:{})
+      }:null,
       code: room.code, version: room.version, privateVersion: room.players.find(p => p.id === viewerId)!.privateVersion,
       phase: room.phase, hostId: room.hostId, capacity: room.capacity,
       scapegoatEnabled: room.scapegoatEnabled,
+      blackCatChoice: room.phase === 'PRIVATE_DEAL' && room.match?.players.some(p => p.id === viewerId && p.alive && p.everWitch) && room.roles?.[viewerId]?.kind !== 'SCAPEGOAT'
+        ? { submitted: Object.hasOwn(room.blackCatVotes ?? {}, viewerId), targetId: room.blackCatVotes?.[viewerId] ?? null } : null,
       councilVote: room.day ? { dayNumber: room.day.dayNumber, votesCast: Object.keys(room.votes).length,
         required: Math.floor(room.match!.players.filter(p => p.alive).length / 2) + 1,
         yourTargetId: room.votes[viewerId] ?? null, completed: room.voteComplete } : null,
@@ -534,14 +630,15 @@ export class RoomStore {
       private: room.match ? (() => {
         const own = privateIdentities(room.match!, viewerId);
         return own && room.roles?.[viewerId]?.kind === 'SCAPEGOAT'
-          ? { ...own, everWitch: false, witchTeammateIds: [] } : own;
+          ? { ...own, everWitch: false, witchTeammateIds: [] }
+          : own ? { ...own, witchTeammateIds: own.witchTeammateIds.filter(id => room.roles?.[id]?.kind !== 'SCAPEGOAT') } : null;
       })() : null,
       role: room.roles ? privateRole(room.roles, viewerId, room.match?.players.find(p => p.id === viewerId)?.alive ?? false) : null,
       day: room.day ? publicDay(room.day) : null,
       hand: room.day ? privateHand(room.day, viewerId) : null,
       night: room.day ? privateNight(room.day, viewerId) : null,
-      peek: room.day?.privatePeeks?.[viewerId] && room.day.privatePeeks[viewerId]!.expiresAt > this.now()
-        ? { ...room.day.privatePeeks[viewerId]! } : null,
+      peek: room.match?.players.some(player=>player.id===viewerId&&player.alive)&&room.day?.privatePeeks?.[viewerId] && room.day.privatePeeks[viewerId]!.expiresAt > (room.presentation?.startedAt??this.now())
+        ? { ...room.day.privatePeeks[viewerId]!,expiresAt:room.day.privatePeeks[viewerId]!.expiresAt+(room.presentation?Math.max(0,this.now()-room.presentation.startedAt):0) } : null,
       dawn: room.day?.dawn ? { ...room.day.dawn } : null,
       personalResult: room.roles?.[viewerId]?.individualWin ? 'WIN' : room.day?.outcome
         ? (room.roles?.[viewerId]?.kind === 'SCAPEGOAT' ? 'LOSS'
@@ -608,6 +705,7 @@ export class RoomStore {
   private botCommand(view: RoomView, decision: BotDecision): Command {
     const actionId = randomUUID();
     if (decision.type === 'acknowledgeDeal') return { type: decision.type, actionId, matchId: view.deal!.matchId };
+    if (decision.type === 'chooseBlackCat') return { ...decision, actionId, matchId: view.deal!.matchId };
     if (decision.type === 'closeSleuth') return { type: decision.type, actionId, matchId: view.deal!.matchId };
     if (decision.type === 'councilVote') return { ...decision, actionId, matchId: view.deal!.matchId, dayNumber: view.day!.dayNumber };
     if (decision.type === 'useRole')
@@ -647,7 +745,7 @@ export class RoomStore {
 
   simulationStatus(code: string): { phase: RoomView['phase']; deadline: number | null; outcome: DayState['outcome']; turnNumber: number; matchId: string | null } | null {
     const room = this.rooms.get(code);
-    return room ? { phase: room.phase, deadline: room.day?.deadline ?? null, outcome: room.day?.outcome ?? null,
+    return room ? { phase: room.phase, deadline: room.presentation?.until??room.day?.deadline ?? null, outcome: room.day?.outcome ?? null,
       turnNumber: room.day?.turnNumber ?? 0, matchId: room.match?.id ?? null } : null;
   }
 

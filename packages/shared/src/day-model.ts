@@ -21,7 +21,7 @@ export interface DayState {
   doubt: Record<string, number>; wards: Record<string, boolean>;
   statuses?: Record<string, PlayerStatus[]>; vows?: VowLink[];
   herbalRemedies?: Record<string, { sourceId: string; activeDay: number; consumed: boolean }>;
-  privatePeeks?: Record<string, { targetId: string; kind: string; expiresAt: number } | null>;
+  privatePeeks?: Record<string, { id?:string; targetId: string; kind: string; expiresAt: number } | null>;
   reveal: { chooserId: string; targetId: string } | null;
   outcome: Outcome | null;
 }

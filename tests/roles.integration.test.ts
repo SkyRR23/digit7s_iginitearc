@@ -18,6 +18,69 @@ async function begin(party: Client[]) {
 }
 
 describe('server-assigned special roles', () => {
+  it('keeps a Herbalist remedy active after Scapegoat moves it, then consumes it on the new holder', async () => {
+    await h.close();
+    h = await createHarness(60_000,{now:()=>clock,randomIndex:max=>max-1,dayFactory:(identity,now)=>{
+      const result=createDay(identity,originalPrototypePreset,max=>max-1,randomUUID,now);
+      const index=result.state.deck.findIndex(card=>card.kind==='SCAPEGOAT');
+      result.state.hands[identity.players[0]!.id]!.push(result.state.deck.splice(index,1)[0]!);
+      return result;
+    }});
+    const party=await h.party(8); await begin(party);
+    const host=party[0]!, herbalist=party.find(client=>client.view!.role!.kind==='HERBALIST')!;
+    const matchId=host.view!.deal!.matchId;
+    await h.accepted(herbalist,{type:'useRole',matchId,targetId:id(party[1]!)});
+    await h.sync(host);
+    const scapegoat=host.view!.hand!.find(card=>card.kind==='SCAPEGOAT')!;
+    await h.accepted(host,{type:'playCard',matchId,turnNumber:host.view!.day!.turnNumber,gameVersion:host.view!.day!.version,
+      cardId:scapegoat.id,targetId:id(party[1]!),secondTargetId:id(party[2]!)});
+    await h.sync(herbalist);
+    expect(herbalist.view!.role!.ability).toBe('ACTIVE');
+    expect(herbalist.view!.role!.notices).toContain('Your remedy moved with Scapegoat.');
+    expect(host.view!.day!.players.find(player=>player.playerId===id(party[1]!))!.remedy).toBe(false);
+    expect(host.view!.day!.players.find(player=>player.playerId===id(party[2]!))!.remedy).toBe(true);
+    const whisper=host.view!.hand!.find(card=>card.kind==='WHISPER')!;
+    await h.accepted(host,{type:'playCard',matchId,turnNumber:host.view!.day!.turnNumber,gameVersion:host.view!.day!.version,
+      cardId:whisper.id,targetId:id(party[2]!)});
+    await h.sync(herbalist);
+    expect(herbalist.view!.role!.ability).toBe('USED');
+    expect(host.view!.peek).toBeNull();
+  });
+  it('does not call a neutral Scapegoat an ally after a Witch Life card moves to them', async () => {
+    await h.close();
+    h = await createHarness(60_000, { now: () => clock, randomIndex: max => max - 1,
+      identityFactory: ids => ({ id: randomUUID(),
+        players: ids.map((id, i) => ({ id, alive: true, acknowledged: false, everWitch: i === 0 || i === 5 })),
+        cards: ids.flatMap((ownerId, i) => Array.from({ length: 5 }, (_, slot) => ({
+          id: randomUUID(), ownerId, slot, revealed: false,
+          kind: slot === 4 && (i === 0 || i === 5) ? 'WITCH' as const : i === 5 && slot === 3 ? 'CONSTABLE' as const : 'HUMAN' as const,
+        }))),
+      }),
+      dayFactory: (identity, now) => {
+        const result = createDay(identity, originalPrototypePreset, max => max - 1, randomUUID, now);
+        const pile = [result.state.deck,...Object.values(result.state.hands)].find(pile=>pile.some(card=>card.kind==='CINDER_SHIFT'))!;
+        const card = pile.splice(pile.findIndex(card=>card.kind==='CINDER_SHIFT'),1)[0]!;
+        result.state.hands[identity.players[0]!.id]!.push(card);
+        return result;
+      },
+    });
+    const party = await h.six(), host = party[0]!;
+    await h.accepted(host, { type: 'setScapegoat', expectedVersion: (await h.sync(host)).version, enabled: true });
+    await begin(party);
+    const neutral = party.find(client => client.view!.role!.kind === 'SCAPEGOAT')!;
+    const matchId = host.view!.deal!.matchId;
+    const card = host.view!.hand!.find(card => card.kind === 'CINDER_SHIFT')!;
+    await h.accepted(host, { type: 'playCard', matchId, gameVersion: host.view!.day!.version,
+      turnNumber: host.view!.day!.turnNumber, cardId: card.id, targetId: id(neutral) });
+    await Promise.all(party.map(h.sync));
+    expect(neutral.view!.private!.identities.some(card => card.kind === 'WITCH')).toBe(true);
+    expect(neutral.view!.private).toMatchObject({ everWitch: false, witchTeammateIds: [] });
+    expect(host.view!.private!.witchTeammateIds).toEqual([id(party[5]!)]);
+    expect(party[5]!.view!.private!.witchTeammateIds).toEqual([id(host)]);
+    for (const villager of party.filter(client => !client.view!.private!.everWitch))
+      expect(villager.view!.private!.witchTeammateIds).toEqual([]);
+  });
+
   it('assigns one role each while keeping multiple Villagers and Ashbound, and supports configurable duplicates', () => {
     const identity: IdentityMatch = { id: randomUUID(), cards: [],
       players: Array.from({ length: 8 }, (_, n) => ({ id: `p${n}`, alive: true, acknowledged: true, everWitch: n >= 6 })) };
@@ -47,6 +110,8 @@ describe('server-assigned special roles', () => {
     const party = await h.six(); await begin(party);
     const sleuth = party.find(c => c.view!.role?.kind === 'SLEUTH')!;
     const target = party.find(c => c !== sleuth && c.view!.private?.everWitch)!;
+    expect(await h.send(sleuth, { type: 'useRole', matchId: sleuth.view!.deal!.matchId, targetId: id(sleuth) }))
+      .toMatchObject({ code: 'SELF_TARGET' });
     await h.accepted(sleuth, { type: 'useRole', matchId: sleuth.view!.deal!.matchId, targetId: id(target) });
     expect(sleuth.view!.role?.result).toBe('WITCH-ALIGNED');
     const expiresAt = sleuth.view!.role!.peek!.expiresAt;
@@ -125,6 +190,8 @@ describe('server-assigned special roles', () => {
       gameVersion: actor.view!.day!.version });
     await Promise.all(party.map(h.sync));
     expect(hexer.view!.phase).toBe('NIGHT');
+    expect(await h.send(hexer, { type: 'useRole', matchId, targetId: id(hexer) }))
+      .toMatchObject({ code: 'SELF_TARGET' });
     await h.accepted(hexer, { type: 'useRole', matchId, targetId: id(victim) });
     expect(hexer.view!.role?.ability).toBe('USED');
     expect(hexer.view!.role?.result).toContain('unknown');

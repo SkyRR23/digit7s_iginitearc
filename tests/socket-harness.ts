@@ -6,7 +6,7 @@ export type Client = { socket: Socket<ServerEvents, ClientEvents>; view?: RoomVi
 export type Input = Command extends infer C ? C extends Command ? Omit<C, 'actionId'> & { actionId?: string } : never : never;
 
 export async function createHarness(graceMs = 1000, options: Parameters<typeof createGameServer>[0] = {}) {
-  const server = createGameServer({ graceMs, sweepMs: 20, ...options });
+  const server = createGameServer({ graceMs, sweepMs: 20, presentations:false, ...options });
   const port = await server.listen(0);
   const clients: Client[] = [];
   async function connect() {
@@ -45,11 +45,13 @@ export async function createHarness(graceMs = 1000, options: Parameters<typeof c
     return party;
   }
   const six = () => party(6);
-  async function start(party: Client[]) {
+  async function start(party: Client[], chooseOpening = true) {
     for (const client of party) await accepted(client, { type: 'ready', ready: true, expectedVersion: (await sync(client)).version });
     const command = { type: 'start' as const, actionId: randomUUID(), expectedVersion: (await sync(party[0]!)).version };
     await accepted(party[0]!, command);
     await Promise.all(party.map(sync));
+    if (chooseOpening) for (const client of party) if (client.view!.blackCatChoice && !client.view!.blackCatChoice.submitted)
+      await accepted(client, { type: 'chooseBlackCat', matchId: client.view!.deal!.matchId, targetId: party[0]!.session!.playerId });
     return command;
   }
   return { connect, send, accepted, sync, six, party, start, server,

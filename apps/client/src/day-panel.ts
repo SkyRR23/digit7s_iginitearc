@@ -1,11 +1,10 @@
-import type { ActionKind, DayIntent, ProtectionKind, RoomView } from '@ashfall/shared';
+import { cardRequiresOtherPlayer, type ActionKind, type DayIntent, type ProtectionKind, type RoomView } from '@ashfall/shared';
 import { renderActionCard, type TableSelection } from './tabletop-components';
 import { CARD_INFO, cardTitle } from './card-info';
 
 const escape = (text: string) => text.replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]!);
 const twoTargets = (kind: ActionKind) => kind === 'SCAPEGOAT';
 const global = (kind: ActionKind) => kind === 'CONSPIRACY';
-const canSelf = (kind: ActionKind) => !['STOCKS','WHISPER','CINDER_SHIFT','SCAPEGOAT'].includes(kind);
 const repeatable = (kind: ActionKind) => ['EVIDENCE','ALIBI','MERCY','WHISPER','CINDER_SHIFT'].includes(kind);
 const cardCopy = Object.fromEntries(Object.entries(CARD_INFO).map(([kind, info]) => [kind,info.effect])) as Record<ActionKind,string>;
 let selectedCards: string[] = [];
@@ -22,9 +21,28 @@ let currentView: RoomView | null = null;
 let currentBlocked = false;
 let currentDispatch: (intent: DayIntent) => void = () => {};
 let currentRoot: HTMLElement | null = null;
-let dismissedPeekAt = 0;
+let dismissedPeekKey = '';
+const peekKey = (view: RoomView) => `${view.deal?.matchId}:${view.peek?.id ?? view.peek?.expiresAt}`;
+let chooseCurrentGroup: (kind: ActionKind, operation: 'add' | 'minus' | 'all') => void = () => {};
+
+export function tapHandCard(cardId: string): void {
+  const card = currentView?.hand?.find(item => item.id === cardId);
+  if (card) chooseCurrentGroup(card.kind, 'add');
+}
 
 const redraw = () => currentRoot && renderDayPanel(currentRoot, currentView, currentBlocked, currentDispatch);
+export function clearDaySelection(): void {
+  selectedCards = []; first = second = ''; preview = false; protection = ''; redraw();
+}
+export function beginCardDrag(cardId: string): boolean {
+  const view = currentView;
+  if (currentBlocked || view?.phase !== 'DAY' || view.day?.activePlayerId !== view.you?.playerId ||
+    !view.deal?.players.find(p => p.playerId === view.you?.playerId)?.alive || !view.hand?.some(card => card.id === cardId)) return false;
+  document.dispatchEvent(new Event('ashfall:choose-card'));
+  if (!selectedCards.includes(cardId)) selectedCards = [cardId];
+  first = second = ''; preview = false; protection = ''; redraw();
+  return true;
+}
 function announceSelection(): void {
   document.dispatchEvent(new CustomEvent<TableSelection>('ashfall:day-selection', { detail: getDayTableSelection() }));
 }
@@ -46,9 +64,9 @@ function availableProtections(view: RoomView, targetId: string): ProtectionKind[
 }
 function validFor(view: RoomView, me: string, kind: ActionKind, id: string, firstTarget = ''): boolean {
   const player = view.deal?.players.find(p => p.playerId === id);
-  if (!player?.alive || (id === me && !canSelf(kind)) || id === firstTarget) return false;
+  if (!player?.alive || (id === me && cardRequiresOtherPlayer(kind)) || id === firstTarget) return false;
   const state = view.day?.players.find(p => p.playerId === id);
-  if (kind === 'SCAPEGOAT' && (!firstTarget ? !state?.doubt : state!.doubt >= 7)) return false;
+  if (kind === 'SCAPEGOAT' && !firstTarget && !(state?.doubt || state?.statuses?.length || state?.remedy)) return false;
   if (kind === 'CURSE' && !availableProtections(view, id).length) return false;
   if (['HEARTHWARD','PIETY','ASYLUM','STOCKS'].includes(kind) && state?.statuses?.some(s => s.kind === (kind === 'STOCKS' ? 'BOUND' : kind))) return false;
   if (kind === 'VOW_OF_HEARTS' && state?.statuses?.some(s => s.kind === 'VOW_HEART')) return false;
@@ -81,7 +99,7 @@ export function renderDayPanel(root: HTMLElement, view: RoomView | null, blocked
   } else validTargetIds = [];
   const name = (id: string) => escape(view.players.find(p => p.id === id)?.name ?? 'A player');
   const phaseText = view.phase === 'NIGHT' ? `Night ${day.dayNumber} · your cards remain` : view.phase === 'DAWN' ? 'Dawn · discard reshuffles' : active
-    ? selectedCardKind ? mode === 'global' ? 'The whole council is affected' : mode === 'two' && first ? 'Choose SECOND player' : 'Tap a glowing player' : 'Select cards from your hand'
+    ? selectedCardKind ? mode === 'global' ? 'All living players are affected' : mode === 'two' && first ? 'Choose SECOND player' : 'Choose a highlighted player' : 'Drag a card · or tap to select'
     : `${name(day.activePlayerId)}’s turn`;
   let content = `<div class="action-dock-heading"><p class="eyebrow">${phaseText}</p><p class="turn-clock"><strong data-deadline="${day.deadline ?? 0}"></strong></p><div class="day-buttons">${active ? `<button id="select-all" class="quiet" ${blocked || !view.hand?.length ? 'disabled' : ''}>${selectedCards.length ? 'Cancel selection' : 'Select alike'}</button><button id="draw-cards" class="quiet" ${blocked || day.playedThisTurn || !day.deckCount ? 'disabled' : ''}>Draw ${Math.min(2,day.deckCount)}</button><button id="end-turn" class="primary" ${blocked || (!day.playedThisTurn && day.deckCount > 0) ? 'disabled' : ''}>${day.deckCount ? 'End turn' : 'End day'}</button>` : ''}</div></div>`;
   if (view.phase === 'GAME_OVER') content += `<div class="outcome"><h2>${day.outcome?.winner === 'HUMAN' ? 'The village survives.' : 'The Ashbound remain.'}</h2></div>`;
@@ -97,13 +115,14 @@ export function renderDayPanel(root: HTMLElement, view: RoomView | null, blocked
   }
   if (active && selectedCardKind && (preview || mode === 'global')) {
     const protections = selectedCardKind === 'CURSE' ? availableProtections(view, first) : [];
-    content += `<div class="play-preview" role="region" aria-label="Confirm card effect"><strong>${cardTitle(selectedCardKind)}${first ? ` → ${name(first)}` : ''}${second ? ` → ${name(second)}` : ''}</strong><p>${escape(cardCopy[selectedCardKind])}</p>${protections.length > 1 ? `<label>Break protection <select id="preview-protection"><option value="">Choose…</option>${protections.map(item => `<option value="${item}" ${protection === item ? 'selected' : ''}>${item.replaceAll('_',' ')}</option>`).join('')}</select></label>` : ''}<div><button id="cancel-preview" class="quiet">Cancel</button><button id="confirm-preview" class="primary" ${blocked || (protections.length > 1 && !protection) ? 'disabled' : ''}>Play ${cardTitle(selectedCardKind)}${cards.length > 1 ? ` ×${cards.length}` : ''}</button></div></div>`;
+    content += `<div class="play-preview" role="region" aria-label="Confirm card effect"><strong>${cardTitle(selectedCardKind)}${first ? ` → ${name(first)}` : ''}${second ? ` → ${name(second)}` : ''}</strong><p>${escape(cardCopy[selectedCardKind])}</p>${protections.length > 1 ? `<label>Remove effect <select id="preview-protection"><option value="">Choose…</option>${protections.map(item => `<option value="${item}" ${protection === item ? 'selected' : ''}>${item.replaceAll('_',' ')}</option>`).join('')}</select></label>` : ''}<div><button id="cancel-preview" class="quiet">Cancel</button><button id="confirm-preview" class="primary" ${blocked || (protections.length > 1 && !protection) ? 'disabled' : ''}>Play ${cardTitle(selectedCardKind)}${cards.length > 1 ? ` ×${cards.length}` : ''}</button></div></div>`;
   }
-  if (view.peek && view.peek.expiresAt > Date.now() && dismissedPeekAt !== view.peek.expiresAt)
+  if (view.peek && (view.presentation || view.peek.expiresAt > Date.now()) && dismissedPeekKey !== peekKey(view))
     content += `<div class="whisper-peek" role="dialog" aria-label="Private Whisper insight"><span class="eyebrow">YOUR EYES ONLY · ${name(view.peek.targetId)}</span><strong>One hidden Life card: ${escape(view.peek.kind)}</strong><button id="close-peek">Close</button></div>`;
   root.innerHTML = content;
   const chooseGroup = (kind: ActionKind, operation: 'add' | 'minus' | 'all') => {
     if (!active || blocked) return;
+    document.dispatchEvent(new Event('ashfall:choose-card'));
     const group = view.hand!.filter(card => card.kind === kind);
     const current = selectedCards.filter(id => group.some(card => card.id === id));
     const same = current.length === selectedCards.length;
@@ -114,6 +133,7 @@ export function renderDayPanel(root: HTMLElement, view: RoomView | null, blocked
     else selectedCards = [...current, group.find(card => !current.includes(card.id))!.id];
     first = second = ''; protection = ''; preview = false; redraw();
   };
+  chooseCurrentGroup = chooseGroup;
   root.querySelectorAll<HTMLButtonElement>('[data-card]').forEach(button => button.addEventListener('click', event => {
     chooseGroup(button.dataset.actionKind as ActionKind, 'add');
     if (event.detail === 0) (document.getElementById('confirm-preview') ?? document.querySelector<HTMLElement>('#seats .is-valid-target'))?.focus();
@@ -137,7 +157,7 @@ export function renderDayPanel(root: HTMLElement, view: RoomView | null, blocked
       ...(second ? { secondTargetId: second } : {}), ...(protection ? { protection } : {}) });
     preview = false;
   });
-  root.querySelector('#close-peek')?.addEventListener('click', () => { dismissedPeekAt = view.peek!.expiresAt; redraw(); });
+  root.querySelector('#close-peek')?.addEventListener('click', () => { dismissedPeekKey = peekKey(view); redraw(); });
   root.querySelector('#draw-cards')?.addEventListener('click', () => dispatch({ type: 'drawCards' }));
   root.querySelector('#end-turn')?.addEventListener('click', () => dispatch({ type: 'endTurn' }));
   const effectPreview = root.querySelector('.play-preview');
@@ -147,13 +167,16 @@ export function renderDayPanel(root: HTMLElement, view: RoomView | null, blocked
 export function updateDayTimers(): void {
   document.querySelectorAll<HTMLElement>('[data-deadline]').forEach(el => {
     const deadline = Number(el.dataset.deadline);
-    el.textContent = deadline ? `${Math.max(0,Math.ceil((deadline-Date.now())/1000))}s` : '';
+    const paused=document.body.classList.contains('table-paused');
+    const remaining=document.body.dataset.presentationRemaining;
+    el.textContent = paused ? `Ⅱ ${remaining ? `${Math.ceil(Number(remaining)/1000)}s` : 'Paused'}` : deadline ? `${Math.max(0,Math.ceil((deadline-Date.now())/1000))}s` : '';
+    el.setAttribute('aria-label',paused?'Timer paused during close-up':'Phase time remaining');
   });
   const peek = document.querySelector<HTMLElement>('.whisper-peek');
-  if (peek && currentView?.peek && Date.now() >= currentView.peek.expiresAt) peek.remove();
+  if (peek && currentView?.peek && !currentView.presentation && Date.now() >= currentView.peek.expiresAt) peek.remove();
 }
 function coverPeek(): void {
-  if (currentView?.peek) dismissedPeekAt = currentView.peek.expiresAt;
+  if (currentView?.peek) dismissedPeekKey = peekKey(currentView);
   document.querySelector('.whisper-peek')?.remove();
 }
 window.addEventListener('blur', coverPeek);

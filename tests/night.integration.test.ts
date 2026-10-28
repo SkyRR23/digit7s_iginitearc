@@ -76,8 +76,9 @@ describe('six-client Night protocol', () => {
   });
   it('duplicate packets apply once; conflicting replacement and reused IDs fail', async () => {
     const party = await begin(); const w = witch(party); const command = packet(w, 'nightAttack', id(victim(party)));
+    const privateBefore = w.view!.privateVersion;
     const replies = await Promise.all([h.send(w, command), h.send(w, command)]);
-    expect(replies.every(r => r.ok)).toBe(true); expect(w.view!.privateVersion).toBe(1);
+    expect(replies.every(r => r.ok)).toBe(true); expect(w.view!.privateVersion).toBe(privateBefore + 1);
     expect(await h.send(w, { ...command, targetId: null })).toMatchObject({ code: 'REUSED_ID' });
     expect(await h.send(w, { ...command, actionId: randomUUID(), targetId: null })).toMatchObject({ code: 'LOCKED_CHOICE' });
   });
@@ -108,10 +109,11 @@ describe('six-client Night protocol', () => {
   });
   it('Night refresh preserves own sealed choices and disconnection never delays deadline', async () => {
     const party = await begin(); const w = witch(party); const target = victim(party);
+    const privateBefore = w.view!.privateVersion;
     const command = packet(w, 'nightAttack', id(target)); await h.accepted(w, command);
     const own = w.view!.night; w.socket.disconnect(); const fresh = await h.connect();
     await h.accepted(fresh, { type: 'resume', session: w.session! }); expect(fresh.view!.night).toEqual(own);
-    await h.accepted(fresh, command); expect(fresh.view!.privateVersion).toBe(1);
+    await h.accepted(fresh, command); expect(fresh.view!.privateVersion).toBe(privateBefore + 1);
     fresh.socket.disconnect();
     const connected = party.filter(c => c !== w); await dawn(connected);
     expect(target.view!.dawn!.deceasedId).toBe(id(target));

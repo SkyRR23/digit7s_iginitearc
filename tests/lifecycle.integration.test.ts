@@ -18,7 +18,12 @@ beforeEach(async () => {
 afterEach(async () => { await h.close(); });
 const id = (c: Client) => c.session!.playerId;
 async function begin() {
-  const party = await h.six(); await h.start(party);
+  const party = await h.six(); await h.start(party,false);
+  // These lifecycle fixtures deliberately start with an innocent actor, so the
+  // opening curse targets that same seat before synthetic pending states run.
+  const first = party.find(client=>!client.view!.private!.everWitch)!;
+  for (const client of party) if (client.view!.blackCatChoice)
+    await h.accepted(client,{type:'chooseBlackCat',matchId:client.view!.deal!.matchId,targetId:first.session!.playerId});
   await Promise.all(party.map(c => h.accepted(c, { type: 'acknowledgeDeal', matchId: c.view!.deal!.matchId })));
   await Promise.all(party.map(h.sync)); return party;
 }

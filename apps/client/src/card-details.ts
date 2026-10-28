@@ -27,6 +27,7 @@ export function installCardDetails(): void {
   });
   document.addEventListener('pointerout', event => {
     if (pinned) return;
+    if (!anchor?.contains(event.target as Node) || anchor.contains(document.activeElement)) return;
     const next = (event as PointerEvent).relatedTarget as Node | null;
     if (anchor?.contains(next) || popup?.contains(next)) return;
     close();
@@ -36,7 +37,7 @@ export function installCardDetails(): void {
     if (card) show(card, card.dataset.actionKind as ActionKind, false);
   });
   document.addEventListener('focusout', event => {
-    if (!pinned && !popup?.contains((event as FocusEvent).relatedTarget as Node | null)) close();
+    if (!pinned && anchor?.contains(event.target as Node) && !popup?.contains((event as FocusEvent).relatedTarget as Node | null)) close();
   });
   document.addEventListener('click', event => {
     const details = (event.target as HTMLElement).closest<HTMLElement>('[data-card-details]');
@@ -47,4 +48,5 @@ export function installCardDetails(): void {
   window.addEventListener('resize', close);
   window.addEventListener('blur', close);
   document.addEventListener('ashfall:day-selection', () => { if (!pinned) close(); });
+  document.addEventListener('ashfall:power-selection', close);
 }

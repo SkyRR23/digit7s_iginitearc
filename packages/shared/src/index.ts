@@ -13,6 +13,9 @@ export const AVATARS = ['lantern', 'moth', 'reed', 'thorn', 'bell', 'moon'] as c
 export type Avatar = typeof AVATARS[number];
 export const BOT_DIFFICULTIES = ['EASY', 'NORMAL'] as const;
 export type BotDifficulty = typeof BOT_DIFFICULTIES[number];
+export { cardRequiresOtherPlayer } from './card-targeting.js';
+export { PRESENTATION_DURATION, REVEAL_STAGES, publicPresentationPlan } from './presentation.js';
+export type { PublicMomentStep, PublicMomentKind, PresentationEvent } from './presentation.js';
 export type SpecialRole = 'VILLAGER' | 'ASHBOUND' | 'SLEUTH' | 'HERBALIST' | 'GOSSIP' | 'HEXER' | 'SCAPEGOAT';
 export interface PrivateRoleView {
   kind: SpecialRole;
@@ -51,17 +54,19 @@ export const CommandSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('setCapacity'), actionId, expectedVersion, capacity: z.number().int().min(6).max(10) }).strict(),
   z.object({ type: z.literal('setScapegoat'), actionId, expectedVersion, enabled: z.boolean() }).strict(),
   z.object({ type: z.literal('acknowledgeDeal'), actionId, matchId: z.string().uuid() }).strict(),
+  z.object({ type: z.literal('chooseBlackCat'), actionId, matchId: z.string().uuid(), targetId: z.string().uuid() }).strict(),
   z.object({ type: z.literal('arrangeSeals'), actionId, matchId: z.string().uuid(), cardIds: z.array(z.string().uuid()).min(1).max(10) }).strict(),
   z.object({ type: z.literal('leave'), actionId, expectedVersion }).strict(),
   z.object({ type: z.literal('chat'), actionId, text: z.string().trim().min(1).max(240)
     .refine(value => !/[\p{Cc}\p{Cf}]/u.test(value), 'Use visible characters only.') }).strict(),
   z.object({ type: z.literal('sync'), actionId }).strict(),
+  z.object({ type: z.literal('finishPresentation'), actionId, matchId:z.string().uuid(), presentationId:z.string().uuid() }).strict(),
   z.object({ type: z.literal('drawCards'), ...gameContext }).strict(),
   z.object({ type: z.literal('endTurn'), ...gameContext }).strict(),
   z.object({ type: z.literal('playCard'), ...gameContext, cardId: z.string().uuid(), targetId: z.string().uuid(),
-    secondTargetId: z.string().uuid().optional(), protection: z.enum(['HEARTHWARD','PIETY','ASYLUM','VOW_OF_HEARTS']).optional() }).strict(),
+    secondTargetId: z.string().uuid().optional(), protection: z.enum(['HEARTHWARD','PIETY','ASYLUM','VOW_OF_HEARTS','BLACK_CAT']).optional() }).strict(),
   z.object({ type: z.literal('playCards'), ...gameContext, cardIds: z.array(z.string().uuid()).min(1).max(100), targetId: z.string().uuid(),
-    secondTargetId: z.string().uuid().optional(), protection: z.enum(['HEARTHWARD','PIETY','ASYLUM','VOW_OF_HEARTS']).optional(),
+    secondTargetId: z.string().uuid().optional(), protection: z.enum(['HEARTHWARD','PIETY','ASYLUM','VOW_OF_HEARTS','BLACK_CAT']).optional(),
     sourceSlot: z.number().int().min(0).max(9).optional(), targetSlot: z.number().int().min(0).max(9).optional() }).strict(),
   z.object({ type: z.literal('shiftSeal'), ...gameContext, cardId: z.string().uuid(), targetId: z.string().uuid(),
     sourceSlot: z.number().int().min(0).max(9), targetSlot: z.number().int().min(0).max(9) }).strict(),
@@ -90,6 +95,9 @@ export interface RoomView {
   code: string; version: number; privateVersion: number; phase: 'LOBBY' | 'PRIVATE_DEAL' | 'DAY' | 'REVEAL_RESOLUTION' | 'NIGHT' | 'DAWN' | 'GAME_OVER'; hostId: string;
   capacity: number; players: PublicPlayer[]; feed: FeedEntry[];
   scapegoatEnabled?: boolean;
+  blackCatChoice?: { submitted: boolean; targetId: string | null } | null;
+  presentation?: { id:string; scope:'PUBLIC'|'PRIVATE'|'WAIT'; until:number; remainingMs:number|null; awaitingYou:boolean;
+    previousPhase?:RoomView['phase']; events?:TableEffect[]; privateAction?:{kind:SpecialRole;targetIds:string[]} } | null;
   councilVote?: { dayNumber: number; votesCast: number; required: number; yourTargetId: string | null; completed: boolean } | null;
   you: { playerId: string } | null;
   deal: PublicDealView | null;
@@ -98,7 +106,7 @@ export interface RoomView {
   day: DayView | null;
   hand: ActionCard[] | null;
   night: PrivateNightView | null;
-  peek?: { targetId: string; kind: string; expiresAt: number } | null;
+  peek?: { id?:string; targetId: string; kind: string; expiresAt: number } | null;
   dawn: DawnView | null;
   personalResult: 'WIN' | 'LOSS' | null;
 }
@@ -117,10 +125,10 @@ export const referenceSixPlayerFixture = Object.freeze({
   humanCards: 27, witchCards: 2, constableCards: 1, accusationThreshold: 7,
 });
 export const originalPrototypePreset = Object.freeze({
-  ...referenceSixPlayerFixture, id: 'ashfall-v02-6', accusationThreshold: 7,
+  ...referenceSixPlayerFixture, id: 'ashfall-v03-pressure', accusationThreshold: 7,
   revealHistoryOnDeath: true, nightTimeoutMs: 45_000, dawnDurationMs: 5_000,
-  whisperCards: 24, hearthwardCards: 12, cinderShiftCards: 4, initialHand: 3,
-  cardCounts: { EVIDENCE: 8, WITNESS: 2, ALIBI: 6, STOCKS: 4, ASYLUM: 4, PIETY: 4,
-    CURSE: 4, MERCY: 4, SCAPEGOAT: 4, VOW_OF_HEARTS: 2, CONSPIRACY: 1 },
+  whisperCards: 6, hearthwardCards: 3, cinderShiftCards: 2, initialHand: 3,
+  cardCounts: { EVIDENCE: 38, WITNESS: 6, ALIBI: 6, STOCKS: 3, ASYLUM: 3, PIETY: 3,
+    CURSE: 3, MERCY: 4, SCAPEGOAT: 3, VOW_OF_HEARTS: 2, CONSPIRACY: 1 },
   turnTimeoutMs: 60_000, revealTimeoutMs: 30_000,
 });

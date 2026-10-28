@@ -38,6 +38,7 @@ describe('restricted bot policy', () => {
   it('enumerates only actions legal from public and owner-authorized fields', () => {
     const view = dayView(); const legal = enumerateLegalBotActions(view);
     expect(legal.some(action => action.type === 'drawCards')).toBe(true);
+    expect(legal.some(action => action.type === 'playCard' && action.targetId === view.you!.playerId)).toBe(false);
     expect(legal.some(action => action.type === 'playCard' && action.cardId === view.hand![0]!.id && action.targetId === view.you!.playerId)).toBe(false);
     expect(legal.some(action => action.type === 'playCard' && action.cardId === view.hand![1]!.id && action.targetId === view.players[2]!.id)).toBe(false);
     expect(legal.some(action => action.type === 'playCard' && action.cardId === view.hand![2]!.id)).toBe(true);

@@ -8,7 +8,7 @@ import type { DayFactory } from './day-runtime.js';
 // Clock/factory injection is for trusted in-process tests, never a browser setting.
 export function createGameServer(options: { graceMs?: number; sweepMs?: number; botTickMs?: number; now?: () => number;
   dayFactory?: DayFactory; identityFactory?: IdentityFactory; randomIndex?: (max: number) => number;
-  bots?: BotRuntimeOptions; rateLimit?: boolean } = {}) {
+  bots?: BotRuntimeOptions; rateLimit?: boolean; presentations?:boolean } = {}) {
   const http = createServer((req, res) => {
     res.setHeader('Content-Type', 'application/json');
     res.setHeader('Cache-Control', 'no-store');
@@ -34,7 +34,7 @@ export function createGameServer(options: { graceMs?: number; sweepMs?: number; 
     const socket = io.sockets.sockets.get(id);
     socket?.emit('replaced');
     socket?.disconnect(true);
-  }, options.graceMs, options.now, options.dayFactory, options.identityFactory, options.randomIndex, options.bots);
+  }, options.graceMs, options.now, options.dayFactory, options.identityFactory, options.randomIndex, options.bots, options.presentations);
   const sweep = setInterval(() => store.sweep(), options.sweepMs ?? 1000);
   sweep.unref();
   const botTick = setInterval(() => store.tickBots(), options.botTickMs ?? 100);

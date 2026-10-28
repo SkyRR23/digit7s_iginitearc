@@ -2,7 +2,14 @@ import { AVATARS, canStart, type Avatar, type BotDifficulty, type Command, type 
 import { actionId, readSession, request, saveSession, socket } from './connection';
 import { emblem } from './art';
 import { coverPrivateIdentities, openPrivatePanel, renderPrivatePanel } from './private-panel';
-import { getDayTableSelection, renderDayPanel, selectDayTableTarget, updateDayTimers } from './day-panel';
+import { beginCardDrag, clearDaySelection, getDayTableSelection, renderDayPanel, selectDayTableTarget, tapHandCard, updateDayTimers } from './day-panel';
+import { installCardDragging } from './card-drag';
+import { renderPowerControls, selectRolePowerTarget } from './power-controls';
+import { phaseName } from './phase-ui';
+import { installGamePreferences } from './game-preferences';
+import { clearGameMoments } from './game-moments';
+import { installGameGuide, openGameGuide } from './game-guide';
+import { installPresentationUI, updatePresentationUI } from './presentation-ui';
 import { renderNightPanel } from './night-panel';
 import { coverRolePanel, renderRolePanel, toggleRolePanel } from './role-panel';
 import { renderActionSpotlight, renderLocalLife, renderMatchHud } from './digital-stage';
@@ -19,6 +26,10 @@ import './card-expansion.css';
 import './role-panel.css';
 import './life-transfer.css';
 import './digital-ui.css';
+import './game-feel.css';
+import './cinematic.css';
+import './game-guide.css';
+import './presentation.css';
 
 const root = document.querySelector<HTMLDivElement>('#app')!;
 document.body.classList.add('digital-ui');
@@ -31,8 +42,10 @@ let recovering = false;
 let connectionEpoch = 0;
 let selected: Avatar = 'lantern';
 let botDifficulty: BotDifficulty = 'NORMAL';
+let powerSelection = emptyTableSelection();
+const activeSelection = () => powerSelection.power ? powerSelection : getDayTableSelection();
 root.innerHTML = `
-  <header class="topbar"><a class="brand" href="/" aria-label="Ashfall Council home">${roleSymbol('SCAPEGOAT')}<span>ASHFALL COUNCIL<small>A GAME OF SECRETS</small></span></a><span id="connection" class="connection" role="status">Connecting…</span></header>
+  <header class="topbar"><a class="brand" href="/" aria-label="Ashfall Council home">${roleSymbol('SCAPEGOAT')}<span>ASHFALL COUNCIL<small>A GAME OF SECRETS</small></span></a><div class="game-preferences"><button id="motion-toggle" type="button" aria-label="Toggle quieter animations">Motion: Full</button><button id="sound-toggle" type="button" aria-label="Toggle game sounds">Sound: On</button></div><span id="connection" class="connection" role="status">Connecting…</span></header>
   <main>
     <section id="entry" class="entry">
       <div class="intro"><p class="eyebrow">A GAME OF SECRETS</p><h1>ASHFALL<br>COUNCIL</h1><p class="lede">The village has gathered.<br>Someone is hiding in plain sight.</p><div class="intro-menu"><button id="friends-open" type="button" class="primary">Play with friends <span>→</span></button><button id="how-to-open" type="button">How to play <span>→</span></button></div><div class="intro-foot"><span>6–10 PLAYERS</span><span>PRIVATE ROOMS</span><span>PLAY WITH BOTS</span></div></div>
@@ -55,6 +68,7 @@ root.innerHTML = `
         <section id="local-life" class="local-life" aria-label="Your public Life row" hidden></section>
         <section id="day-panel" class="day-panel action-dock" aria-label="Your hand and day actions" hidden></section>
         <button id="role-toggle" class="role-toggle" type="button" aria-controls="role-panel" aria-expanded="false" hidden>✦ My role</button>
+        <section id="power-dock" class="power-dock" aria-label="Your private role power" hidden></section>
         <section id="role-panel" class="role-panel" aria-label="Your private role" hidden></section>
         <section id="private-panel" class="private-panel" aria-label="Your private identities" hidden></section>
       </div><aside id="council-panel" class="council-panel"><div class="panel-heading"><h2>Council chat</h2><span class="public-label">PUBLIC</span><button id="chat-close" class="chat-close" type="button" aria-label="Close chat">×</button></div><ol id="feed" class="feed" aria-label="Council chat" aria-live="polite" aria-relevant="additions"></ol><form id="chat-form"><label class="sr-only" for="message">Message to the gathering</label><div class="chat-row"><input id="message" maxlength="240" autocomplete="off" placeholder="Speak to the council…"><button id="send" type="submit" aria-label="Send message">Send</button></div></form><div class="event-heading"><h2>Event log</h2><span>COUNCIL RECORD</span></div><ol id="event-feed" class="feed event-feed" aria-label="Public game events" aria-live="polite" aria-relevant="additions"></ol></aside><button id="chat-toggle" class="chat-toggle" type="button" aria-expanded="false" aria-controls="council-panel"><span aria-hidden="true"><svg class="control-icon" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M5 4h18a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3H12l-6 4v-4H5a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3Z"/><circle cx="8" cy="13" r="1"/><circle cx="14" cy="13" r="1"/><circle cx="20" cy="13" r="1"/></svg></span><span>Chat &amp; events</span></button></div>
@@ -62,8 +76,20 @@ root.innerHTML = `
     </section>
     <p id="notice" class="notice" role="status" aria-live="polite" hidden></p>
     ${import.meta.env.DEV ? '<details class="debug"><summary>Development connection details</summary><pre id="debug"></pre></details>' : ''}
-  </main><footer class="page-footer"><span>ASHFALL COUNCIL</span><span>A game of secrets.</span></footer><dialog id="how-to-dialog"><button id="how-to-close" type="button" aria-label="Close how to play">×</button><h2>How to play</h2><p>Your role stays with you. Your five hidden Life cards determine survival and allegiance; some cards can move them.</p><p>On your turn, select a card, choose eligible players, then confirm its effect. Keep playing or end your turn. Drawing two is the alternative and ends the turn.</p><p>Seven Doubt reveals one random hidden Life card. Watch for Night: only players with a private choice can submit one. Open My role for abilities and the council vote.</p><p>Inspect card details for exact targets, durations, and protections.</p></dialog>`;
+  </main><footer class="page-footer"><span>ASHFALL COUNCIL</span><span>A game of secrets.</span></footer><dialog id="how-to-dialog"><button id="how-to-close" type="button" aria-label="Close how to play">×</button><h2>How to play</h2><p>Your role stays with you. Your five hidden Life cards determine survival and allegiance; some cards can move them.</p><p>On your turn, drag a card onto a highlighted player, or tap a card and choose a player. On phones, hold briefly to drag; swipe quickly to browse your hand. Review and confirm the effect to play. Targeted cards must be played on another living player. Keep playing or end your turn. Drawing two is the alternative and ends the turn.</p><p>Seven Doubt reveals one random hidden Life card. Watch for Night: only players with a private choice can submit one. Tap your corner power icon, choose a highlighted player, then confirm Yes or No. Open role info for the council vote.</p><p>Inspect card details for exact targets, durations, and protections.</p></dialog>`;
 
+installGamePreferences();
+installGameGuide();
+installPresentationUI();
+document.addEventListener('ashfall:presentation-finished',event=>{
+  const id=(event as CustomEvent<{id:string}>).detail.id;
+  if(!socket.connected||!view?.deal||view.presentation?.id!==id)return;
+  const matchId=view.deal.matchId;
+  void request({type:'finishPresentation',actionId:actionId(),matchId,presentationId:id}).then(reply=>{
+    if(reply.ok&&reply.view&&view?.deal?.matchId===matchId)render(reply.view);
+  });
+});
+installCardDragging(document.getElementById('day-panel')!, { begin: beginCardDrag, tap: tapHandCard, selection: getDayTableSelection, target: selectDayTableTarget, cancel: clearDaySelection });
 function element<T extends HTMLElement = HTMLElement>(id: string): T { return document.getElementById(id) as T; }
 function notice(text: string): void { element('notice').textContent = text; element('notice').hidden = !text; }
 function dispatchDay(intent: DayIntent): void {
@@ -71,10 +97,12 @@ function dispatchDay(intent: DayIntent): void {
     turnNumber: view.day.turnNumber, gameVersion: view.day.version });
 }
 function applyTableSelection(selection: TableSelection = emptyTableSelection()): void {
-  element('action-stage').classList.toggle('is-targeting', !!selection.selectedCardKind);
+  const targeting = !!selection.selectedCardKind || !!selection.power;
+  element('action-stage').classList.toggle('is-targeting', targeting);
+  document.body.classList.toggle('power-targeting', !!selection.power);
   const hint = document.querySelector('.roster-hint');
-  if (hint) hint.textContent = selection.selectedCardKind ? 'Choose gold · swipe' : 'Swipe for players';
-  element('seats').classList.toggle('targeting', !!selection.selectedCardKind && selection.selectedCardKind !== 'CONSPIRACY');
+  if (hint) hint.textContent = targeting ? 'Choose a highlighted player' : 'Players';
+  element('seats').classList.toggle('targeting', targeting && selection.selectedCardKind !== 'CONSPIRACY');
   element('seats')?.querySelectorAll<HTMLElement>('[data-player]').forEach(seat => {
     const playerId = seat.dataset.player!;
     const valid = selection.validTargetIds.includes(playerId);
@@ -96,14 +124,20 @@ function applyTableSelection(selection: TableSelection = emptyTableSelection()):
 }
 function previewTarget(seat: HTMLElement): void {
   if (!seat.classList.contains('is-valid-target')) return;
-  const selection = getDayTableSelection();
+  const selection = activeSelection();
   if (view) element('action-spotlight').innerHTML = renderActionSpotlight(view, selection, seat.dataset.player);
 }
-document.addEventListener('ashfall:day-selection', event => applyTableSelection((event as CustomEvent<TableSelection>).detail));
+document.addEventListener('ashfall:day-selection', event => { if (!powerSelection.power) applyTableSelection((event as CustomEvent<TableSelection>).detail); });
+document.addEventListener('ashfall:power-selection', event => {
+  powerSelection = (event as CustomEvent<TableSelection>).detail;
+  applyTableSelection(activeSelection());
+});
 function connection(): void {
   const focused = document.activeElement instanceof HTMLElement ? document.activeElement.id : '';
   const connected = socket.connected && !recovering;
   const safeView = view && !connected ? { ...view, private: null, hand: null, night: null, peek: null, role: null } : view;
+  updatePresentationUI(safeView);
+  const gameplayBlocked=!connected||busy||!!view?.presentation;
   element('recovery-banner').hidden = connected || !view;
   element('recovery-banner').textContent = recovering ? 'Restoring your seat and current permissions…' : 'Connection lost. Reconnecting automatically. Your seat is reserved for 60 seconds; match deadlines continue.';
   element('actions-link').hidden = !view?.day;
@@ -119,17 +153,21 @@ function connection(): void {
     if (view?.deal) void act({ type: 'acknowledgeDeal', actionId: actionId(), matchId: view.deal.matchId });
   }, cardIds => {
     if (view?.deal) void act({ type: 'arrangeSeals', actionId: actionId(), matchId: view.deal.matchId, cardIds });
+  }, targetId => {
+    if (view?.deal) void act({ type: 'chooseBlackCat', actionId: actionId(), matchId: view.deal.matchId, targetId });
   });
-  renderDayPanel(element('day-panel'), safeView, !connected || busy, dispatchDay);
-  renderNightPanel(element('night-panel'), safeView, !connected || busy, intent => {
+  renderDayPanel(element('day-panel'), safeView, gameplayBlocked, dispatchDay);
+  renderNightPanel(element('night-panel'), safeView, gameplayBlocked, intent => {
     if (view?.night && view.deal) void act({ ...intent, actionId: actionId(), matchId: view.deal.matchId, nightNumber: view.night.nightNumber });
   });
-  renderRolePanel(element('role-panel'), safeView, !connected || busy,
-    (targetId, secondTargetId) => { if (view?.deal) void act({ type: 'useRole', actionId: actionId(), matchId: view.deal.matchId,
-      targetId, ...(secondTargetId ? { secondTargetId } : {}) }); },
+  renderRolePanel(element('role-panel'), safeView, gameplayBlocked,
     () => { if (view?.deal) void act({ type: 'closeSleuth', actionId: actionId(), matchId: view.deal.matchId }); },
     targetId => { if (view?.deal && view.day) void act({ type: 'councilVote', actionId: actionId(), matchId: view.deal.matchId,
       dayNumber: view.day.dayNumber, targetId }); });
+  renderPowerControls(safeView, gameplayBlocked, (targetId, secondTargetId) => view?.deal
+    ? act({ type: 'useRole', actionId: actionId(), matchId: view.deal.matchId, targetId, ...(secondTargetId ? { secondTargetId } : {}) })
+    : Promise.resolve(false));
+  if (!connected) clearGameMoments();
   if (focused) document.getElementById(focused)?.focus({ preventScroll: true });
   if (import.meta.env.DEV) element('debug').textContent = `Transport: ${socket.io.engine?.transport.name ?? 'offline'}\nRoom revision: ${view?.version ?? '—'}\nPhase: ${view?.phase ?? 'entry'}\nReconnect grace: 60 seconds\nNo credentials or private game state shown.`;
 }
@@ -168,11 +206,11 @@ function render(next: RoomView): void {
   document.body.classList.toggle('game-screen', inGame);
   element('lobby').dataset.phase = next.phase;
   element('code').textContent = next.code;
-  element('phase-label').textContent = next.phase === 'LOBBY' ? 'OPEN GATHERING' : next.phase.replaceAll('_', ' ');
+  element('phase-label').textContent = phaseName(next.phase);
   element('scope-footer').textContent = next.day && next.phase !== 'GAME_OVER' ? 'Leaving forfeits your seat and reveals your remaining Seals. A disconnect has 60 seconds of grace.' : next.phase === 'PRIVATE_DEAL' ? 'Leaving cancels this private deal. No Seals are revealed.' : 'Your public sigil carries no ability.';
   element('room-summary').textContent = `${next.players.length} of ${next.capacity} seats filled · ${next.players.filter(p => p.connected).length} connected · Invite friends with the room code.`;
   const viewerIndex = Math.max(0, next.players.findIndex(player => player.id === next.you?.playerId));
-  const selection = getDayTableSelection();
+  const selection = activeSelection();
   element('seats').dataset.capacity = String(next.capacity);
   element('seats').style.setProperty('--roster-rows', String(Math.ceil(next.capacity / 2)));
   element('seats').innerHTML = Array.from({ length: next.capacity }, (_, index) => {
@@ -191,18 +229,18 @@ function render(next: RoomView): void {
     void act({ type: 'removeBot', actionId: actionId(), expectedVersion: next.version, botId: button.dataset.removeBot! });
   }));
   element('seats').querySelectorAll<HTMLElement>('[data-player]').forEach(seat => {
-    const choose = () => { if (selectDayTableTarget(seat.dataset.player!)) applyTableSelection(getDayTableSelection()); };
+    const choose = () => { if (selectRolePowerTarget(seat.dataset.player!)) return; if (selectDayTableTarget(seat.dataset.player!)) applyTableSelection(getDayTableSelection()); };
     seat.querySelector('[data-choose-player]')?.addEventListener('click', choose);
     seat.addEventListener('click', event => { if (!(event.target as HTMLElement).closest('button')) choose(); });
     seat.addEventListener('keydown', event => {
       if ((event.target as HTMLElement).closest('button')) return;
       if (event.key === 'Enter' || event.key === ' ') {
         event.preventDefault(); choose();
-        (document.getElementById('confirm-preview') ?? document.querySelector<HTMLElement>('#seats .is-valid-target'))?.focus();
+        if (!document.getElementById('power-confirmation')) (document.getElementById('confirm-preview') ?? document.querySelector<HTMLElement>('#seats .is-valid-target'))?.focus();
       }
     });
     seat.addEventListener('pointerenter', () => previewTarget(seat));
-    seat.addEventListener('pointerleave', () => { if (view) element('action-spotlight').innerHTML = renderActionSpotlight(view, getDayTableSelection()); });
+    seat.addEventListener('pointerleave', () => { if (view) element('action-spotlight').innerHTML = renderActionSpotlight(view, activeSelection()); });
     seat.addEventListener('focus', () => previewTarget(seat));
     seat.querySelectorAll<HTMLButtonElement>('.status-icon').forEach(icon => icon.addEventListener('click', () => notice(icon.title)));
   });
@@ -222,28 +260,31 @@ function render(next: RoomView): void {
     if (atBottom) feed.scrollTop = feed.scrollHeight;
   }
   connection();
-  animateTableChanges(previous, next, positions);
+  animateTableChanges(recovering ? null : previous, next, positions);
 }
 function clearSeat(): void {
   connectionEpoch++; busy = false; recovering = false;
   coverPrivateIdentities();
   document.body.classList.remove('game-screen');
   session = null; saveSession(null); view = null;
+  updatePresentationUI(null);
   element('entry').hidden = false; element('lobby').hidden = true; element('feed').replaceChildren(); element('event-feed').replaceChildren();
   toggleChat(false);
   renderPrivatePanel(element('private-panel'), null, true, () => {});
   renderDayPanel(element('day-panel'), null, true, () => {});
   renderNightPanel(element('night-panel'), null, true, () => {});
-  renderRolePanel(element('role-panel'), null, true, () => {}, () => {}, () => {});
+  renderRolePanel(element('role-panel'), null, true, () => {}, () => {});
+  renderPowerControls(null, true, async () => false); clearGameMoments();
 }
-async function act(command: Command): Promise<void> {
-  if (busy || recovering || !socket.connected) return;
-  if (command.type === 'reopen' && !window.confirm('End this match for everyone and return to the lobby?')) return;
-  if (command.type === 'leave' && view?.day && view.phase !== 'GAME_OVER' && !window.confirm('Forfeit your seat? Your remaining Seals will be revealed and you cannot return to this match.')) return;
+async function act(command: Command): Promise<boolean> {
+  if(view?.presentation&&['drawCards','endTurn','playCard','playCards','shiftSeal','revealSeal','nightAttack','nightProtect','useRole','councilVote'].includes(command.type))return false;
+  if (busy || recovering || !socket.connected) return false;
+  if (command.type === 'reopen' && !window.confirm('End this match for everyone and return to the lobby?')) return false;
+  if (command.type === 'leave' && view?.day && view.phase !== 'GAME_OVER' && !window.confirm('Forfeit your seat? Your remaining Seals will be revealed and you cannot return to this match.')) return false;
   const epoch = connectionEpoch;
   busy = true; notice(''); connection();
   const reply = await request(command);
-  if (epoch !== connectionEpoch) return;
+  if (epoch !== connectionEpoch) return false;
   if (reply.ok) {
     if (reply.session) {
       session = reply.session;
@@ -257,12 +298,13 @@ async function act(command: Command): Promise<void> {
     if (reply.code === 'SESSION_EXPIRED' || reply.code === 'NO_SESSION') clearSeat();
     if (reply.code === 'STALE' || reply.code === 'NETWORK') {
       const synced = await request({ type: 'sync', actionId: actionId() });
-      if (epoch !== connectionEpoch) return;
+      if (epoch !== connectionEpoch) return false;
       if (synced.ok && synced.view) render(synced.view);
       else if (!synced.ok && synced.code === 'NO_SESSION') clearSeat();
     }
   }
   busy = false; connection();
+  return reply.ok;
 }
 
 element('seats').addEventListener('click', event => {
@@ -281,16 +323,17 @@ element('role-toggle').addEventListener('click', toggleRolePanel);
 element('chat-close').addEventListener('click', () => toggleChat(false));
 document.addEventListener('keydown', event => {
   if (event.key === 'Escape') {
+    if(element<HTMLDialogElement>('how-to-dialog').open)return;
     coverPrivateIdentities();
     coverRolePanel();
     toggleChat(false);
   }
 });
 element('friends-open').addEventListener('click', () => element<HTMLInputElement>('name').focus());
-element('how-to-open').addEventListener('click', () => element<HTMLDialogElement>('how-to-dialog').showModal());
-element('how-to-close').addEventListener('click', () => element<HTMLDialogElement>('how-to-dialog').close());
+element('how-to-open').addEventListener('click', () => openGameGuide('howto'));
 document.addEventListener('keydown', event => {
   if (event.key !== 'Tab') return;
+  if(element<HTMLDialogElement>('how-to-dialog').open)return;
   const modal = document.querySelector<HTMLElement>('#private-panel:not([hidden]) [aria-modal="true"], #role-panel.is-open:not([hidden])');
   if (!modal) return;
   const items = Array.from(modal.querySelectorAll<HTMLElement>('button:not([disabled]),select:not([disabled]),input:not([disabled]),[tabindex="0"]')).filter(item => item.getClientRects().length);
