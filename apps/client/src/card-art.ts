@@ -3,13 +3,17 @@ import type { ActionKind } from '@ashfall/shared';
 /** Original, scalable card engravings; live text is rendered separately. */
 export function cardGlyph(kind: ActionKind): string {
   const additional: Partial<Record<ActionKind, string>> = {
+    COUNCIL_BELL:'<path d="M30 86h60l-9-16V50a21 21 0 0 0-42 0v20ZM48 94q12 18 24 0M55 29v-9h10v9"/>',
+    CURSE:'<path d="M26 80V28l18 14q16-9 32 0l18-14v52q-34 35-68 0ZM37 66l12 4m34-4-12 4"/>',
+    TESTIMONY:'<path d="M25 20h65v80H25zM40 40h35M40 60h35M40 80h35"/>',
+    EAVESDROP:'<path d="M30 20h40v60H30zM55 40h40v60H55z"/>',
     EVIDENCE: '<path d="M31 19h45l12 13v65H31zM76 19v15h12M40 49h38M40 61h31M40 74h36"/><circle cx="67" cy="84" r="10"/><path d="m62 84 4 4 8-9"/>',
     WITNESS: '<path d="M14 61Q60 13 106 61Q60 108 14 61Z"/><circle cx="60" cy="61" r="21"/><circle cx="60" cy="61" r="8"/>',
     ALIBI: '<path d="M60 21v74M30 37h60M30 37l-13 32h26zM90 37 77 69h26zM38 97h44"/>',
     STOCKS: '<path d="M19 33h82v13H19zM19 73h82v13H19zM28 46v27M92 46v27M49 46v27M71 46v27"/><circle cx="60" cy="60" r="10"/>',
     ASYLUM: '<path d="M72 14A43 43 0 1 0 103 90 39 39 0 0 1 72 14Z"/><path d="m37 35 4-8 4 8 8 4-8 4-4 8-4-8-8-4z"/>',
     PIETY: '<path d="M60 10v100M16 60h88M32 32l56 56M88 32 32 88"/><circle cx="60" cy="60" r="30"/>',
-    CURSE: '<path d="M35 16Q60 36 85 16L74 70 90 104H30L46 70Z"/><path d="m47 47 26 26m0-26L47 73"/>',
+    DISPEL: '<path d="M35 16Q60 36 85 16L74 70 90 104H30L46 70Z"/><path d="m47 47 26 26m0-26L47 73"/>',
     MERCY: '<path d="M38 85 19 65q-6-11 3-15l21 12V30q0-9 8-9t8 9v26-34q0-8 7-8t7 8v34-25q0-8 7-8t7 8v25q9-9 15-2 5 5-1 14L80 99H46Z"/>',
     SCAPEGOAT: '<path d="M20 58h70M76 44l14 14-14 14M20 86h70M34 72 20 86l14 14"/><path d="M21 25h18m-9-9v18M81 23h18m-9-9v18"/>',
     VOW_OF_HEARTS: '<path d="M60 98 20 61C-1 36 27 11 48 31l12 12 12-12c21-20 49 5 28 30Z"/><path d="M25 60q35-23 70 0"/>',

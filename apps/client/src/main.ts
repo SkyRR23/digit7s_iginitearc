@@ -1,3 +1,5 @@
+import { renderDecisionUI, updateDecisionTimers } from './decision-ui';
+import './decision-ui.css';
 import { AVATARS, canStart, type Avatar, type BotDifficulty, type Command, type DayIntent, type RoomView } from '@ashfall/shared';
 import { actionId, readSession, request, saveSession, socket } from './connection';
 import { emblem } from './art';
@@ -8,7 +10,7 @@ import { renderPowerControls, selectRolePowerTarget } from './power-controls';
 import { phaseName } from './phase-ui';
 import { installGamePreferences } from './game-preferences';
 import { clearGameMoments } from './game-moments';
-import { installGameGuide, openGameGuide } from './game-guide';
+import { installGameGuide, openGameGuide, updateGameGuide } from './game-guide';
 import { installPresentationUI, updatePresentationUI } from './presentation-ui';
 import { renderNightPanel } from './night-panel';
 import { coverRolePanel, renderRolePanel, toggleRolePanel } from './role-panel';
@@ -30,6 +32,7 @@ import './game-feel.css';
 import './cinematic.css';
 import './game-guide.css';
 import './presentation.css';
+import './cinematic-upgrade.css';
 
 const root = document.querySelector<HTMLDivElement>('#app')!;
 document.body.classList.add('digital-ui');
@@ -135,9 +138,12 @@ document.addEventListener('ashfall:power-selection', event => {
 function connection(): void {
   const focused = document.activeElement instanceof HTMLElement ? document.activeElement.id : '';
   const connected = socket.connected && !recovering;
-  const safeView = view && !connected ? { ...view, private: null, hand: null, night: null, peek: null, role: null } : view;
-  updatePresentationUI(safeView);
+  const safeView = view && !connected ? { ...view, private: null, hand: null, night: null, peek: null, handPeek: null, role: null } : view;
+  updatePresentationUI(safeView); updateGameGuide(safeView);
   const gameplayBlocked=!connected||busy||!!view?.presentation;
+  renderDecisionUI(safeView,gameplayBlocked,dispatchDay,targetId=>{
+    if(view?.deal&&view.day)void act({type:'councilVote',actionId:actionId(),matchId:view.deal.matchId,dayNumber:view.day.dayNumber,targetId});
+  });
   element('recovery-banner').hidden = connected || !view;
   element('recovery-banner').textContent = recovering ? 'Restoring your seat and current permissions…' : 'Connection lost. Reconnecting automatically. Your seat is reserved for 60 seconds; match deadlines continue.';
   element('actions-link').hidden = !view?.day;
@@ -267,7 +273,7 @@ function clearSeat(): void {
   coverPrivateIdentities();
   document.body.classList.remove('game-screen');
   session = null; saveSession(null); view = null;
-  updatePresentationUI(null);
+  updatePresentationUI(null); renderDecisionUI(null,true,()=>{},()=>{});
   element('entry').hidden = false; element('lobby').hidden = true; element('feed').replaceChildren(); element('event-feed').replaceChildren();
   toggleChat(false);
   renderPrivatePanel(element('private-panel'), null, true, () => {});
@@ -391,7 +397,7 @@ socket.on('replaced', () => {
   notice('Your seat is now open in another tab. Reload this tab to join as a different player.');
 });
 setInterval(() => {
-  updateDayTimers();
+  updateDayTimers(); updateDecisionTimers();
   document.querySelectorAll<HTMLElement>('[data-until]').forEach(el => {
     const seconds = Math.max(0, Math.ceil((Number(el.dataset.until) - Date.now()) / 1000));
     el.textContent = `Reconnecting · about ${seconds}s reserved`;

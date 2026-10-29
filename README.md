@@ -2,7 +2,7 @@
 
 An original folk-horror social deduction game in development for Digit7 Jam 2026.
 **Playable vertical slice:** six to ten mixed human/server-bot seats, secure private Life cards, day turns,
-14 playable action cards, seven-Doubt accusations, random server-chosen reveals, deaths, and both victory checks.
+18 action card types, seven-Doubt accusations, accuser-chosen ten-second Life reveals, deaths, and both victory checks.
 Server-owned deadlines keep turns, reveals and Night moving. Secret Witch votes,
 Constable protection, dawn deaths and the next day now complete the gameplay loop.
 Forfeit rules, rematch lobbies, reconnect recovery and mobile controls are now
@@ -11,6 +11,10 @@ path as humans. Provider-neutral voice permissions are defined, while audio rema
 optional and unconfigured. Physical-device and six-human playtests remain.
 
 This separate workspace preserves the existing Broken Drum prototypes.
+
+See [cinematic and Curse polish](docs/CINEMATIC_POLISH.md) for the glass Life chooser, new artwork, Help quantities and single-Curse lifecycle.
+
+See [latest action changes](docs/ACTION_UPDATES.md) for the 1/3/7 Doubt cards, reusable Curse, Eavesdrop and single-use Council Bell.
 
 ## Run locally
 
@@ -84,13 +88,12 @@ is never silently replaced by a bot.
    the owner: the owner's authorized private data is already in their browser.
 7. On your turn, **Draw 2** to draw and end, or select one or several cards of the
    same kind. Tap a highlighted living player (two different other players for Scapegoat),
-   review the short effect preview, and confirm. Conspiracy affects everyone and
-   needs no target. Cancel removes the selection without playing. There is no
+   review the short effect preview, and confirm. Council Bell opens the only council vote. Conspiracy resolves automatically when drawn and never stays in a hand. Cancel removes the selection without playing. There is no
    repeated Play button. Playing does not end the turn; choose **End turn** when
    done. A batch stops safely if an earlier card makes the target invalid, and
    unplayed cards stay in your hand.
 
-   Evidence adds two Doubt, Witness fills the row, Alibi and Mercy cleanse,
+   Evidence adds one Doubt, Testimony adds three, Witness fills the row, Alibi and Mercy cleanse,
    Stocks binds, Asylum protects at night, Piety blocks Evidence/Witness, Curse
    removes protection or Black Cat, Scapegoat transfers all Doubt and attached
    effects, Vow gives one Heart that links with other holders, Whisper
@@ -119,8 +122,7 @@ is never silently replaced by a bot.
    Utility counts are lower, including 6 Whisper, 3 Hearthward, and 2 Cinder Shift.
    The revised composition applies to new matches.
 8. Turns have 60-second server deadlines: an idle turn draws and ends; a turn
-   that played cards simply ends. The seventh X causes an immediate server-chosen
-   reveal. An empty action deck reaches Night after the victory check.
+   that played cards simply ends. The seventh X opens the ten-second accuser choice. An empty action deck reaches Night after the victory check.
 9. Night lasts **45 seconds**, with public chat silenced. Living Ashbound players
    secretly choose an attack target outside their team (or abstain). Most votes
    wins; ties use the earliest target in seat order. The living Lanternkeeper

@@ -4,8 +4,8 @@ import { CARD_INFO, cardTitle } from './card-info';
 
 const escape = (text: string) => text.replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]!);
 const twoTargets = (kind: ActionKind) => kind === 'SCAPEGOAT';
-const global = (kind: ActionKind) => kind === 'CONSPIRACY';
-const repeatable = (kind: ActionKind) => ['EVIDENCE','ALIBI','MERCY','WHISPER','CINDER_SHIFT'].includes(kind);
+const global = (kind: ActionKind) => ['CONSPIRACY','COUNCIL_BELL'].includes(kind);
+const repeatable = (kind: ActionKind) => ['EVIDENCE','TESTIMONY','ALIBI','MERCY','WHISPER','CINDER_SHIFT'].includes(kind);
 const cardCopy = Object.fromEntries(Object.entries(CARD_INFO).map(([kind, info]) => [kind,info.effect])) as Record<ActionKind,string>;
 let selectedCards: string[] = [];
 let first = '';
@@ -67,7 +67,8 @@ function validFor(view: RoomView, me: string, kind: ActionKind, id: string, firs
   if (!player?.alive || (id === me && cardRequiresOtherPlayer(kind)) || id === firstTarget) return false;
   const state = view.day?.players.find(p => p.playerId === id);
   if (kind === 'SCAPEGOAT' && !firstTarget && !(state?.doubt || state?.statuses?.length || state?.remedy)) return false;
-  if (kind === 'CURSE' && !availableProtections(view, id).length) return false;
+  if(kind==='CURSE'&&state?.statuses?.some(s=>s.kind==='BLACK_CAT'))return false;
+  if (kind === 'DISPEL' && !availableProtections(view, id).length) return false;
   if (['HEARTHWARD','PIETY','ASYLUM','STOCKS'].includes(kind) && state?.statuses?.some(s => s.kind === (kind === 'STOCKS' ? 'BOUND' : kind))) return false;
   if (kind === 'VOW_OF_HEARTS' && state?.statuses?.some(s => s.kind === 'VOW_HEART')) return false;
   if (kind === 'CINDER_SHIFT' && (!view.deal?.players.find(p => p.playerId === me)?.seals.some(seal => !seal.revealed) || !player.seals.some(seal => !seal.revealed))) return false;
@@ -86,7 +87,7 @@ export function renderDayPanel(root: HTMLElement, view: RoomView | null, blocked
     selectedCards = []; first = second = ''; preview = false; protection = '';
   }
   const me = view.you!.playerId;
-  const active = view.phase === 'DAY' && day.activePlayerId === me && view.deal!.players.find(p => p.playerId === me)?.alive;
+  const active = view.phase === 'DAY' && !day.council?.open && day.activePlayerId === me && view.deal!.players.find(p => p.playerId === me)?.alive;
   selectedCards = selectedCards.filter(id => view.hand?.some(card => card.id === id));
   if (!selectedCards.length) { first = second = ''; preview = false; }
   const cards = selectedCards.map(id => view.hand!.find(card => card.id === id)!);
@@ -101,7 +102,7 @@ export function renderDayPanel(root: HTMLElement, view: RoomView | null, blocked
   const phaseText = view.phase === 'NIGHT' ? `Night ${day.dayNumber} · your cards remain` : view.phase === 'DAWN' ? 'Dawn · discard reshuffles' : active
     ? selectedCardKind ? mode === 'global' ? 'All living players are affected' : mode === 'two' && first ? 'Choose SECOND player' : 'Choose a highlighted player' : 'Drag a card · or tap to select'
     : `${name(day.activePlayerId)}’s turn`;
-  let content = `<div class="action-dock-heading"><p class="eyebrow">${phaseText}</p><p class="turn-clock"><strong data-deadline="${day.deadline ?? 0}"></strong></p><div class="day-buttons">${active ? `<button id="select-all" class="quiet" ${blocked || !view.hand?.length ? 'disabled' : ''}>${selectedCards.length ? 'Cancel selection' : 'Select alike'}</button><button id="draw-cards" class="quiet" ${blocked || day.playedThisTurn || !day.deckCount ? 'disabled' : ''}>Draw ${Math.min(2,day.deckCount)}</button><button id="end-turn" class="primary" ${blocked || (!day.playedThisTurn && day.deckCount > 0) ? 'disabled' : ''}>${day.deckCount ? 'End turn' : 'End day'}</button>` : ''}</div></div>`;
+  let content = `<div class="action-dock-heading"><p class="eyebrow">${phaseText}</p><p class="turn-clock"><strong data-deadline="${day.deadline ?? 0}" data-decision-active="${!!day.reveal||!!day.council?.open}"></strong></p><div class="day-buttons">${active ? `<button id="select-all" class="quiet" ${blocked || !view.hand?.length ? 'disabled' : ''}>${selectedCards.length ? 'Cancel selection' : 'Select alike'}</button><button id="draw-cards" class="quiet" ${blocked || day.playedThisTurn || !day.deckCount ? 'disabled' : ''}>Draw ${Math.min(2,day.deckCount)}</button><button id="end-turn" class="primary" ${blocked || (!day.playedThisTurn && day.deckCount > 0) ? 'disabled' : ''}>${day.deckCount ? 'End turn' : 'End day'}</button>` : ''}</div></div>`;
   if (view.phase === 'GAME_OVER') content += `<div class="outcome"><h2>${day.outcome?.winner === 'HUMAN' ? 'The village survives.' : 'The Ashbound remain.'}</h2></div>`;
   else if (view.hand) {
     const groups = [...new Set(view.hand.map(card => card.kind))].map(kind => ({ kind, cards: view.hand!.filter(card => card.kind === kind) }));
@@ -114,8 +115,8 @@ export function renderDayPanel(root: HTMLElement, view: RoomView | null, blocked
     content += `<div class="selection-hint" role="status">${cards.length ? `<b>${cards.length} selected</b><span>${escape(cardCopy[selectedCardKind!])}</span>` : ''}</div>`;
   }
   if (active && selectedCardKind && (preview || mode === 'global')) {
-    const protections = selectedCardKind === 'CURSE' ? availableProtections(view, first) : [];
-    content += `<div class="play-preview" role="region" aria-label="Confirm card effect"><strong>${cardTitle(selectedCardKind)}${first ? ` → ${name(first)}` : ''}${second ? ` → ${name(second)}` : ''}</strong><p>${escape(cardCopy[selectedCardKind])}</p>${protections.length > 1 ? `<label>Remove effect <select id="preview-protection"><option value="">Choose…</option>${protections.map(item => `<option value="${item}" ${protection === item ? 'selected' : ''}>${item.replaceAll('_',' ')}</option>`).join('')}</select></label>` : ''}<div><button id="cancel-preview" class="quiet">Cancel</button><button id="confirm-preview" class="primary" ${blocked || (protections.length > 1 && !protection) ? 'disabled' : ''}>Play ${cardTitle(selectedCardKind)}${cards.length > 1 ? ` ×${cards.length}` : ''}</button></div></div>`;
+    const protections = selectedCardKind === 'DISPEL' ? availableProtections(view, first) : [];
+    content += `<div class="play-preview" role="region" aria-label="Confirm card effect"><strong>${cardTitle(selectedCardKind)}${first ? ` → ${name(first)}` : ''}${second ? ` → ${name(second)}` : ''}</strong><p>${escape(cardCopy[selectedCardKind])}</p>${selectedCardKind==='DISPEL'&&protections.length===1?`<p>Remove: <b>${protections[0]==='BLACK_CAT'?'Curse (Black Cat)':protections[0]!.replaceAll('_',' ')}</b></p>`:''}${protections.length > 1 ? `<label>Remove effect <select id="preview-protection"><option value="">Choose…</option>${protections.map(item => `<option value="${item}" ${protection === item ? 'selected' : ''}>${item==='BLACK_CAT'?'Curse (Black Cat)':item.replaceAll('_',' ')}</option>`).join('')}</select></label>` : ''}<div><button id="cancel-preview" class="quiet">Cancel</button><button id="confirm-preview" class="primary" ${blocked || (protections.length > 1 && !protection) ? 'disabled' : ''}>Play ${cardTitle(selectedCardKind)}${cards.length > 1 ? ` ×${cards.length}` : ''}</button></div></div>`;
   }
   if (view.peek && (view.presentation || view.peek.expiresAt > Date.now()) && dismissedPeekKey !== peekKey(view))
     content += `<div class="whisper-peek" role="dialog" aria-label="Private Whisper insight"><span class="eyebrow">YOUR EYES ONLY · ${name(view.peek.targetId)}</span><strong>One hidden Life card: ${escape(view.peek.kind)}</strong><button id="close-peek">Close</button></div>`;
@@ -169,7 +170,7 @@ export function updateDayTimers(): void {
     const deadline = Number(el.dataset.deadline);
     const paused=document.body.classList.contains('table-paused');
     const remaining=document.body.dataset.presentationRemaining;
-    el.textContent = paused ? `Ⅱ ${remaining ? `${Math.ceil(Number(remaining)/1000)}s` : 'Paused'}` : deadline ? `${Math.max(0,Math.ceil((deadline-Date.now())/1000))}s` : '';
+    el.textContent = !!currentView?.day?.reveal||!!currentView?.day?.council?.open ? 'Turn paused ? decision in progress' : paused ? `Ⅱ ${remaining ? `${Math.ceil(Number(remaining)/1000)}s` : 'Paused'}` : deadline ? `${Math.max(0,Math.ceil((deadline-Date.now())/1000))}s` : '';
     el.setAttribute('aria-label',paused?'Timer paused during close-up':'Phase time remaining');
   });
   const peek = document.querySelector<HTMLElement>('.whisper-peek');

@@ -1,6 +1,6 @@
 // Mechanical asset transcoding only: retain the generated source PNGs and alpha.
 import { readFile, writeFile, readdir, stat } from 'node:fs/promises';
-import { resolve, join } from 'node:path';
+import { resolve, join, basename } from 'node:path';
 import { chromium } from 'playwright';
 const root = resolve('apps/client/public/art');
 const browser = await chromium.launch({ channel: process.env.BROWSER_CHANNEL ?? 'msedge', headless: true });
@@ -11,7 +11,8 @@ try {
   for (const folder of ['roles','cards']) for (const file of await readdir(join(root,folder))) {
     if (file.endsWith('.png')) assets.push({path:join(root,folder,file),max:folder==='roles'?900:640});
   }
-  for (const asset of assets) {
+  const requested=process.argv.slice(2);
+  for (const asset of assets.filter(asset=>!requested.length||requested.includes(basename(asset.path)))) {
     const input = await readFile(asset.path); before += input.length;
     const encoded = await page.evaluate(async ({source,max}) => {
       const image = new Image(); image.src = source; await image.decode();

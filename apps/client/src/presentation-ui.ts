@@ -15,5 +15,5 @@ export function updatePresentationUI(view:RoomView|null):void {
   if(!wait)return;
   wait.hidden=!pause||(pause.scope!=='WAIT'&&pause.awaitingYou);
   const message=wait.querySelector('p');
-  if(message)message.textContent=pause?.scope==='WAIT'?'A private action is being read. Its details stay private.':'Waiting for the other players to finish reading.';
+  if(message)message.textContent=pause?.scope==='WAIT'?'Waiting for another player to finish their private action.':'Waiting for other players to finish their action.';
 }

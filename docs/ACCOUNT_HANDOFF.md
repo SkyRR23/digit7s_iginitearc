@@ -2,6 +2,10 @@
 
 Use this file when continuing development from another Codex account. It records the project state and the design decisions from the original conversation. The repository is the source of truth for implementation details; inspect it before making changes.
 
+The October 29 action update in `docs/ACTION_UPDATES.md` supersedes the older random-reveal and always-open-voting descriptions below. Read it before changing rules.
+
+The later October 29 cinematic and single-Curse fixes are documented in `docs/CINEMATIC_POLISH.md`. This includes the updated Dispel-to-draw-pile behavior.
+
 ## Start here on the new account
 
 1. Clone the GitHub repository and open its root as the workspace.

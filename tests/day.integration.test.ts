@@ -14,9 +14,13 @@ beforeEach(async () => {
   } });
 });
 afterEach(async () => h.close());
-async function begin(capacity = 6) {
+async function begin(capacity = 6, safeOpening = false) {
   const party = await h.party(capacity);
-  await h.start(party);
+  await h.start(party,!safeOpening);
+  if(safeOpening) {
+    const target=party.find(client=>client.view!.private!.identities.every(card=>card.kind==='HUMAN'))!;
+    for(const client of party)if(client.view!.blackCatChoice)await h.accepted(client,{type:'chooseBlackCat',matchId:client.view!.deal!.matchId,targetId:target.session!.playerId});
+  }
   await Promise.all(party.map(client => h.accepted(client, { type:'acknowledgeDeal', matchId:client.view!.deal!.matchId })));
   await Promise.all(party.map(h.sync));
   return party;
@@ -33,7 +37,7 @@ describe('authoritative expanded card protocol', () => {
     const all = party.flatMap(client => client.view!.hand!);
     expect(all).toHaveLength(18);
     expect(new Set(all.map(card => card.id)).size).toBe(18);
-    expect(party[0]!.view!.day!.deckCount).toBe(65);
+    expect(party[0]!.view!.day!.deckCount).toBe(68);
     expect(party[0]!.view!.day!.accusationThreshold).toBe(7);
     for (const client of party) {
       for (const other of party.filter(item => item !== client)) {
@@ -77,11 +81,11 @@ describe('authoritative expanded card protocol', () => {
     await h.accepted(actor,packet(actor,{type:'playCard',cardId:actor.view!.hand![0]!.id,targetId:id(second)}));
     await h.accepted(actor,packet(actor,{type:'playCard',cardId:actor.view!.hand![0]!.id,targetId:id(first)}));
     await h.sync(second);
-    expect(second.view!.day!.players.find(p => p.playerId===id(first))!.doubt).toBe(2);
+    expect(second.view!.day!.players.find(p => p.playerId===id(first))!.doubt).toBe(1);
     expect(second.view!.day!.players.find(p => p.playerId===id(second))!.doubt).toBe(1);
     expect(second.view!.feed.some(entry => entry.text.includes('Shared suspicion carried one Doubt'))).toBe(true);
   });
-  it('Witness triggers one random server reveal, clears all seven marks, and exposes only the revealed card', async () => {
+  it('Witness opens a server-validated accuser choice, clears all seven marks, and exposes only the revealed card', async () => {
     let targetId = '';
     prepare = s => {
       s.hands[s.activePlayerId]![0]!.kind='WITNESS';
@@ -93,6 +97,9 @@ describe('authoritative expanded card protocol', () => {
     };
     const party=await begin(), actor=party[0]!, target=party.find(client => id(client) === targetId)!;
     await h.accepted(actor,packet(actor,{type:'playCard',cardId:actor.view!.hand![0]!.id,targetId:id(target)}));
+    expect(actor.view!.phase).toBe('REVEAL_RESOLUTION');
+    expect(await h.send(target,packet(target,{type:'revealSeal',slot:2}))).toMatchObject({ok:false});
+    await h.accepted(actor,packet(actor,{type:'revealSeal',slot:2}));
     await h.sync(target);
     expect(target.view!.day!.players.find(p => p.playerId===id(target))!.doubt).toBe(0);
     expect(target.view!.deal!.players.find(p => p.playerId===id(target))!.seals.filter(seal => seal.revealed)).toHaveLength(1);
@@ -110,8 +117,8 @@ describe('authoritative expanded card protocol', () => {
     expect(target.view!.feed.at(-1)?.text).not.toContain(actor.view!.peek!.kind);
   });
   it('Conspiracy moves hidden lives atomically and the public feed reveals no Witch transfer', async () => {
-    prepare = s => { s.hands[s.activePlayerId]![0]!.kind='CONSPIRACY'; };
-    const party=await begin(), actor=party[0]!;
+    prepare = s => { const actor=s.identity.players.find(p=>s.identity.cards.filter(c=>c.ownerId===p.id).every(c=>c.kind==='HUMAN'))!.id; s.hands[actor]![0]!.kind='CONSPIRACY'; };
+    const party=await begin(6,true), actor=party.find(c=>id(c)===c.view!.day!.activePlayerId)!;
     const before=party.map(client => client.view!.private!.identities.map(card => card.id));
     await h.accepted(actor,packet(actor,{type:'playCard',cardId:actor.view!.hand![0]!.id,targetId:id(actor)}));
     await Promise.all(party.map(h.sync));

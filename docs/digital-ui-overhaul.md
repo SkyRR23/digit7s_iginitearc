@@ -9,7 +9,7 @@ The client uses live DOM components for the menu, lobby, roster, action spotligh
 - `npm test` runs the existing rules and server integration suite.
 - `npx tsx tests/digital-ui-browser.ts` runs real browser and Socket.IO flows with six and ten isolated players. It starts a separate Vite preview on port 5183 and an in-process game server. The test injects a deterministic deal, action-hand scenario, and clock through the existing trusted server test interfaces; none of these are exposed to the browser or production server.
 
-The browser suite covers create/join, chat, ready/start, private role presentation, Life inspection and rearrangement, cover/confirm, card hover and keyboard/touch details, target selection, two-target Scapegoat, global Conspiracy, protective blocks, Heart links, seven-Doubt server-selected reveal, Draw 2, Night privacy, Dawn/death, reconnection, voting, results, and rematch. Screenshots are saved under `test-results/digital-ui/`.
+The browser suite covers create/join, chat, ready/start, private role presentation, Life inspection and rearrangement, cover/confirm, card hover and keyboard/touch details, target selection, two-target Scapegoat, global Conspiracy, protective blocks, Heart links, seven-Doubt accuser-selected reveal, Draw 2, Night privacy, Dawn/death, reconnection, voting, results, and rematch. Screenshots are saved under `test-results/digital-ui/`.
 
 ## Component responsibilities
 
@@ -24,7 +24,7 @@ The browser suite covers create/join, chat, ready/start, private role presentati
 - `apps/client/src/role-panel.ts` presents the private role before opening Life cards and preserves abilities, results, and voting.
 - `apps/client/src/private-panel.ts` retains private inspection, swapping, shuffle, cover, and acknowledgement.
 
-Public face-down Life markup uses identical generic backs and explanations. Only server-revealed Life cards show their identities publicly. The interface never asks the player to choose a public Life slot when an accusation reaches seven.
+Public face-down Life markup uses identical generic backs and explanations. Only server-revealed Life cards show their identities publicly. At seven Doubt the accuser chooses a hidden Life position in the close-up decision UI. Only public backs are shown; the server validates the chosen slot. See ACTION_UPDATES.md.
 
 On desktop and tablet, the roster is split into two wings around the centre action spotlight. The spotlight names the actor, card, and target (or both ordered targets), distinguishes a planned action from the latest approved public play, and uses only server-approved events for the public action history. Target buttons occupy their own space and do not cover Life cards. Heart status labels name their partners instead of drawing lines through the roster.
 

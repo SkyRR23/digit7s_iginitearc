@@ -44,7 +44,7 @@ try {
   assert.ok(six.scroll[0] <= six.scroll[2],`phone horizontal overflow: ${six.scroll}`);
   assert.ok(six.scroll[1] <= six.scroll[3],`phone vertical overflow: ${six.scroll}`);
   await phone.page.screenshot({path:'test-results/cards-phone.png'});
-  const playable = phone.page.locator('.action-hand [data-card]:not([data-action-kind="CURSE"]):not([data-action-kind="SCAPEGOAT"])').first();
+  const playable = phone.page.locator('.action-hand [data-card]:not([data-action-kind="DISPEL"]):not([data-action-kind="SCAPEGOAT"])').first();
   if (await playable.count()) {
     await playable.click();
     if (!await phone.page.locator('.play-preview').count()) {

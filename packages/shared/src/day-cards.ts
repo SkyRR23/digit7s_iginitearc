@@ -2,7 +2,7 @@ import { transferIdentities } from './identities.js';
 import { cardRequiresOtherPlayer } from './card-targeting.js';
 import type { ActionCard, ActionKind, ProtectionKind, StatusKind, PlayerStatus } from './day-views.js';
 import { alive, deny, type DayEvent, type DayState } from './day-model.js';
-import { resolveSeal } from './day-resolution.js';
+import { evaluateOutcome, resolveSeal } from './day-resolution.js';
 
 export interface CardTarget { targetId: string; secondTargetId?: string; protection?: ProtectionKind }
 const statuses = (s: DayState, id: string): PlayerStatus[] => (s.statuses ??= {})[id] ??= [];
@@ -11,6 +11,7 @@ export function removeStatus(s: DayState, id: string, kind: StatusKind, events: 
   const status = statuses(s, id).find(item => item.kind === kind && !item.consumed);
   if (!status) return;
   status.consumed = true;
+  delete status.cardId;
   if (kind === 'HEARTHWARD') s.wards[id] = false;
   events.push({ type: 'STATUS', targetId: id, statusKind: kind, count: 0 });
 }
@@ -34,13 +35,15 @@ function randomSlot(s: DayState, id: string, randomIndex: (max: number) => numbe
   if (!Number.isInteger(index) || index < 0 || index >= hidden.length) throw new Error('Invalid server random index.');
   return hidden[index]!.slot;
 }
-function revealAtSeven(s: DayState, actorId: string, id: string, now: number, events: DayEvent[], randomIndex: (max: number) => number): void {
+function revealAtSeven(s: DayState, actorId: string, id: string, now: number, events: DayEvent[], _randomIndex: (max: number) => number): void {
   if (s.doubt[id]! < s.rules.accusationThreshold || !alive(s, id)) return;
-  const slot = randomSlot(s, id, randomIndex);
   events.push({ type: 'REVEAL_PENDING', actorId, targetId: id, count: 7 });
-  s.reveal = { chooserId: actorId, targetId: id };
-  resolveSeal(s, slot, now, events);
-  if (!alive(s, id)) unbind(s, id, events);
+  if (s.reveal?.targetId === id || s.pendingReveals?.some(item => item.targetId === id)) return;
+  if (s.reveal) (s.pendingReveals ??= []).push({ chooserId: actorId, targetId: id });
+  else {
+    s.reveal = { chooserId: actorId, targetId: id, remainingTurnMs: Math.max(0, (s.deadline ?? now) - now) };
+    s.phase = 'REVEAL_RESOLUTION'; s.deadline = now + s.rules.revealTimeoutMs;
+  }
 }
 function addDoubt(s: DayState, actorId: string, id: string, amount: number, now: number,
   events: DayEvent[], randomIndex: (max: number) => number, sourceCard?: ActionKind): void {
@@ -75,6 +78,10 @@ function cleanse(s: DayState, actorId: string, id: string, amount: number, event
 function hidden(s: DayState, id: string) { return s.identity.cards.some(card => card.ownerId === id && !card.revealed); }
 export function validateCardTarget(s: DayState, actorId: string, card: ActionCard, target: CardTarget): void {
   const kind = card.kind, id = target.targetId, other = target.secondTargetId;
+  if (kind === 'COUNCIL_BELL') {
+    if (s.council?.used) deny('COUNCIL_USED', 'The Council Bell has already been used this match.');
+    return;
+  }
   if (kind === 'CONSPIRACY') {
     if (s.identity.players.filter(p => p.alive).some(p => !hidden(s, p.id))) deny('SEAL', 'Every living player needs a hidden Life card.');
     return;
@@ -91,7 +98,9 @@ export function validateCardTarget(s: DayState, actorId: string, card: ActionCar
     deny('TARGET', 'The first player needs Doubt or an attached effect to transfer.');
   if (kind === 'VOW_OF_HEARTS' && hasStatus(s, id, 'VOW_HEART'))
     deny('VOW', 'That player already carries a Heart. Choose another player.');
-  if (kind === 'CURSE') {
+  if (kind === 'CURSE' && s.identity.players.some(player => hasStatus(s, player.id, 'BLACK_CAT')))
+    deny('STATUS', 'The single Curse is already attached to a player.');
+  if (kind === 'DISPEL') {
     const removable: ProtectionKind[] = ['HEARTHWARD','PIETY','ASYLUM','VOW_OF_HEARTS','BLACK_CAT'];
     const available = removable.filter(item => item === 'VOW_OF_HEARTS'
       ? hasStatus(s, id, 'VOW_HEART') : hasStatus(s, id, item));
@@ -109,7 +118,7 @@ export function resolveCard(s: DayState, actorId: string, card: ActionCard, targ
   validateCardTarget(s, actorId, card, target);
   const id = target.targetId, kind = card.kind;
   events.push({ type: 'PLAY', actorId, targetId: id, secondTargetId: target.secondTargetId, cardKind: kind });
-  if ((kind === 'EVIDENCE' || kind === 'WITNESS') && hasStatus(s, id, 'PIETY')) {
+  if ((['EVIDENCE','TESTIMONY','WITNESS'].includes(kind)) && hasStatus(s, id, 'PIETY')) {
     removeStatus(s, id, 'PIETY', events);
     events.push({ type: 'BLOCK', actorId, targetId: id, cardKind: kind, blocked: true });
     return;
@@ -119,7 +128,7 @@ export function resolveCard(s: DayState, actorId: string, card: ActionCard, targ
     events.push({ type: 'BLOCK', actorId, targetId: id, cardKind: kind, blocked: true });
     return;
   }
-  const harmful = ['EVIDENCE', 'WITNESS', 'STOCKS', 'CURSE', 'WHISPER', 'CINDER_SHIFT', 'SCAPEGOAT'].includes(kind);
+  const harmful = ['EVIDENCE', 'TESTIMONY', 'WITNESS', 'CURSE', 'EAVESDROP', 'STOCKS', 'DISPEL', 'WHISPER', 'CINDER_SHIFT', 'SCAPEGOAT'].includes(kind);
   const protectedId = kind === 'SCAPEGOAT' ? target.secondTargetId : id;
   const remedy = protectedId ? s.herbalRemedies?.[protectedId] : undefined;
   if (harmful && remedy && !remedy.consumed && remedy.activeDay === s.dayNumber) {
@@ -128,7 +137,8 @@ export function resolveCard(s: DayState, actorId: string, card: ActionCard, targ
     return;
   }
   switch (kind) {
-    case 'EVIDENCE': addDoubt(s, actorId, id, 2, now, events, randomIndex, 'EVIDENCE'); break;
+    case 'EVIDENCE': addDoubt(s, actorId, id, 1, now, events, randomIndex, 'EVIDENCE'); break;
+    case 'TESTIMONY': addDoubt(s, actorId, id, 3, now, events, randomIndex, 'TESTIMONY'); break;
     case 'WITNESS': addDoubt(s, actorId, id, s.rules.accusationThreshold - s.doubt[id]!, now, events, randomIndex, 'WITNESS'); break;
     case 'ALIBI': cleanse(s, actorId, id, 2, events); break;
     case 'MERCY': cleanse(s, actorId, id, 2, events); removeStatus(s, id, 'BOUND', events); break;
@@ -136,13 +146,30 @@ export function resolveCard(s: DayState, actorId: string, card: ActionCard, targ
     case 'ASYLUM': addStatus(s, id, 'ASYLUM', actorId, events); break;
     case 'PIETY': addStatus(s, id, 'PIETY', actorId, events); break;
     case 'HEARTHWARD': addStatus(s, id, 'HEARTHWARD', actorId, events); break;
-    case 'CURSE': {
+    case 'DISPEL': {
       const chosen = target.protection ?? (['HEARTHWARD','PIETY','ASYLUM','VOW_OF_HEARTS','BLACK_CAT'] as const).find(item =>
         item === 'VOW_OF_HEARTS' ? hasStatus(s, id, 'VOW_HEART') : hasStatus(s, id, item))!;
       if (chosen === 'VOW_OF_HEARTS') unbind(s, id, events);
-      else removeStatus(s, id, chosen, events);
+      else {
+        const attached = statuses(s,id).find(item => item.kind === chosen && !item.consumed);
+        if (chosen === 'BLACK_CAT' && attached?.cardId) {
+          const position = randomIndex(s.deck.length + 1);
+          if (!Number.isInteger(position) || position < 0 || position > s.deck.length) deny('RANDOM', 'Invalid draw-pile insertion.');
+          s.deck.splice(position, 0, { id: attached.cardId, kind: 'CURSE' });
+        }
+        removeStatus(s, id, chosen, events);
+      }
       break;
     }
+    case 'CURSE':
+      statuses(s,id).push({ kind:'BLACK_CAT', sourceId:actorId, duration:'UNTIL_USED', consumed:false, cardId:card.id });
+      events.push({ type:'STATUS', targetId:id, statusKind:'BLACK_CAT', count:1 }); break;
+    case 'COUNCIL_BELL':
+      s.council = { used:true, open:true, deadline:now+30_000, remainingTurnMs:Math.max(0,(s.deadline??now)-now) };
+      s.deadline=s.council.deadline; break;
+    case 'EAVESDROP':
+      (s.privateHands ??= {})[actorId] = { id:card.id, targetId:id, cards:s.hands[id]!.map(item=>({...item})), expiresAt:now+12_000 };
+      events.push({type:'PEEK',actorId,targetId:id,cardKind:kind}); break;
     case 'SCAPEGOAT': {
       const other = target.secondTargetId!;
       const moved = s.doubt[id]!;
@@ -155,6 +182,7 @@ export function resolveCard(s: DayState, actorId: string, card: ActionCard, targ
           statuses(s, other).push({ ...status });
           events.push({ type: 'STATUS', targetId: other, statusKind: status.kind, count: 1 });
         }
+        if(status.kind==='BLACK_CAT'&&status.cardId&&statuses(s,other).some(item=>item.kind==='BLACK_CAT'&&!item.consumed&&item.cardId!==status.cardId))s.discard.push({id:status.cardId,kind:'CURSE'});
         removeStatus(s, id, status.kind, events);
       }
       if (movedHeart && !hasStatus(s, other, 'VOW_HEART')) addStatus(s, other, 'VOW_HEART', actorId, events);
@@ -196,6 +224,7 @@ export function resolveCard(s: DayState, actorId: string, card: ActionCard, targ
         resolveSeal(s, slot, now, events);
       }
       const living = s.identity.players.filter(player => player.alive);
+      if(living.length<2 || evaluateOutcome(s.identity,s.neutralIds)) {events.push({type:'CONSPIRACY'});break;}
       const moves = living.map((player, index) => {
         const slot = randomSlot(s, player.id, randomIndex);
         const selected = s.identity.cards.find(c => c.ownerId === player.id && c.slot === slot)!;

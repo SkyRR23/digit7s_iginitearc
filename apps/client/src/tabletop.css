@@ -535,6 +535,7 @@
   box-shadow: 0 0 0 3px #f4c65c52, 0 0 33px #f0bd4c8c, 0 22px 31px #000c;
 }
 .action-card.card-whisper { border-color: #b87867; background: linear-gradient(155deg, #613f39, #241c1c 78%); }
+.action-card.card-eavesdrop { border-color: #9571b0; background: linear-gradient(155deg, #513d62, #211827 78%); }
 .action-card.card-hearthward { border-color: #84a47f; background: linear-gradient(155deg, #3b5943, #1b261e 78%); }
 .action-card.card-cinder_shift { border-color: #c1936c; background: linear-gradient(155deg, #634830, #261e18 78%); }
 .action-card.selected.card-whisper,

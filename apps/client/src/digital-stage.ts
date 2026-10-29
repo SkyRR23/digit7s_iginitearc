@@ -40,7 +40,7 @@ export function renderActionSpotlight(view: RoomView, selection: TableSelection,
     const two = selection.selectedCardKind === 'SCAPEGOAT';
     const first = selection.selectedTargetId || hoveredId;
     const second = selection.secondTargetId || (two && selection.selectedTargetId ? hoveredId : '');
-    const destination = selection.selectedCardKind === 'CONSPIRACY'
+    const destination = ['CONSPIRACY','COUNCIL_BELL'].includes(selection.selectedCardKind)
       ? '<div class="spotlight-global"><span class="eyebrow">GLOBAL TARGET</span><h2>All living players</h2></div>'
       : `${first ? target(first, two ? 'FIRST · EFFECTS LEAVE' : hoveredId && !selection.selectedTargetId ? 'PREVIEW · NOT SELECTED' : 'RECEIVES THE CARD') : '<p class="spotlight-instruction">Choose a gold-highlighted player.</p>'}${two ? `<span class="action-direction" aria-hidden="true">→</span>${second ? target(second,'SECOND · EFFECTS ARRIVE') : '<p class="spotlight-instruction">Then choose who receives all the effects.</p>'}` : ''}`;
     return `<div class="action-route planning"><p class="route-state">PLANNING · CONFIRM TO PLAY</p>${actor(view.you?.playerId,'YOU ARE ACTING')}<div class="route-card-name"><span aria-hidden="true">↓</span><h2>${cardTitle(selection.selectedCardKind)}</h2><span aria-hidden="true">↓</span></div><div class="route-targets">${destination}</div></div>`;
@@ -50,7 +50,7 @@ export function renderActionSpotlight(view: RoomView, selection: TableSelection,
     // hands, role results, or hidden Life-card transfers.
     const last = [...view.effects ?? []].reverse().find(effect => effect.type === 'PLAY' || effect.type === 'DRAW');
     if (last) {
-      const global = last.cardKind === 'CONSPIRACY';
+      const global = ['CONSPIRACY','COUNCIL_BELL'].includes(last.cardKind??'');
       return `<div class="action-route resolved" data-public-action="${last.id}"><p class="route-state">${last.type === 'DRAW' ? 'LAST DRAW · TURN ENDED' : 'LAST CARD PLAYED'}</p>${actor(last.actorId,'ACTING PLAYER')}<div class="route-card-name"><span aria-hidden="true">↓</span><h2>${last.type === 'DRAW' ? `Drew ${last.count ?? 2} cards` : cardTitle(last.cardKind!)}</h2>${last.type === 'PLAY' ? '<span aria-hidden="true">↓</span>' : ''}</div><div class="route-targets">${last.type === 'DRAW' ? '' : global ? '<div class="spotlight-global"><h2>All living players</h2></div>' : `${last.targetId ? target(last.targetId,last.secondTargetId ? 'FIRST · EFFECTS LEAVE' : 'TARGET PLAYER') : ''}${last.secondTargetId ? `<span class="action-direction" aria-hidden="true">→</span>${target(last.secondTargetId,'SECOND · EFFECTS ARRIVE')}` : ''}`}</div><p class="route-help">${view.day.activePlayerId === view.you?.playerId ? 'Your turn · choose another card or end your turn.' : 'Watch the event log for the effect and any protection.'}</p></div>`;
     }
     return `<div class="action-route waiting"><p class="route-state">CURRENT TURN</p>${actor(view.day.activePlayerId,'ACTING PLAYER')}<h2>${view.day.activePlayerId === view.you?.playerId ? 'Your move.' : 'Choosing an action…'}</h2><p class="route-help">${view.day.activePlayerId === view.you?.playerId ? 'Select a card, then choose its target.' : 'Their next card and target will appear here.'}</p></div>`;

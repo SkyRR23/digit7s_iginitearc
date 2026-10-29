@@ -48,7 +48,7 @@ export function renderRevealedLifeSummary(view: RoomView, playerId: string): str
 export function renderDoubt(view: RoomView, playerId: string): string {
   const player = view.day?.players.find(candidate => candidate.playerId === playerId);
   if (!player || !view.day) return '';
-  const cards = Array.from({ length: player.doubt }, (_, index) => `<span class="doubt-tile filled" data-doubt-index="${index}" aria-hidden="true">×</span>`).join('');
+  const cards = Array.from({ length: Math.min(player.doubt,view.day.accusationThreshold) }, (_, index) => `<span class="doubt-tile filled" data-doubt-index="${index}" aria-hidden="true">×</span>`).join('');
   return `<div class="attached-status">
     <div class="doubt-track" aria-label="${player.doubt} of seven Doubt">${cards}</div>
   </div>`;
@@ -58,8 +58,8 @@ const statusInfo = {
   ASYLUM: ['☾','Asylum: blocks one harmful night effect; expires at Dawn.'],
   PIETY: ['✦','Blessed: blocks the next Evidence or Witness.'],
   HEARTHWARD: ['♨','Warded: blocks the next Whisper.'],
-  VOW_HEART: ['♥','Linked Heart: direct Doubt from a played card shares one Doubt with each other Heart holder. Lasts until Curse removes this Heart or this player dies.'],
-  BLACK_CAT: ['◆','Black Cat curse: Conspiracy reveals one random hidden Life card on this player before Life cards shift. Scapegoat moves the curse; Curse removes it.'],
+  VOW_HEART: ['♥','Linked Heart: direct Doubt from a played card shares one Doubt with each other Heart holder. Lasts until Dispel removes this Heart or this player dies.'],
+  BLACK_CAT: ['◆','Black Cat curse: Conspiracy reveals one random hidden Life card on this player before Life cards shift. Scapegoat moves the curse; Dispel removes it.'],
 } as const;
 
 export function renderPlayerSeat(view: RoomView, player: PublicPlayer, absoluteIndex: number,
@@ -102,9 +102,9 @@ export function renderPlayerSeat(view: RoomView, player: PublicPlayer, absoluteI
     ${renderDoubt(view, player.id)}
     ${renderRevealedLifeSummary(view, player.id)}
     <div class="status-icons" aria-label="Active statuses">${counters?.remedy ? `<button type="button" class="status-icon status-remedy" title="Herbal remedy: blocks one harmful targeted effect or night attack until Dawn." aria-label="Herbal remedy active">${statusSymbol('REMEDY')}<b>REMEDY</b></button>` : ''}${statuses.map(status => {
-      const info = status.kind === 'VOW_HEART' && !vow ? ['♥','Heart waiting: another Vow card must place a Heart on someone else before Doubt is shared. Lasts until Curse removes it or this player dies.'] : statusInfo[status.kind];
+      const info = status.kind === 'VOW_HEART' && !vow ? ['♥','Heart waiting: another Vow card must place a Heart on someone else before Doubt is shared. Lasts until Dispel removes it or this player dies.'] : statusInfo[status.kind];
       const explanation = `${status.kind === 'VOW_HEART' && partners.length ? `Heart linked with ${partners.join(', ')}. ` : ''}${info[1]}`;
-      return `<button type="button" class="status-icon status-${status.kind.toLowerCase()}" title="${escape(explanation)}" aria-label="${escape(explanation)}">${statusSymbol(status.kind)}<b>${status.kind === 'VOW_HEART' ? vow ? `WITH ${escape(partners.join(', '))}` : 'HEART WAITING' : status.kind === 'HEARTHWARD' ? 'WARDED' : status.kind === 'PIETY' ? 'BLESSED' : status.kind.replaceAll('_', ' ')}</b></button>`;
+      return `<button type="button" class="status-icon status-${status.kind.toLowerCase()}" title="${escape(explanation)}" aria-label="${escape(explanation)}">${statusSymbol(status.kind)}<b>${status.kind === 'VOW_HEART' ? vow ? `WITH ${escape(partners.join(', '))}` : 'HEART WAITING' : status.kind === 'HEARTHWARD' ? 'WARDED' : status.kind === 'PIETY' ? 'BLESSED' : status.kind==='BLACK_CAT'?'CURSED':status.kind.replaceAll('_', ' ')}</b></button>`;
     }).join('')}</div>
     ${history}
     ${canRemoveBot ? `<button class="remove-bot small" data-remove-bot="${player.id}">Remove Bot</button>` : ''}
@@ -138,19 +138,19 @@ export function renderTableCenter(view: RoomView): string {
       </button>
       <div class="card-pile discard-pile" aria-label="${day.discardCount} cards discarded"><span class="pile-card discard-face">${day.discardCount ? cardGlyph([...view.effects ?? []].reverse().find(effect => effect.type === 'PLAY')?.cardKind ?? 'WHISPER') : '—'}</span><b>${day.discardCount}</b><small>DISCARD</small></div>
     </div>
-    <p class="table-rule">Seven Doubt reveals a random Life card</p>`;
+    <p class="table-rule">Seven Doubt lets the accuser choose a Life card</p>`;
 }
 
 export function renderActionCard(card: ActionCard, selected: boolean, disabled: boolean,
   index: number, handSize: number, copies = 1, selectedCopies = 0): string {
   const title = cardTitle(card.kind);
   const detail: Record<ActionCard['kind'], string> = {
-    EVIDENCE: '+2 Doubt', WITNESS: 'Reveal a Life card', ALIBI: 'Remove 2 Doubt', STOCKS: 'Skip next turn',
-    ASYLUM: 'Night shield', PIETY: 'Bless one player', CURSE: 'Break protection', MERCY: 'Cleanse and unbind',
+    EVIDENCE: '+1 Doubt', TESTIMONY:'+3 Doubt', CURSE:'Attach Black Cat', COUNCIL_BELL:'Call council vote', EAVESDROP:'Inspect playable hand', WITNESS: 'Reveal a Life card', ALIBI: 'Remove 2 Doubt', STOCKS: 'Skip next turn',
+    ASYLUM: 'Night shield', PIETY: 'Bless one player', DISPEL: 'Break protection', MERCY: 'Cleanse and unbind',
     SCAPEGOAT: 'Transfer all Doubt & effects', VOW_OF_HEARTS: 'Give one Heart', CONSPIRACY: 'Shift hidden lives',
     WHISPER: 'Secret insight', HEARTHWARD: 'Block one Whisper', CINDER_SHIFT: 'Random Life swap',
   };
-  const sigil = ({ EVIDENCE:'✜',WITNESS:'◉',ALIBI:'⚖',STOCKS:'⛓',ASYLUM:'☾',PIETY:'✦',CURSE:'☠',MERCY:'✧',SCAPEGOAT:'↝',VOW_OF_HEARTS:'♥',CONSPIRACY:'◌',WHISPER:'!',HEARTHWARD:'◇',CINDER_SHIFT:'↭' } as const)[card.kind];
+  const sigil = ({ TESTIMONY:'3',CURSE:'C',COUNCIL_BELL:'B',EAVESDROP:'H', EVIDENCE:'1',WITNESS:'7',ALIBI:'⚖',STOCKS:'⛓',ASYLUM:'☾',PIETY:'✦',DISPEL:'☠',MERCY:'✧',SCAPEGOAT:'↝',VOW_OF_HEARTS:'♥',CONSPIRACY:'◌',WHISPER:'!',HEARTHWARD:'◇',CINDER_SHIFT:'↭' } as const)[card.kind];
   const shortTitle = ({ VOW_OF_HEARTS:'Vow', CINDER_SHIFT:'Shift' } as Partial<Record<ActionCard['kind'],string>>)[card.kind] ?? title;
   const middle = (handSize - 1) / 2;
   const angle = Math.max(-7, Math.min(7, (index - middle) * 1.35));

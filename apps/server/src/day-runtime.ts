@@ -14,7 +14,7 @@ export function describeDayEvent(event: DayEvent, state: DayState, name: (id: st
   switch (event.type) {
     case 'DAY_STARTED': return `Day ${state.dayNumber} begins. ${actor} takes the first turn. ${state.dayNumber === 1 ? 'Starting hands have been dealt.' : 'Unused cards stay in your hand; only the discard pile was shuffled into the draw pile.'}`;
     case 'DRAW': return `${actor} drew ${event.count} action cards and ended their turn.`;
-    case 'PLAY': return event.cardKind === 'CONSPIRACY' ? '' : `${actor} played ${event.cardKind?.replaceAll('_', ' ').toLowerCase()}${event.secondTargetId ? ` between ${target} and ${name(event.secondTargetId)}` : ` on ${target}`}.`;
+    case 'PLAY': if(event.cardKind==='COUNCIL_BELL')return `${actor} rang the Council Bell. Hear ye, hear ye! Voting is open for 30 seconds.`; return event.cardKind === 'CONSPIRACY' ? '' : `${actor} played ${event.cardKind?.replaceAll('_', ' ').toLowerCase()}${event.secondTargetId ? ` between ${target} and ${name(event.secondTargetId)}` : ` on ${target}`}.`;
     case 'TRANSFER': return `The cinders shifted between ${actor} and ${target}.`;
     case 'BLOCK': return `${target} was protected by ${event.statusKind === 'ASYLUM' ? 'Asylum' : event.cardKind === 'WHISPER' ? 'Hearthward' : 'Piety'}.`;
     case 'ROLE_BLOCK': return `${target} was protected from a harmful effect.`;
@@ -26,8 +26,8 @@ export function describeDayEvent(event: DayEvent, state: DayState, name: (id: st
     case 'VOW': return event.cardKind ? `Shared suspicion carried one Doubt from ${actor} to ${target}.`
       : event.count ? `${actor} and ${target} are bound by a Vow of Hearts.` : `${actor} and ${target} are no longer bound by their Vow.`;
     case 'CONSPIRACY': return 'A conspiracy shifted the council’s hidden lives.';
-    case 'PEEK': return `${actor} whispered near ${target}.`;
-    case 'REVEAL_PENDING': return `${target} reached seven Doubt. The council reveals one random Life card.`;
+    case 'PEEK': return event.cardKind==='EAVESDROP'?`${actor} inspected ${target}?s playable hand privately.`:`${actor} whispered near ${target}.`;
+    case 'REVEAL_PENDING': return `${target} reached seven Doubt. The accuser has 10 seconds to choose a hidden Life card.`;
     case 'REVEAL': {
       const card = state.identity.cards.find(c => c.ownerId === event.targetId && c.slot === event.slot)!;
       return `${target}’s Seal ${event.slot! + 1} was revealed: ${IDENTITY_LABELS[card.kind]}.`;

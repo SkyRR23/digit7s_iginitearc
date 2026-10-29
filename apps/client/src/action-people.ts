@@ -5,7 +5,7 @@ export function actionPeople(view: RoomView): {actorId?:string;targetIds:string[
   if(!['DAY','REVEAL_RESOLUTION'].includes(view.phase))return {targetIds:[]};
   const last=[...(view.effects??[])].reverse().find(effect=>effect.type==='PLAY'||effect.type==='DRAW');
   if(last?.type!=='PLAY')return {targetIds:[]};
-  return {actorId:last.actorId,targetIds:last.cardKind==='CONSPIRACY'
+  return {actorId:last.actorId,targetIds:['CONSPIRACY','COUNCIL_BELL'].includes(last.cardKind??'')
     ? view.deal?.players.filter(player=>player.alive).map(player=>player.playerId)??[]
     : [last.targetId,last.secondTargetId].filter((id):id is string=>!!id)};
 }

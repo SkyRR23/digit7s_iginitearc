@@ -120,7 +120,7 @@ export function animateTableChanges(previous: RoomView | null, next: RoomView, b
   const after = captureTablePositions();
   const removed = previous.hand?.filter(card => !next.hand?.some(current => current.id === card.id)) ?? [];
   const doubt = new Map(previous.day?.players.map(player => [player.playerId, player.doubt]) ?? []);
-  const curseTargets = new Set(effects.filter(effect => effect.type === 'PLAY' && effect.cardKind === 'CURSE')
+  const curseTargets = new Set(effects.filter(effect => effect.type === 'PLAY' && effect.cardKind === 'DISPEL')
     .map(effect => effect.targetId));
   const blockedTargets = new Set(effects.filter(effect => effect.type === 'BLOCK' || effect.type === 'ROLE_BLOCK').map(effect => effect.targetId));
   if (next.role?.peek && next.role.peek.targetId !== previous.role?.peek?.targetId) {
@@ -136,16 +136,16 @@ export function animateTableChanges(previous: RoomView | null, next: RoomView, b
       const origin = before.get(own?.id ?? '') ?? (own ? before.get(`kind:${own.kind}`) : undefined) ?? before.get(effect.actorId ?? '');
       fly(origin, target, after.get('discard'), effect, delay);
       setTimeout(() => pulse(effect.targetId, 'card-hit'), delay + 500);
-      if (effect.cardKind === 'EVIDENCE' || effect.cardKind === 'WITNESS')
+      if (['EVIDENCE','TESTIMONY','WITNESS'].includes(effect.cardKind??''))
         makeTrail(before.get(own?.id ?? effect.actorId ?? ''), target, 'red', delay + 320);
-      if (effect.cardKind === 'CURSE') makeTrail(before.get(effect.actorId ?? ''), target, 'violet', delay + 300);
+      if (effect.cardKind === 'DISPEL') makeTrail(before.get(effect.actorId ?? ''), target, 'violet', delay + 300);
       if (effect.cardKind === 'WITNESS') setTimeout(() => pulse(effect.targetId, 'witness-impact'), delay + 350);
       if (effect.cardKind === 'EVIDENCE') setTimeout(() => pulse(effect.targetId, 'evidence-impact'), delay + 350);
       if (effect.cardKind === 'SCAPEGOAT') makeTrail(after.get(effect.targetId ?? ''), after.get(effect.secondTargetId ?? ''), 'red', delay + 500);
-      if (effect.cardKind === 'WITNESS') setTimeout(() => label('TESTIMONY GIVEN', effect.targetId, 'danger'), delay + 580);
+      if (effect.cardKind === 'WITNESS') setTimeout(() => label('WITNESS TESTIFIED', effect.targetId, 'danger'), delay + 580);
       if (effect.cardKind === 'ALIBI') setTimeout(() => label('ALIBI ACCEPTED', effect.targetId, 'clean'), delay + 580);
       if (effect.cardKind === 'MERCY') setTimeout(() => label('MERCY GRANTED', effect.targetId, 'clean'), delay + 580);
-      if (effect.cardKind === 'CURSE' && !blockedTargets.has(effect.targetId)) setTimeout(() => label('PROTECTION BROKEN', effect.targetId, 'danger'), delay + 580);
+      if (effect.cardKind === 'DISPEL' && !blockedTargets.has(effect.targetId)) setTimeout(() => label(`REMOVED: ${effects.filter(item=>item.type==='STATUS'&&item.targetId===effect.targetId&&item.count===0).map(item=>item.statusKind==='BLACK_CAT'?'CURSE':item.statusKind==='VOW_HEART'?'VOW OF HEARTS':item.statusKind?.replaceAll('_',' ')).filter(Boolean).join(', ')}`, effect.targetId, 'danger'), delay + 580);
       if (effect.cardKind === 'SCAPEGOAT') setTimeout(() => label('DOUBT TRANSFERRED', effect.secondTargetId, 'danger'), delay + 700);
     } else if (effect.type === 'DRAW') {
       for (let i = 0; i < (effect.count ?? 2); i++) fly(before.get('draw'), undefined,
@@ -209,7 +209,7 @@ export function animateTableChanges(previous: RoomView | null, next: RoomView, b
       }, delay);
     } else if (effect.type === 'STATUS') {
       if (!effect.count && (curseTargets.has(effect.targetId) || blockedTargets.has(effect.targetId))) return;
-      const words = effect.statusKind === 'VOW_HEART' ? (effect.count ? 'HEART WAITING' : 'HEART BROKEN')
+      const words = effect.statusKind === 'BLACK_CAT' ? (effect.count ? 'CURSED' : 'CURSE REMOVED') : effect.statusKind === 'VOW_HEART' ? (effect.count ? 'HEART WAITING' : 'HEART BROKEN')
         : effect.statusKind === 'BOUND' ? (effect.count ? 'BOUND' : 'CHAINS BROKEN')
         : effect.statusKind === 'ASYLUM' ? (effect.count ? 'ASYLUM' : 'NIGHT SHIELD GONE')
           : effect.statusKind === 'PIETY' ? (effect.count ? 'BLESSED' : 'PIETY SPENT') : effect.count ? 'WARDED' : 'WARD SPENT';

@@ -15,7 +15,7 @@ try {
     assert.equal(await page.locator('.guide-role').count(),7);
     for(const img of await page.locator('.guide-role img').all()) {await img.scrollIntoViewIfNeeded();await img.evaluate(el=>el.decode());}
     await page.locator('#guide-cards').click();
-    assert.equal(await page.locator('.guide-card').count(),14);
+    assert.equal(await page.locator('.guide-card').count(),18);
     for(const img of await page.locator('.guide-card img').all()){await img.scrollIntoViewIfNeeded();await img.evaluate(el=>el.decode());}
     assert.match(await page.locator('[data-guide-card="SCAPEGOAT"]').textContent(),/all Doubt/);
     assert.match(await page.locator('.guide-life-note').textContent(),/Opening Black Cat/);

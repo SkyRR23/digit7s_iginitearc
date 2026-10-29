@@ -28,6 +28,7 @@ describe('restricted bot policy', () => {
   it('participates in a day-two council vote and lets a Scapegoat seek its vote-only win', () => {
     const view = dayView();
     view.day!.dayNumber = 2; view.day!.activePlayerId = view.players[1]!.id;
+    view.day!.council={open:true,used:true,deadline:30000};
     view.councilVote = { dayNumber: 2, votesCast: 0, required: 4, yourTargetId: null, completed: false };
     view.role = { kind: 'SCAPEGOAT', ability: 'UNAVAILABLE', result: null, peek: null, notices: [], individualWin: false };
     expect(enumerateLegalBotActions(view).every(action => action.type === 'councilVote')).toBe(true);

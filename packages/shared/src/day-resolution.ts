@@ -19,6 +19,7 @@ export function kill(s: DayState, targetId: string, events: DayEvent[]): void {
     cards: s.identity.cards.map(c => c.ownerId === targetId ? { ...c, revealed: true } : c),
     players: s.identity.players.map(p => p.id === targetId ? { ...p, alive: false } : p),
   };
+  for(const status of s.statuses?.[targetId]??[]) if(status.kind==='BLACK_CAT'&&!status.consumed&&status.cardId) s.discard.push({id:status.cardId,kind:'CURSE'});
   s.discard.push(...s.hands[targetId]!);
   s.hands[targetId] = []; s.doubt[targetId] = 0; s.wards[targetId] = false;
   if (s.statuses) s.statuses[targetId] = [];
@@ -57,19 +58,27 @@ export function resolveSeal(s: DayState, slot: number, now: number, events: DayE
   const card = s.identity.cards.find(c => c.ownerId === pending.targetId && c.slot === slot && !c.revealed)!;
   s.identity = { ...s.identity, cards: s.identity.cards.map(c => c.id === card.id ? { ...c, revealed: true } : c) };
   s.doubt[pending.targetId] = 0; // Clear the complete accumulation, including overflow.
-  events.push({ type: 'REVEAL', actorId: pending.chooserId, targetId: pending.targetId, slot });
+  events.push({ type: 'REVEAL', actorId: pending.chooserId, targetId: pending.targetId, slot, ...(pending.remainingTurnMs===undefined?{}:{count:7}) });
   if (card.kind === 'WITCH' || !s.identity.cards.some(c => c.ownerId === pending.targetId && !c.revealed))
     kill(s, pending.targetId, events);
-  s.reveal = null; s.phase = 'DAY'; s.deadline = now + s.rules.turnTimeoutMs;
+  s.reveal = null; s.phase = 'DAY'; s.deadline = now + (pending.remainingTurnMs ?? s.rules.turnTimeoutMs);
+  const next=s.pendingReveals?.shift();
+  if(next) { s.reveal={...next,remainingTurnMs:pending.remainingTurnMs}; s.phase='REVEAL_RESOLUTION'; s.deadline=now+s.rules.revealTimeoutMs; }
 }
 
 export function settle(s: DayState, now: number, events: DayEvent[]): void {
   s.outcome = evaluateOutcome(s.identity, s.neutralIds);
   if (s.outcome) {
-    s.phase = 'GAME_OVER'; s.reveal = null; s.deadline = null; s.night = null;
+    s.phase = 'GAME_OVER'; s.pendingReveals=[]; s.reveal = null; s.deadline = null; s.night = null;
     events.push({ type: 'WIN' }); return;
   }
-  if (s.reveal && !alive(s, s.reveal.targetId)) { s.reveal = null; s.phase = 'DAY'; s.deadline = now + s.rules.turnTimeoutMs; }
+  if (s.reveal && !alive(s, s.reveal.targetId)) {
+    const remaining=s.reveal.remainingTurnMs??s.rules.turnTimeoutMs;
+    const next=s.pendingReveals?.shift();
+    s.reveal=next?{...next,remainingTurnMs:remaining}:null;
+    s.phase=next?'REVEAL_RESOLUTION':'DAY';s.deadline=now+(next?s.rules.revealTimeoutMs:remaining);
+    if(next){settle(s,now,events);return;}
+  }
   if (s.reveal && !alive(s, s.reveal.chooserId)) {
     const first = s.identity.cards.filter(c => c.ownerId === s.reveal!.targetId && !c.revealed).sort((a,b) => a.slot-b.slot)[0];
     if (first) resolveSeal(s, first.slot, now, events);
@@ -78,7 +87,7 @@ export function settle(s: DayState, now: number, events: DayEvent[]): void {
   }
   if (s.reveal) return; // A pending reveal always finishes before Night.
   if (s.phase === 'DAY' && !alive(s, s.activePlayerId)) advanceTurn(s, now, events);
-  if (s.deck.length === 0 && s.phase === 'DAY') {
+  if (s.deck.length === 0 && s.phase === 'DAY' && !s.council?.open) {
     s.phase = 'NIGHT'; s.deadline = now + s.rules.nightTimeoutMs;
     s.night = { number: s.dayNumber, attacks: {}, protections: {} }; s.dawn = null;
     events.push({ type: 'NIGHT' });

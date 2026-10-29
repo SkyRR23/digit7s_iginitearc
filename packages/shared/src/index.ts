@@ -1,4 +1,5 @@
 import { z } from 'zod';
+export { cardQuantities } from './deck-config.js';
 import type { PrivateIdentityView, PublicDealView } from './identity-views.js';
 import type { ActionCard, DayView } from './day-views.js';
 import type { DawnView, PrivateNightView } from './night-views.js';
@@ -91,6 +92,9 @@ export interface TableEffect {
   statusKind?: import('./day-views.js').StatusKind; blocked?: boolean;
 }
 export interface RoomView {
+  cardQuantities?: Partial<Record<import('./day-views.js').ActionKind,number>>;
+  serverTime?: number;
+  handPeek?: { targetId: string; cards: ActionCard[]; expiresAt: number; id: string } | null;
   effects?: TableEffect[];
   code: string; version: number; privateVersion: number; phase: 'LOBBY' | 'PRIVATE_DEAL' | 'DAY' | 'REVEAL_RESOLUTION' | 'NIGHT' | 'DAWN' | 'GAME_OVER'; hostId: string;
   capacity: number; players: PublicPlayer[]; feed: FeedEntry[];
@@ -128,7 +132,7 @@ export const originalPrototypePreset = Object.freeze({
   ...referenceSixPlayerFixture, id: 'ashfall-v03-pressure', accusationThreshold: 7,
   revealHistoryOnDeath: true, nightTimeoutMs: 45_000, dawnDurationMs: 5_000,
   whisperCards: 6, hearthwardCards: 3, cinderShiftCards: 2, initialHand: 3,
-  cardCounts: { EVIDENCE: 38, WITNESS: 6, ALIBI: 6, STOCKS: 3, ASYLUM: 3, PIETY: 3,
-    CURSE: 3, MERCY: 4, SCAPEGOAT: 3, VOW_OF_HEARTS: 2, CONSPIRACY: 1 },
-  turnTimeoutMs: 60_000, revealTimeoutMs: 30_000,
+  cardCounts: { EVIDENCE: 22, TESTIMONY: 16, WITNESS: 6, ALIBI: 6, STOCKS: 3, ASYLUM: 3, PIETY: 3,
+    DISPEL: 3, CURSE: 1, COUNCIL_BELL: 1, EAVESDROP: 2, MERCY: 4, SCAPEGOAT: 3, VOW_OF_HEARTS: 2, CONSPIRACY: 1 },
+  turnTimeoutMs: 60_000, revealTimeoutMs: 10_000,
 });

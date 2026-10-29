@@ -37,7 +37,7 @@ const game = createGameServer({ rateLimit: false, sweepMs: 25, now,
     const available = [...state.deck, ...Object.values(state.hands).flat()];
     for (const id of Object.keys(state.hands)) state.hands[id] = [];
     const kinds: ActionKind[] = ['EVIDENCE','EVIDENCE','EVIDENCE','WITNESS','SCAPEGOAT','CONSPIRACY','PIETY',
-      'HEARTHWARD','WHISPER','WHISPER','VOW_OF_HEARTS','VOW_OF_HEARTS','CURSE','STOCKS','MERCY','CINDER_SHIFT','ASYLUM','ALIBI'];
+      'TESTIMONY','COUNCIL_BELL','EAVESDROP','DISPEL','HEARTHWARD','WHISPER','WHISPER','VOW_OF_HEARTS','VOW_OF_HEARTS','DISPEL','STOCKS','MERCY','CINDER_SHIFT','ASYLUM','ALIBI'];
     state.hands[identity.players[0]!.id] = kinds.map(kind => {
       const index = available.findIndex(card => card.kind === kind);
       assert.ok(index >= 0); return available.splice(index,1)[0]!;
@@ -47,7 +47,7 @@ const game = createGameServer({ rateLimit: false, sweepMs: 25, now,
   },
 });
 const port = await game.listen(0);
-const vite = await createViteServer({ configFile: false, root: 'apps/client', server: { host: '127.0.0.1', port: 5183, strictPort: true,
+const vite = await createViteServer({ configFile: false, root: 'apps/client', server: { host: '127.0.0.1', port: 5183, strictPort: true, watch:{ignored:['**/*']}, hmr:false,
   proxy: { '/socket.io': { target: `http://127.0.0.1:${port}`, ws: true } } } });
 await vite.listen();
 await mkdir('test-results/digital-ui', { recursive: true });
@@ -88,7 +88,7 @@ async function noOverflow(page: Page) {
   const dimensions = await page.evaluate(() => ({viewport:innerWidth,document:document.documentElement.scrollWidth,height:innerHeight}));
   assert.ok(dimensions.document <= dimensions.viewport, `No document horizontal overflow: ${JSON.stringify(dimensions)}`);
 }
-async function sealOpeningCurse(page: Page, targetId?: string) {
+async function sealOpeningDispel(page: Page, targetId?: string) {
   const select=page.locator('#black-cat-target');
   if (!await select.count()) return;
   assert.equal(await page.locator('#acknowledge').isDisabled(),true,'Ashbound must choose the opening curse first');
@@ -185,7 +185,7 @@ try {
         await page.screenshot({path:`test-results/digital-ui/life-${capacity}.png`});
         if (capacity===6) await guideShot('life',page,'.private-modal');
       }
-      await sealOpeningCurse(page,id(0));
+      await sealOpeningDispel(page,id(0));
       await page.locator('#acknowledge:not([disabled])').click();
     }
     await phase(host,'DAY');
@@ -337,13 +337,13 @@ try {
       await host.locator('#confirm-preview:not([disabled])').waitFor();
       assert.match(await host.locator('#confirm-preview').textContent() ?? '',/^Play /);
       if (kind === 'SCAPEGOAT') assert.equal(await host.locator('.spotlight-player').count(),2);
-      if (kind === 'CONSPIRACY') assert.equal(await host.locator('#seats .is-valid-target').count(),0);
+      if (['CONSPIRACY','COUNCIL_BELL'].includes(kind)) assert.equal(await host.locator('#seats .is-valid-target').count(),0);
       if (kind === 'EVIDENCE') { await host.screenshot({path:`test-results/digital-ui/target-${capacity}.png`}); if(capacity===6) await guideShot('card-play',host); }
       await host.locator('#confirm-preview').click();
       await host.waitForFunction(previous => Number(document.querySelector('#day-panel')?.getAttribute('data-game-version')) > previous,version);
       assert.equal(await host.locator('.play-preview').count(),0);
       assert.match(await host.locator('.action-route.resolved .action-actor').textContent() ?? '', new RegExp(`Host ${capacity}`), 'The public action names its actor');
-      assert.match(await host.locator('.action-route.resolved .route-card-name').textContent() ?? '', new RegExp(kind === 'VOW_OF_HEARTS' ? 'Vow of Hearts' : kind === 'CINDER_SHIFT' ? 'Cinder Shift' : kind.charAt(0) + kind.slice(1).toLowerCase(),'i'), 'The public action names its card');
+      assert.match(await host.locator('.action-route.resolved .route-card-name').textContent() ?? '', new RegExp(kind === 'VOW_OF_HEARTS' ? 'Vow of Hearts' : kind === 'CINDER_SHIFT' ? 'Cinder Shift' : kind.toLowerCase().replaceAll('_',' '),'i'), 'The public action names its card');
       assert.equal(await host.locator('#seats .seat-name.is-action-actor').count(),1);
       for(const index of targets){
         assert.equal(await host.locator(`#seats [data-player="${id(index)}"] .is-action-target h3`).evaluate(el=>getComputedStyle(el).color),'rgb(197, 255, 210)','Target name tag is green');
@@ -351,11 +351,22 @@ try {
       assert.equal(await host.locator('.action-actor .action-name').evaluate(el=>getComputedStyle(el).color),'rgb(188, 255, 208)');
     }
     await play('EVIDENCE',[1]);
-    assert.equal(view().day!.players.find(p=>p.playerId===id(1))!.doubt,2);
+    assert.equal(view().day!.players.find(p=>p.playerId===id(1))!.doubt,1);
     await play('SCAPEGOAT',[1,2]);
     assert.equal(view().day!.players.find(p=>p.playerId===id(1))!.doubt,0);
     if (await host.locator('.moment-skip').count()) await host.locator('.moment-skip').click();
     await play('WITNESS',[2]);
+    await finishPresentations(pages);
+    await host.locator('#decision-panel:not([hidden])').waitFor();
+    assert.equal(await host.locator('[data-reveal-choice]').count(),5);
+    assert.ok(Number((await host.locator('.decision-clock').textContent())!.replace('s',''))<=10,'Life choice uses server-synchronized ten-second time');
+    assert.match(await pages[1]!.locator('#decision-panel').textContent()??'',/Waiting for another player/);
+    for(const size of [{width:1440,height:900},{width:390,height:844},{width:568,height:320}]) {
+      await host.setViewportSize(size);await noOverflow(host);
+      await host.screenshot({path:`test-results/digital-ui/life-choice-${capacity}-${size.width}.png`});
+    }
+    await host.setViewportSize({width:1440,height:900});
+    await host.locator('[data-reveal-choice="2"]').click();
     await host.locator('#game-moment[data-reveal-stage="announcement"]').waitFor();
     assert.equal(await host.locator('#game-moment img').count(),0,'The name announcement precedes the portrait');
     assert.match(await host.locator('#game-moment h2').textContent() ?? '',/Guest 2.*Life card/s);
@@ -391,6 +402,10 @@ try {
     await host.locator('#life-inspection[role="dialog"]').waitFor();
     await host.locator('.life-inspection-close').click();
     assert.equal(await host.locator('#seats .seal-back [data-revealed-life]').count(),0,'Hidden cards expose no identity inspection attributes');
+    await play('EAVESDROP',[3]);await finishPresentations(pages);
+    await host.locator('#close-hand-insight').waitFor();
+    assert.equal(await pages[2]!.locator('#close-hand-insight').count(),0);
+    await host.locator('#close-hand-insight').click();
     await play('PIETY',[1]); await play('EVIDENCE',[1]);
     assert.equal(view().day!.players.find(p=>p.playerId===id(1))!.doubt,0,'Piety blocked Evidence');
     await play('HEARTHWARD',[1]); await play('WHISPER',[1]);
@@ -404,7 +419,7 @@ try {
     assert.equal(await host.locator('#vow-threads, #targeting-arrow').count(),0,'No ambiguous lines cross the roster');
     await play('EVIDENCE',[1]);
     assert.equal(view().day!.players.find(p=>p.playerId===id(2))!.doubt,1,'Heart mirrors one Doubt once');
-    await play('CURSE',[1]); assert.equal(view().day!.vows!.length,0);
+    await play('DISPEL',[1]); assert.equal(view().day!.vows!.length,0);
     await play('STOCKS',[1]); await play('MERCY',[1]);
     assert.ok(!view().day!.players.find(p=>p.playerId===id(1))!.statuses!.some(s=>s.kind==='BOUND'));
     await play('CINDER_SHIFT',[2]); await play('CONSPIRACY');
@@ -525,19 +540,24 @@ try {
       assert.equal(await pages[i]!.locator(`#seats [data-player="${id(1)}"].is-teammate`).count(),0,'Dead players lose their ally marker');
     }
     const witch = capacity-1;
+    while(view().day!.activePlayerId!==id(0)) {
+      const actor=views.findIndex(v=>v.you!.playerId===view().day!.activePlayerId);
+      await pages[actor]!.locator('#draw-cards:not([disabled])').click();
+      await new Promise(resolve=>setTimeout(resolve,100));await finishPresentations(pages);
+    }
+    await play('COUNCIL_BELL');await finishPresentations(pages);
+    assert.match(await host.locator('#decision-panel').textContent()??'',/Hear ye, hear ye/);
     for (let i=0;i<capacity && view().phase!=='GAME_OVER';i++) {
       if (!view(i).deal!.players.find(p=>p.playerId===id(i))!.alive) continue;
       const page = pages[i]!;
-      await page.locator('#power-info').click();
-      await page.locator('#vote-action select').selectOption(id(witch));
-      await page.locator('#vote-action button').click();
-      await page.locator('#role-close').click();
+      await page.locator(`[data-council-choice="${id(witch)}"]`).click();
       await new Promise(resolve=>setTimeout(resolve,70));
     }
     await phase(host,'GAME_OVER');
     assert.match(await host.locator('.outcome').textContent() ?? '',/village survives/i);
     await host.screenshot({path:`test-results/digital-ui/result-${capacity}.png`});
     if(capacity===6) { if(await host.locator('.moment-skip').count()) await host.locator('.moment-skip').click(); await guideShot('victory',host,'#action-spotlight'); }
+    await finishPresentations(pages);
     await host.locator('#reopen').click(); await phase(host,'LOBBY');
     assert.equal(await host.locator('#role-panel img').count(),0,'Rematch clears the private role');
     assert.equal(await host.locator('#seats .public-seals').count(),0);
@@ -593,7 +613,7 @@ try {
     await page.locator('#reveal-all').click();
     assert.equal(await page.locator('#private-panel .private-team').count(),0,'Life cards are a separate opening screen');
     if(i===0) assert.match(await page.locator('.private-allegiance').textContent() ?? '',/Lanternkeeper protection available/);
-    await sealOpeningCurse(page,teamViews[0]!.you!.playerId);
+    await sealOpeningDispel(page,teamViews[0]!.you!.playerId);
     await page.locator('#acknowledge:not([disabled])').click();
   }
   for (let i=0;i<10;i++) { await phase(teamPages[i]!,'DAY'); await teamMarkers(teamPages[i]!,teamViews[i]!); }
@@ -642,7 +662,7 @@ try {
   await botPage.locator('#role-continue').click();
   if(await botPage.locator('#role-panel.is-open[data-opening-step="team"]').count()) await botPage.locator('#role-continue').click();
   await botPage.locator('#reveal-all').click();
-  await sealOpeningCurse(botPage);
+  await sealOpeningDispel(botPage);
   await botPage.locator('#acknowledge:not([disabled])').click(); await phase(botPage,'DAY');
   await noOverflow(botPage); await botPage.screenshot({path:'test-results/digital-ui/bots-ten-phone.png'});
   await botContext.close();

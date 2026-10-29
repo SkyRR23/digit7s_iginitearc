@@ -71,6 +71,7 @@ export function enumerateLegalBotActions(view: RoomView): BotDecision[] {
       .filter(seal => !seal.revealed).map(seal => ({ type: 'revealSeal', slot: seal.slot })) ?? [];
   }
   if (view.phase !== 'DAY') return [];
+  if(view.day.council?.open) return view.councilVote&&!view.councilVote.completed&&!view.councilVote.yourTargetId ? view.deal.players.filter(p=>p.alive).map(p=>({type:'councilVote' as const,targetId:p.playerId})) : [];
   const others = view.deal.players.filter(player => player.alive && player.playerId !== me);
   if (view.role?.ability === 'AVAILABLE') {
     if (view.role.kind === 'SLEUTH' && others.length)
@@ -82,7 +83,7 @@ export function enumerateLegalBotActions(view: RoomView): BotDecision[] {
       return others.filter(player => !view.day!.players.find(p => p.playerId === player.playerId)?.remedy)
         .map(player => ({ type: 'useRole', targetId: player.playerId }));
   }
-  const voteActions: BotDecision[] = view.councilVote && !view.councilVote.completed && !view.councilVote.yourTargetId &&
+  const voteActions: BotDecision[] = view.day.council?.open && view.councilVote && !view.councilVote.completed && !view.councilVote.yourTargetId &&
     (view.day.dayNumber >= 2 || view.day.players.some(player => player.doubt >= 3))
     ? view.deal.players.filter(player => player.alive).map(player => ({ type: 'councilVote', targetId: player.playerId })) : [];
   if (view.day.activePlayerId !== me) return voteActions;
@@ -94,7 +95,7 @@ export function enumerateLegalBotActions(view: RoomView): BotDecision[] {
   const state = (id: string) => view.day!.players.find(player => player.playerId === id)!;
   const linked = (id: string) => state(id).statuses?.some(status => status.kind === 'VOW_HEART') ?? false;
   for (const card of view.hand) {
-    if (card.kind === 'CONSPIRACY') {
+    if (['CONSPIRACY','COUNCIL_BELL'].includes(card.kind)) {
       if (living.every(player => player.seals.some(seal => !seal.revealed)))
         actions.push({ type: 'playCard', cardId: card.id, targetId: me });
       continue;
@@ -115,7 +116,8 @@ export function enumerateLegalBotActions(view: RoomView): BotDecision[] {
       if (['HEARTHWARD','PIETY','ASYLUM','STOCKS'].includes(card.kind) &&
         (state(id).statuses?.some(status => status.kind === (card.kind === 'STOCKS' ? 'BOUND' : card.kind)) ||
           card.kind === 'HEARTHWARD' && state(id).ward)) continue;
-      if (card.kind === 'CURSE') {
+      if(card.kind==='CURSE'&&state(id).statuses?.some(status=>status.kind==='BLACK_CAT'))continue;
+      if (card.kind === 'DISPEL') {
         const protections: ProtectionKind[] = (state(id).statuses ?? []).filter(status => status.kind !== 'BOUND')
           .map(status => status.kind === 'VOW_HEART' ? 'VOW_OF_HEARTS' : status.kind as ProtectionKind);
         for (const protection of protections) actions.push({ type: 'playCard', cardId: card.id, targetId: id, protection });
@@ -179,7 +181,7 @@ export function chooseBotDecision(view: RoomView, difficulty: BotDifficulty, mem
   const preferred = plays.filter(action => {
     const kind = handKind(action.cardId);
     const beneficial = ['ALIBI','MERCY','ASYLUM','PIETY','HEARTHWARD'];
-    const hostile = ['EVIDENCE','WITNESS','STOCKS','WHISPER','CURSE'];
+    const hostile = ['EVIDENCE','WITNESS','STOCKS','WHISPER','DISPEL'];
     if (beneficial.includes(kind ?? '') && action.targetId !== me && !allies.has(action.targetId)) return false;
     if (hostile.includes(kind ?? '') && allies.has(action.targetId)) return false;
     if (kind === 'SCAPEGOAT' && action.type === 'playCard' && (allies.has(action.secondTargetId ?? '') || !allies.has(action.targetId))) return false;

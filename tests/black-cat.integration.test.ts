@@ -1,6 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createHarness, type Client } from './socket-harness.js';
+import { createDay, curseInstances } from '@ashfall/shared/day';
+import { originalPrototypePreset } from '@ashfall/shared';
 
 let h: Awaited<ReturnType<typeof createHarness>>;
 const id = (client: Client) => client.session!.playerId;
@@ -14,6 +16,29 @@ beforeEach(async () => {
 afterEach(async()=>{await h.close();});
 
 describe('opening Black Cat curse',()=>{
+  it('uses the deck instance and returns it to the draw pile exactly once on a retried Dispel',async()=>{
+    await h.close();let curseId='';
+    h=await createHarness(60000,{randomIndex:max=>max-1,dayFactory:(identity,now)=>{
+      const result=createDay(identity,originalPrototypePreset,max=>max-1,randomUUID,now),s=result.state;
+      curseId=curseInstances(s)[0]!.id;
+      const pile=[s.deck,...Object.values(s.hands)].find(cards=>cards.some(c=>c.kind==='DISPEL'))!;
+      s.hands[identity.players[1]!.id]!.push(pile.splice(pile.findIndex(c=>c.kind==='DISPEL'),1)[0]!);
+      return result;
+    }});
+    const party=await h.six();await h.start(party);
+    for(const client of party)await h.accepted(client,{type:'acknowledgeDeal',matchId:client.view!.deal!.matchId});
+    await Promise.all(party.map(h.sync));
+    expect(party.every(c=>c.view!.cardQuantities?.CURSE===1&&!c.view!.hand!.some(card=>card.kind==='CURSE'))).toBe(true);
+    const host=party[0]!,actor=party[1]!;
+    await h.accepted(host,{type:'drawCards',matchId:host.view!.deal!.matchId,turnNumber:host.view!.day!.turnNumber,gameVersion:host.view!.day!.version});
+    await Promise.all(party.map(h.sync));
+    const before=actor.view!,handSize=host.view!.hand!.length;
+    const command={type:'playCard' as const,actionId:randomUUID(),matchId:before.deal!.matchId,turnNumber:before.day!.turnNumber,gameVersion:before.day!.version,cardId:before.hand!.find(c=>c.kind==='DISPEL')!.id,targetId:id(host),protection:'BLACK_CAT' as const};
+    await h.accepted(actor,command);await h.accepted(actor,command);await Promise.all(party.map(h.sync));
+    expect(actor.view!.day!.deckCount).toBe(before.day!.deckCount+1);expect(host.view!.hand).toHaveLength(handSize);
+    expect(actor.view!.day!.players.some(p=>p.statuses?.some(s=>s.kind==='BLACK_CAT'))).toBe(false);
+    for(const client of party)expect(JSON.stringify(client.view)).not.toContain(curseId);
+  });
   it('requires an Ashbound choice, keeps ballots private, and restores a sealed choice on reconnect',async()=>{
     const party=await h.six(); await h.start(party,false);
     const witch=party[0]!, villager=party[1]!, matchId=witch.view!.deal!.matchId;

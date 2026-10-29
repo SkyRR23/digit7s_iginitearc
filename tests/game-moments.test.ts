@@ -14,8 +14,35 @@ function snapshot(): RoomView {
   };
 }
 describe('public animation story', () => {
+  it('resumes the hunt once after a continuing reveal without announcing a new day',()=>{
+    const before=snapshot(),after=structuredClone(before);before.phase='REVEAL_RESOLUTION';
+    after.deal!.players[1]!.seals[0]={slot:0,revealed:true,kind:'HUMAN'};
+    const effects:TableEffect[]=[{id:'revealed',type:'REVEAL',targetId:'b',slot:0}];
+    const moments=publicMoments(before,after,effects);
+    expect(moments.filter(moment=>moment.kind==='resume')).toHaveLength(1);
+    expect(moments.at(-1)).toMatchObject({kind:'resume',title:'RESUME THE HUNT',duration:2800});
+    expect(moments.some(moment=>moment.title==='Day begins')).toBe(false);
+    expect(publicMoments(after,after,[])).toEqual([]);
+  });
+  it('does not resume the hunt into Night, another accusation, or a finished match',()=>{
+    for(const phase of ['NIGHT','REVEAL_RESOLUTION','GAME_OVER'] as const) {
+      const before=snapshot(),after=structuredClone(before);before.phase='REVEAL_RESOLUTION';after.phase=phase;
+      after.deal!.players[1]!.seals[0]={slot:0,revealed:true,kind:'HUMAN'};
+      if(phase==='GAME_OVER')after.day!.outcome={winner:'HUMAN',reason:'ALL_WITCH_SEALS_REVEALED'};
+      expect(publicMoments(before,after,[{id:'r',type:'REVEAL',targetId:'b',slot:0}]).some(moment=>moment.kind==='resume'||moment.title==='Day begins')).toBe(false);
+    }
+  });
+  it('preserves the real day transition and card-specific cinematic identities',()=>{
+    const before=snapshot(),after=structuredClone(before);before.phase='DAWN';after.day!.dayNumber=2;
+    expect(publicMoments(before,after,[])).toContainEqual(expect.objectContaining({kind:'phase',title:'Day begins',eyebrow:'Day 2'}));
+    for(const cardKind of ['TESTIMONY','VOW_OF_HEARTS','COUNCIL_BELL','CURSE'] as const) {
+      expect(publicMoments(after,after,[{id:cardKind,type:'PLAY',cardKind,actorId:'a',targetId:'b'}])[0])
+        .toMatchObject({kind:'card',cardKind,duration:6500,actor:{name:'Alex'},targets:[expect.objectContaining({name:cardKind==='COUNCIL_BELL'?'All living players':'River'})]});
+    }
+  });
   it('gives each close-up 6–8 seconds and divides the Life reveal into a complete eight-second story', () => {
-    expect(Object.values(MOMENT_DURATION).every(duration=>duration>=6000&&duration<=8000)).toBe(true);
+    expect(Object.entries(MOMENT_DURATION).filter(([kind])=>kind!=='resume').every(([,duration])=>duration>=6000&&duration<=8000)).toBe(true);
+    expect(MOMENT_DURATION.resume).toBe(2800);
     expect(REVEAL_STAGES.reduce((total,step)=>total+step.duration,0)).toBe(8000);
   });
   it('announces before showing a full public Life portrait, then identifies the exact slot and survival', () => {

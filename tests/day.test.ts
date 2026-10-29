@@ -20,12 +20,20 @@ function play(s: DayState, kind: ActionKind, targetId = 'p1', extra: { secondTar
   prepared.hands.p0![0]!.kind = kind;
   return run(prepared, { type: 'playCard', cardId: prepared.hands.p0![0]!.id, targetId, ...extra });
 }
+function finishReveal(result:ReturnType<typeof run>) {
+  while(result.state.reveal) {
+    const target=result.state.reveal.targetId;
+    const next=run(result.state,{type:'revealSeal',slot:result.state.identity.cards.find(card=>card.ownerId===target&&!card.revealed)!.slot});
+    result={state:next.state,events:[...result.events,...next.events]};
+  }
+  return result;
+}
 function allCards(s: DayState) { return [...s.deck, ...s.discard, ...Object.values(s.hands).flat()]; }
 
 describe('expanded council card rules', () => {
   it('builds the configured deck, retains cards only in deck, hand or discard, and uses seven Doubt', () => {
     const s = fixture(), all = allCards(s);
-    expect(all).toHaveLength(83);
+    expect(all).toHaveLength(87);
     expect(new Set(all.map(card => card.id)).size).toBe(all.length);
     expect(s.rules.accusationThreshold).toBe(7);
     for (const [kind, count] of Object.entries(originalPrototypePreset.cardCounts))
@@ -33,13 +41,16 @@ describe('expanded council card rules', () => {
     expect(all.filter(card => card.kind === 'WHISPER')).toHaveLength(6);
     expect(all.filter(card => card.kind === 'HEARTHWARD')).toHaveLength(3);
     expect(all.filter(card => card.kind === 'CINDER_SHIFT')).toHaveLength(2);
-    expect(all.filter(card => card.kind === 'EVIDENCE' || card.kind === 'WITNESS')).toHaveLength(44);
-    expect(all.filter(card => card.kind === 'EVIDENCE').length / all.length).toBeGreaterThan(.45);
+    expect(all.filter(card => ['EVIDENCE','TESTIMONY','WITNESS'].includes(card.kind))).toHaveLength(44);
+    expect(all.filter(card => card.kind === 'EVIDENCE').length / all.length).toBeGreaterThan(.2);
   });
-  it('Evidence adds two, caps at seven, and the server reveals exactly one random Life card immediately', () => {
+  it('Evidence adds one, caps at seven, and waits for the accuser to choose', () => {
     const s = fixture(); s.doubt.p1 = 6;
     const before = structuredClone(s);
-    const result = play(s, 'EVIDENCE');
+    const pending=play(s,'EVIDENCE');
+    expect(pending.state.phase).toBe('REVEAL_RESOLUTION');
+    expect(pending.events.some(e=>e.type==='REVEAL')).toBe(false);
+    const result=finishReveal(pending);
     expect(s).toEqual(before); // card kind was set before the action
     expect(result.events.filter(event => event.type === 'DOUBT')).toEqual([expect.objectContaining({ count: 1, targetId: 'p1' })]);
     expect(result.events.filter(event => event.type === 'REVEAL')).toHaveLength(1);
@@ -49,7 +60,7 @@ describe('expanded council card rules', () => {
   });
   it('Witness fills only the missing marks, then reveals once', () => {
     const s = fixture(); s.doubt.p1 = 3;
-    const result = play(s, 'WITNESS');
+    const result = finishReveal(play(s, 'WITNESS'));
     expect(result.events.find(event => event.type === 'DOUBT')?.count).toBe(4);
     expect(result.events.filter(event => event.type === 'REVEAL')).toHaveLength(1);
     expect(result.state.doubt.p1).toBe(0);
@@ -99,12 +110,12 @@ describe('expanded council card rules', () => {
     expect(publicDay(dawn.state).players[1]!.statuses).toEqual([]);
     expect(dawn.events.some(event => event.type === 'BLOCK' && event.statusKind === 'ASYLUM')).toBe(true);
   });
-  it('Curse chooses one protection and rejects an unprotected target', () => {
+  it('Dispel chooses one protection and rejects an unprotected target', () => {
     let s = fixture();
-    expect(() => play(s, 'CURSE')).toThrow('no removable protection');
+    expect(() => play(s, 'DISPEL')).toThrow('no removable protection');
     s = play(s, 'PIETY').state; s = play(s, 'ASYLUM').state;
-    expect(() => play(s, 'CURSE')).toThrow('Choose which protection');
-    const cursed = play(s, 'CURSE', 'p1', { protection: 'PIETY' }).state;
+    expect(() => play(s, 'DISPEL')).toThrow('Choose which protection');
+    const cursed = play(s, 'DISPEL', 'p1', { protection: 'PIETY' }).state;
     expect(publicDay(cursed).players[1]!.statuses?.map(item => item.kind)).toEqual(['ASYLUM']);
   });
   it('Scapegoat transfers all Doubt, clears overflow at seven, and does not mirror transferred marks', () => {
@@ -112,7 +123,7 @@ describe('expanded council card rules', () => {
     s.vows = [{ playerIds: ['p2','p3'], sourceId: 'p0' }];
     s.statuses = { p2: [{ kind:'VOW_HEART', sourceId:'p0', duration:'UNTIL_USED', consumed:false }],
       p3: [{ kind:'VOW_HEART', sourceId:'p0', duration:'UNTIL_USED', consumed:false }] };
-    const result = play(s, 'SCAPEGOAT', 'p1', { secondTargetId: 'p2' });
+    const result = finishReveal(play(s, 'SCAPEGOAT', 'p1', { secondTargetId: 'p2' }));
     expect(result.state.doubt.p1).toBe(0);
     expect(result.state.doubt.p2).toBe(0); // seventh mark revealed and row cleared
     expect(result.state.doubt.p3).toBe(0);
@@ -156,13 +167,13 @@ describe('expanded council card rules', () => {
     expect(publicDay(result.state).players[1]!.statuses?.[0]?.kind).toBe('BLACK_CAT');
     expect(result.events.some(event=>event.type==='ROLE_BLOCK')).toBe(true);
   });
-  it('Curse removes Black Cat, and Conspiracy reveals only its current holder before shifting', () => {
+  it('Dispel removes Black Cat, and Conspiracy reveals only its current holder before shifting', () => {
     let s = fixture(); s.statuses!.p1 = [{kind:'BLACK_CAT',sourceId:'p1',duration:'UNTIL_USED',consumed:false}];
     s = play(s,'SCAPEGOAT','p1',{secondTargetId:'p2'}).state;
     const result = play(s,'CONSPIRACY');
     expect(result.events.filter(event=>event.type==='REVEAL').map(event=>event.targetId)).toEqual(['p2']);
     expect(result.events.findIndex(event=>event.type==='REVEAL')).toBeLessThan(result.events.findIndex(event=>event.type==='CONSPIRACY'));
-    const removed = play(s,'CURSE','p2').state;
+    const removed = play(s,'DISPEL','p2').state;
     expect(publicDay(removed).players[2]!.statuses).toEqual([]);
     expect(play(removed,'CONSPIRACY').events.some(event=>event.type==='REVEAL')).toBe(false);
   });
@@ -179,13 +190,13 @@ describe('expanded council card rules', () => {
     expect(publicDay(s).players[1]!.statuses?.map(item => item.kind)).toContain('VOW_HEART');
     s = play(s, 'VOW_OF_HEARTS', 'p2').state;
     const result = play(s, 'EVIDENCE');
-    expect(result.state.doubt.p1).toBe(2);
+    expect(result.state.doubt.p1).toBe(1);
     expect(result.state.doubt.p2).toBe(1);
     expect(result.events.filter(event => event.type === 'VOW' && event.count === 1)).toHaveLength(1);
     result.state.hands.p0!.push(result.state.deck.pop()!);
     expect(() => play(result.state, 'VOW_OF_HEARTS', 'p2')).toThrow('already carries a Heart');
   });
-  it('a third Heart joins the existing network, and Curse removes only that holder', () => {
+  it('a third Heart joins the existing network, and Dispel removes only that holder', () => {
     let s = fixture();
     s = play(s, 'VOW_OF_HEARTS', 'p1').state;
     s = play(s, 'VOW_OF_HEARTS', 'p2').state;
@@ -193,11 +204,11 @@ describe('expanded council card rules', () => {
     expect(s.vows).toHaveLength(3);
     s.hands.p0!.push(s.deck.pop()!);
     const hit = play(s, 'EVIDENCE', 'p1');
-    expect(hit.state.doubt.p1).toBe(2);
+    expect(hit.state.doubt.p1).toBe(1);
     expect(hit.state.doubt.p2).toBe(1);
     expect(hit.state.doubt.p3).toBe(1);
     hit.state.hands.p0!.push(hit.state.deck.pop()!);
-    const cursed = play(hit.state, 'CURSE', 'p2', { protection: 'VOW_OF_HEARTS' }).state;
+    const cursed = play(hit.state, 'DISPEL', 'p2', { protection: 'VOW_OF_HEARTS' }).state;
     expect(cursed.vows).toHaveLength(1);
     expect(publicDay(cursed).players[2]!.statuses).toEqual([]);
   });
@@ -206,7 +217,7 @@ describe('expanded council card rules', () => {
     s.statuses = { p1: [{ kind:'VOW_HEART', sourceId:'p0', duration:'UNTIL_USED', consumed:false }],
       p2: [{ kind:'VOW_HEART', sourceId:'p0', duration:'UNTIL_USED', consumed:false }] };
     s.doubt.p1 = 6; s.doubt.p2 = 6;
-    const result = play(s, 'EVIDENCE');
+    const result = finishReveal(play(s, 'EVIDENCE'));
     const order = result.events.filter(event => event.type === 'DOUBT' || event.type === 'REVEAL');
     expect(order.map(event => `${event.type}:${event.targetId}`)).toEqual([
       'DOUBT:p1', 'DOUBT:p2', 'REVEAL:p1', 'REVEAL:p2',
@@ -214,22 +225,22 @@ describe('expanded council card rules', () => {
     expect(result.state.doubt.p1).toBe(0);
     expect(result.state.doubt.p2).toBe(0);
   });
-  it.each<ActionKind>(['EVIDENCE','WITNESS','ALIBI','MERCY','STOCKS','ASYLUM','PIETY','HEARTHWARD','WHISPER','CINDER_SHIFT','SCAPEGOAT','CURSE','VOW_OF_HEARTS'])(
+  it.each<ActionKind>(['EVIDENCE','WITNESS','ALIBI','MERCY','STOCKS','ASYLUM','PIETY','HEARTHWARD','WHISPER','CINDER_SHIFT','SCAPEGOAT','DISPEL','VOW_OF_HEARTS'])(
     '%s rejects self-targeting without spending the card or changing match state', kind => {
       const s = fixture(); const before = structuredClone(s);
       expect(() => play(s, kind, 'p0', kind === 'SCAPEGOAT' ? { secondTargetId: 'p1' } : {})).toThrow('another living player');
       expect(s).toEqual(before);
     });
-  it('Curse breaks a Vow for both linked players', () => {
+  it('Dispel breaks a Vow for both linked players', () => {
     let s = fixture(); s = play(s, 'VOW_OF_HEARTS', 'p1').state;
     s = play(s, 'VOW_OF_HEARTS', 'p2').state;
-    s = play(s, 'CURSE', 'p1', { protection: 'VOW_OF_HEARTS' }).state;
+    s = play(s, 'DISPEL', 'p1', { protection: 'VOW_OF_HEARTS' }).state;
     expect(publicDay(s).vows).toEqual([]);
     expect(publicDay(s).players[2]!.statuses?.map(item => item.kind)).toContain('VOW_HEART');
   });
-  it('Curse can remove a waiting Heart before any connection exists', () => {
+  it('Dispel can remove a waiting Heart before any connection exists', () => {
     let s = fixture(); s = play(s, 'VOW_OF_HEARTS', 'p1').state;
-    s = play(s, 'CURSE', 'p1', { protection: 'VOW_OF_HEARTS' }).state;
+    s = play(s, 'DISPEL', 'p1', { protection: 'VOW_OF_HEARTS' }).state;
     expect(publicDay(s).players[1]!.statuses).toEqual([]);
     expect(s.vows).toEqual([]);
   });
@@ -240,7 +251,7 @@ describe('expanded council card rules', () => {
     for (let i=0;i<6;i++) expect(moved.find(c => c.id === original[i])?.ownerId).toBe(ids[(i-1+6)%6]);
     expect(result.events.filter(event => event.type === 'CONSPIRACY')).toHaveLength(1);
     expect(JSON.stringify(publicIdentities(result.state.identity))).not.toContain(original[0]);
-    expect(allCards(result.state)).toHaveLength(83);
+    expect(allCards(result.state)).toHaveLength(87);
   });
   it('Cinder Shift chooses both hidden cards on the server and keeps their kinds private', () => {
     const s = fixture(); const own = s.identity.cards.find(c => c.ownerId === 'p0' && c.slot === 0)!;
@@ -262,13 +273,15 @@ describe('expanded council card rules', () => {
     expect(result.state.discard.at(-1)?.kind).toBe('ALIBI');
     expect(result.state.hands.p0).toHaveLength(1);
   });
-  it('keeps unplayed batch cards in hand when an earlier card eliminates their target', () => {
+  it('keeps unplayed batch cards while an accusation choice interrupts the batch', () => {
     const s = fixture(); s.doubt.p1 = 6;
     s.identity = { ...s.identity, cards: s.identity.cards.map(card => card.ownerId === 'p1' && card.slot < 4
       ? { ...card, revealed: true } : card) };
     s.hands.p0![0]!.kind = 'EVIDENCE'; s.hands.p0![1]!.kind = 'EVIDENCE';
     const selected = s.hands.p0!.slice(0,2).map(card => card.id);
-    const result = run(s, { type: 'playCards', cardIds: selected, targetId: 'p1' });
+    const pending = run(s, { type: 'playCards', cardIds: selected, targetId: 'p1' });
+    expect(pending.state.reveal?.targetId).toBe('p1');
+    const result=finishReveal(pending);
     expect(result.state.identity.players.find(player => player.id === 'p1')?.alive).toBe(false);
     expect(result.state.discard.filter(card => selected.includes(card.id))).toHaveLength(1);
     expect(result.state.hands.p0?.some(card => card.id === selected[1])).toBe(true);

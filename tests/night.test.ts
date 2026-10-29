@@ -125,7 +125,7 @@ describe('secret night and dawn rules', () => {
     expect(next.hands.p1).toEqual([]); expect(next.deck).toHaveLength(dawn.discard.length); expect(next.discard).toEqual([]);
     expect(next.doubt.p2).toBe(3); expect(next.playedThisTurn).toBe(false);
     const cards = [...next.deck, ...Object.values(next.hands).flat()];
-    expect(cards).toHaveLength(83); expect(new Set(cards.map(c => c.id)).size).toBe(83);
+    expect(cards).toHaveLength(87); expect(new Set(cards.map(c => c.id)).size).toBe(87);
     expect(next.identity).toEqual(dawn.identity); expect(next.deadline).toBe(dawn.deadline! + 60_000);
   });
   it('all-draw days keep every held card and allow an empty-deck day to end without reclaiming hands', () => {
@@ -134,9 +134,9 @@ describe('secret night and dawn rules', () => {
     expect(s.phase).toBe('NIGHT'); expect(s.night!.number).toBe(2);
     expect(() => submitNight(s, 'p5', { type: 'nightAttack', targetId: 'p0', matchId: s.identity.id, nightNumber: 1 }, s.deadline! - 1)).toThrow('ended');
     const next = resolve(resolve(s));
-    expect(next.deck).toHaveLength(0); expect(next.hands).toEqual(s.hands);
-    expect(Object.values(next.hands).flat()).toHaveLength(83);
-    const ended = applyDayAction(next, next.activePlayerId, { type: 'endTurn', matchId: next.identity.id, turnNumber: next.turnNumber, gameVersion: next.version }, next.deadline! - 1).state;
+    expect(next.deck).toHaveLength(1); expect(next.deck[0]!.kind).toBe('CONSPIRACY'); expect(next.hands).toEqual(s.hands);
+    expect(Object.values(next.hands).flat()).toHaveLength(86);
+    const ended = applyDayAction(next, next.activePlayerId, { type: 'drawCards', matchId: next.identity.id, turnNumber: next.turnNumber, gameVersion: next.version }, next.deadline! - 1).state;
     expect(ended.phase).toBe('NIGHT');
   });
   it('private projections expose only own choices, never a teammate ballot or Constable identity', () => {

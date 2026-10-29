@@ -4,10 +4,10 @@ import { cardArt, cardTitle, CARD_INFO } from './card-info';
 import { phaseName } from './phase-ui';
 
 export interface GameMoment {
-  kind: 'card' | 'reveal' | 'position' | 'death' | 'phase' | 'victory' | 'power' | 'verdict';
+  kind: 'card' | 'reveal' | 'position' | 'death' | 'phase' | 'victory' | 'power' | 'verdict' | 'resume';
   title: string; eyebrow: string; description: string; route?: string;
   art?: string; sealKind?: IdentityKind; phase?: RoomView['phase']; tone: 'crimson' | 'ivory' | 'blue' | 'sage'; duration: number;
-  heavy?: boolean;
+  heavy?: boolean; cardKind?: import('@ashfall/shared').ActionKind;
   actor?: { name: string; avatar?: Avatar };
   targets?: { name: string; avatar?: Avatar; label: string }[];
   reveal?: { playerId: string; name: string; slot: number; seals: PublicSeal[]; eliminated: boolean; reason: string };
@@ -21,17 +21,17 @@ export function publicMoments(previous: RoomView, next: RoomView, effects: Table
   const reveals = effects.filter(effect => effect.type === 'REVEAL' && next.deal?.players.find(player => player.playerId === effect.targetId)?.seals.some(seal => seal.slot === effect.slot && seal.revealed));
   for (const effect of effects) {
     if (effect.type === 'PLAY' && effect.cardKind && !reveals.length &&
-      ['WITNESS','STOCKS','CURSE','CONSPIRACY','CINDER_SHIFT','SCAPEGOAT','VOW_OF_HEARTS','WHISPER','ASYLUM'].includes(effect.cardKind)) {
+      ['EVIDENCE','TESTIMONY','CURSE','COUNCIL_BELL','EAVESDROP','WITNESS','STOCKS','DISPEL','CONSPIRACY','CINDER_SHIFT','SCAPEGOAT','VOW_OF_HEARTS','WHISPER','ASYLUM'].includes(effect.cardKind)) {
       const kind = effect.cardKind;
       const supportive = ['ALIBI','MERCY','HEARTHWARD','PIETY','ASYLUM'].includes(kind);
-      moments.push({ kind: 'card', eyebrow: `${name(effect.actorId)} plays`, title: cardTitle(kind), art: cardArt(kind),
-        route: kind === 'CONSPIRACY' ? 'All living players' : `${name(effect.targetId)}${effect.secondTargetId ? ` → ${name(effect.secondTargetId)}` : ''}`,
-        description: CARD_INFO[kind].brief, tone: supportive ? 'sage' : kind === 'WHISPER' ? 'blue' : 'crimson', duration: MOMENT_DURATION.card,
+      moments.push({ kind: 'card', cardKind:kind, eyebrow: `${name(effect.actorId)} plays`, title: cardTitle(kind), art: cardArt(kind),
+        route: ['CONSPIRACY','COUNCIL_BELL'].includes(kind) ? 'All living players' : `${name(effect.targetId)}${effect.secondTargetId ? ` → ${name(effect.secondTargetId)}` : ''}`,
+        description: kind==='DISPEL' ? `Removed: ${effects.filter(item=>item.type==='STATUS'&&item.targetId===effect.targetId&&item.count===0).map(item=>item.statusKind==='BLACK_CAT'?'Curse (Black Cat)':item.statusKind==='VOW_HEART'?'Vow of Hearts':item.statusKind?.replaceAll('_',' ')).filter(Boolean).join(', ') || 'effect blocked; nothing removed'}.` : kind==='COUNCIL_BELL'?'Hear ye, hear ye! The council is called. Cast your vote.':CARD_INFO[kind].brief, tone: supportive ? 'sage' : kind === 'WHISPER' ? 'blue' : 'crimson', duration: MOMENT_DURATION.card,
         actor: person(effect.actorId),
-        targets: kind === 'CONSPIRACY' ? [{ name: 'All living players', label: 'AFFECTS' }]
+        targets: ['CONSPIRACY','COUNCIL_BELL'].includes(kind) ? [{ name: 'All living players', label: 'AFFECTS' }]
           : [{ ...person(effect.targetId), label: kind === 'SCAPEGOAT' ? 'TRANSFER FROM' : 'USED ON' },
             ...(effect.secondTargetId ? [{ ...person(effect.secondTargetId), label: 'TRANSFER TO' }] : [])],
-        heavy: ['WITNESS','CURSE','CONSPIRACY','CINDER_SHIFT','STOCKS'].includes(kind) });
+        heavy: ['WITNESS','DISPEL','CONSPIRACY','CINDER_SHIFT','STOCKS'].includes(kind) });
     }
     if (effect.type === 'REVEAL') {
       const seal = next.deal?.players.find(p => p.playerId === effect.targetId)?.seals.find(s => s.slot === effect.slot);
@@ -39,9 +39,9 @@ export function publicMoments(previous: RoomView, next: RoomView, effects: Table
         const player = next.deal!.players.find(player => player.playerId === effect.targetId)!;
         moments.push({ kind: 'reveal', eyebrow: `${name(effect.targetId)} · Life revealed`,
           title: IDENTITY_LABELS[seal.kind], sealKind: seal.kind,
-          description: player.alive ? 'One Life card revealed. This player is still alive.' : `${name(effect.targetId)} has been eliminated.`,
+          description: player.alive ? seal.kind==='CONSTABLE'?'Lanternkeeper revealed. This player survives, but loses night protection.':'One Life card revealed. This player is still alive.' : `${name(effect.targetId)} has been eliminated.`,
           reveal: { playerId: player.playerId, name: name(effect.targetId), slot: seal.slot, seals: player.seals.map(seal => ({ ...seal })), eliminated: !player.alive,
-            reason: effects.some(event => event.type === 'REVEAL_PENDING' && event.targetId === effect.targetId) ? 'Seven Doubt' : 'A secret comes to light' },
+            reason: effect.count===7 || effects.some(event => event.type === 'REVEAL_PENDING' && event.targetId === effect.targetId) ? 'Seven Doubt' : 'A secret comes to light' },
           tone: seal.kind === 'WITCH' ? 'crimson' : 'ivory', duration: MOMENT_DURATION.reveal, heavy: true });
         moments.push({ ...moments.at(-1)!, kind: 'position', duration: MOMENT_DURATION.position, heavy: false });
       }
@@ -53,10 +53,12 @@ export function publicMoments(previous: RoomView, next: RoomView, effects: Table
   if (reveals.length && !next.day?.outcome && !next.deal?.players.some(player => player.seals.some(seal => seal.revealed && seal.kind === 'WITCH')))
     moments.push({ kind: 'verdict', eyebrow: 'The hunt continues', title: 'The Ashbound still live among us.',
       description: 'No Ashbound Life card has been caught yet. A revealed Villager card does not prove its owner’s allegiance.', tone: 'crimson', duration: MOMENT_DURATION.verdict });
+  if(reveals.length && next.phase==='DAY' && !next.day?.outcome)
+    moments.push({kind:'resume',title:'RESUME THE HUNT',eyebrow:'The council continues',description:'Keep your secrets. The hunt is not over.',tone:'crimson',duration:MOMENT_DURATION.resume,heavy:true});
   if (previous.phase !== next.phase && next.phase === 'GAME_OVER') {
     moments.push({ kind: 'victory', eyebrow: 'The final verdict', title: next.day?.outcome?.winner === 'HUMAN' ? 'The village survives' : 'The Ashbound prevail',
       description: next.day?.outcome?.winner === 'HUMAN' ? 'Every Ashbound Life card has been revealed.' : 'Every surviving player is Witch-aligned.', tone: next.day?.outcome?.winner === 'HUMAN' ? 'ivory' : 'crimson', duration: MOMENT_DURATION.victory });
-  } else if (previous.phase !== next.phase && ['DAY','NIGHT','DAWN'].includes(next.phase)) {
+  } else if (previous.phase !== next.phase && (next.phase==='NIGHT'||next.phase==='DAWN'||next.phase==='DAY'&&(previous.phase==='DAWN'||previous.phase==='PRIVATE_DEAL'||previous.phase==='LOBBY'))) {
     moments.push({ kind: 'phase', phase: next.phase, eyebrow: next.phase === 'DAY' ? `Day ${next.day?.dayNumber ?? 1}` : 'The village changes',
       title: next.phase === 'NIGHT' ? 'Night falls' : next.phase === 'DAWN' ? 'Dawn breaks' : 'Day begins',
       description: next.phase === 'NIGHT' ? 'Public chat is silent. Check your private night choices.' : next.phase === 'DAWN' ? 'The night is over. The village learns who survived.' : 'Talk, play your cards, and cast your vote.',

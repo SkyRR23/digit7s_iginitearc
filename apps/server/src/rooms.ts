@@ -1,9 +1,9 @@
 import { createHash, randomBytes, randomInt, randomUUID, timingSafeEqual } from 'node:crypto';
-import { AVATARS, canStart, PRESENTATION_DURATION, publicPresentationPlan, RECONNECT_GRACE_MS, SEATS, type BotDifficulty, type Command, type FeedEntry,
+import { AVATARS, cardQuantities, canStart, PRESENTATION_DURATION, publicPresentationPlan, RECONNECT_GRACE_MS, SEATS, type BotDifficulty, type Command, type FeedEntry,
   type PublicPlayer, type Reply, type RoomView, type Session, type TableEffect } from '@ashfall/shared';
 import { acknowledgeIdentities, arrangeIdentities, privateIdentities, publicIdentities, type IdentityMatch } from '@ashfall/shared/identities';
 import { createIdentityDeal } from './deal.js';
-import { applyDayAction, expireDay, forfeitPlayers, privateHand, publicDay, RuleError, type DayResult, type DayState } from '@ashfall/shared/day';
+import { attachOpeningCurse, applyDayAction, expireDay, forfeitPlayers, privateHand, publicDay, RuleError, type DayResult, type DayState } from '@ashfall/shared/day';
 import { createServerDay, describeDayEvent, type DayFactory } from './day-runtime.js';
 import { submitNight, expireNight, privateNight } from '@ashfall/shared/night';
 import { eliminatePlayer } from '@ashfall/shared/day';
@@ -254,8 +254,7 @@ export class RoomStore {
             const cursed = next.players.filter(p => p.alive).reduce((best, candidate) =>
               votes.filter(id => id === candidate.id).length > votes.filter(id => id === best.id).length ? candidate : best);
             initial.state.activePlayerId = cursed.id;
-            (initial.state.statuses ??= {})[cursed.id] = [...initial.state.statuses?.[cursed.id] ?? [],
-              { kind: 'BLACK_CAT', sourceId: cursed.id, duration: 'UNTIL_USED', consumed: false }];
+            attachOpeningCurse(initial.state, cursed.id);
             for (const event of initial.events) if (event.type === 'DAY_STARTED') event.actorId = cursed.id;
             initial.events.unshift({ type: 'STATUS', targetId: cursed.id, statusKind: 'BLACK_CAT', count: 1 });
             room.blackCatVotes = {};
@@ -345,7 +344,7 @@ export class RoomStore {
         if (expiry <= Math.min(deadline,presentationEnd)) this.removeMany(room, room.players.filter(p => p.reconnectUntil !== null && p.reconnectUntil <= due), due);
         else if(presentationEnd<=deadline)this.resumePresentation(room,due);
         else if (room.day) {
-          const result = expireDay(room.day, due) ?? expireNight(room.day, due, this.randomIndex);
+          const result = expireDay(room.day, due, this.randomIndex) ?? expireNight(room.day, due, this.randomIndex);
           if (!result) break;
           this.commitDay(room, result);
         }
@@ -397,6 +396,7 @@ export class RoomStore {
 
   private useRole(room: Room, player: Player, matchId: string, targetId: string, secondTargetId?: string): void {
     const day = room.day;
+    if(room.day?.council?.open || room.day?.reveal) fail('ACTION_PENDING','Wait for the current decision.');
     if (!day || room.match?.id !== matchId) fail('MATCH_CHANGED', 'That match has ended.');
     const role = room.roles?.[player.id];
     if (!role || role.used || role.activeTargetId || !room.match?.players.find(p => p.id === player.id)?.alive)
@@ -473,7 +473,7 @@ export class RoomStore {
   private councilVote(room: Room, player: Player, matchId: string, dayNumber: number, targetId: string): void {
     if (!room.day || room.match?.id !== matchId) fail('MATCH_CHANGED', 'That match has ended.');
     if (dayNumber !== room.day.dayNumber) fail('STALE', 'That council vote belongs to an earlier day.');
-    if (room.phase !== 'DAY' || this.now() >= room.day.deadline!) fail('PHASE', 'The council vote is closed.');
+    if (room.phase !== 'DAY' || !room.day.council?.open || this.now() >= room.day.deadline!) fail('PHASE', 'Play Council Bell to open voting.');
     if (!room.match.players.some(p => p.id === player.id && p.alive)) fail('NOT_ALIVE', 'Only living players can vote.');
     if (!room.match.players.some(p => p.id === targetId && p.alive)) fail('TARGET', 'Vote for a living player.');
     if (room.voteDay !== room.day.dayNumber) { room.voteDay = room.day.dayNumber; room.votes = {}; room.voteComplete = false; }
@@ -482,7 +482,16 @@ export class RoomStore {
     room.votes[player.id] = targetId; room.version++;
     const living = room.match.players.filter(p => p.alive).length;
     const count = Object.values(room.votes).filter(id => id === targetId).length;
-    if (count < Math.floor(living / 2) + 1) return;
+    if (count < Math.floor(living / 2) + 1) {
+      if(Object.keys(room.votes).length>=living) {
+        room.voteComplete=true; room.day.council!.open=false;
+        room.day.deadline=this.now()+room.day.council!.remainingTurnMs;
+        this.event(room,'Council Bell vote ended without a majority. Nobody was eliminated.');
+      }
+      return;
+    }
+    room.day.council!.open=false;
+    room.day.deadline=this.now()+room.day.council!.remainingTurnMs;
     const scapegoat = room.roles?.[targetId]?.kind === 'SCAPEGOAT';
     this.commitDay(room, eliminatePlayer(room.day, targetId, this.now()));
     if (scapegoat) {
@@ -542,6 +551,8 @@ export class RoomStore {
     const elapsed=Math.max(0,now-presentation.startedAt);
     if(room.day) {
       if(room.day.phase!=='GAME_OVER'&&presentation.remainingMs!==null)room.day.deadline=now+presentation.remainingMs;
+      for(const peek of Object.values(room.day.privateHands??{}))
+        if(peek&&peek.expiresAt>presentation.startedAt)peek.expiresAt+=elapsed;
       for(const peek of Object.values(room.day.privatePeeks??{}))
         if(peek&&peek.expiresAt>presentation.startedAt)peek.expiresAt+=elapsed;
     }
@@ -549,6 +560,7 @@ export class RoomStore {
   }
   private commitDay(room: Room, result: DayResult): void {
     const previousPhase=room.phase;
+    if(result.events.some(event=>event.type==='PLAY'&&event.cardKind==='COUNCIL_BELL')) {room.votes={};room.voteDay=result.state.dayNumber;room.voteComplete=false;}
     room.day = result.state;
     room.match = result.state.identity;
     room.phase = result.state.phase;
@@ -607,6 +619,8 @@ export class RoomStore {
   private view(room: Room, viewerId: string): RoomView {
     // Explicit allowlist. Never spread internal player or room objects into a DTO.
     return {
+      ...(room.day?.reveal || room.day?.council?.open || room.day?.privateHands?.[viewerId] ? {serverTime:this.now()} : {}),
+      ...(room.day?{cardQuantities:cardQuantities(room.day.rules)}:{}),
       effects: (room.effects ?? []).map(effect => ({ ...effect })),
       presentation:room.presentation?{
         id:room.presentation.id,scope:room.presentation.ownerId?room.presentation.ownerId===viewerId?'PRIVATE':'WAIT':'PUBLIC',
@@ -619,7 +633,7 @@ export class RoomStore {
       scapegoatEnabled: room.scapegoatEnabled,
       blackCatChoice: room.phase === 'PRIVATE_DEAL' && room.match?.players.some(p => p.id === viewerId && p.alive && p.everWitch) && room.roles?.[viewerId]?.kind !== 'SCAPEGOAT'
         ? { submitted: Object.hasOwn(room.blackCatVotes ?? {}, viewerId), targetId: room.blackCatVotes?.[viewerId] ?? null } : null,
-      councilVote: room.day ? { dayNumber: room.day.dayNumber, votesCast: Object.keys(room.votes).length,
+      councilVote: room.day?.council?.open ? { dayNumber: room.day.dayNumber, votesCast: Object.keys(room.votes).length,
         required: Math.floor(room.match!.players.filter(p => p.alive).length / 2) + 1,
         yourTargetId: room.votes[viewerId] ?? null, completed: room.voteComplete } : null,
       players: room.players.map(p => ({ id: p.id, name: p.name, avatar: p.avatar,
@@ -639,6 +653,8 @@ export class RoomStore {
       night: room.day ? privateNight(room.day, viewerId) : null,
       peek: room.match?.players.some(player=>player.id===viewerId&&player.alive)&&room.day?.privatePeeks?.[viewerId] && room.day.privatePeeks[viewerId]!.expiresAt > (room.presentation?.startedAt??this.now())
         ? { ...room.day.privatePeeks[viewerId]!,expiresAt:room.day.privatePeeks[viewerId]!.expiresAt+(room.presentation?Math.max(0,this.now()-room.presentation.startedAt):0) } : null,
+      handPeek: room.match?.players.some(p=>p.id===viewerId&&p.alive) && room.day?.privateHands?.[viewerId] && room.day.privateHands[viewerId]!.expiresAt>(room.presentation?.startedAt??this.now())
+        ? {...room.day.privateHands[viewerId]!,cards:room.day.privateHands[viewerId]!.cards.map(card=>({...card})),expiresAt:room.day.privateHands[viewerId]!.expiresAt+(room.presentation?Math.max(0,this.now()-room.presentation.startedAt):0)} : null,
       dawn: room.day?.dawn ? { ...room.day.dawn } : null,
       personalResult: room.roles?.[viewerId]?.individualWin ? 'WIN' : room.day?.outcome
         ? (room.roles?.[viewerId]?.kind === 'SCAPEGOAT' ? 'LOSS'

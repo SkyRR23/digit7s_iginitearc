@@ -75,7 +75,7 @@ export function renderRolePanel(root: HTMLElement, view: RoomView | null, blocke
   const canUse = role.ability === 'AVAILABLE' && !blocked && (role.kind === 'HEXER' ? view.phase === 'NIGHT' : view.phase === 'DAY');
   const targetForm = ['SLEUTH','HERBALIST','GOSSIP','HEXER'].includes(role.kind) && role.ability === 'AVAILABLE'
     ? `<button id="role-aim" type="button" class="primary" ${canUse ? '' : 'disabled'}>Choose a player on the table</button>` : '';
-  const canVote = view.phase === 'DAY' && living.includes(me ?? '') && !view.councilVote?.yourTargetId && !view.councilVote?.completed;
+  const canVote = view.phase === 'DAY' && !!view.day?.council?.open && living.includes(me ?? '') && !view.councilVote?.yourTargetId && !view.councilVote?.completed;
   root.innerHTML = `<div class="role-panel-inner role-${role.kind.toLowerCase()}"><div class="role-heading"><span class="eyebrow">${presentation ? 'PRIVATE REVEAL · STEP 1 OF 2' : 'YOUR PRIVATE ROLE'}</span><button id="role-close" type="button" aria-label="Close role panel">×</button></div>
     ${role.peek ? '' : renderTeamInfo(view)}
     <div class="role-profile"><div class="role-profile-art"><img src="${roleArt(role.kind)}" alt="${escape(role.kind.toLowerCase())} chibi illustration"></div><div class="role-profile-copy"><div class="role-profile-symbol">${roleSymbol(role.kind)}</div><h2>${escape(role.kind.replaceAll('_', ' '))}</h2><p>${roleDescriptions[role.kind]}</p><p class="role-privacy">This role stays with you. Your Life cards determine your allegiance and survival.</p></div></div>
@@ -88,7 +88,7 @@ export function renderRolePanel(root: HTMLElement, view: RoomView | null, blocke
     ${role.notices.length ? `<div class="role-notices" aria-label="Private role notices">${role.notices.slice(-3).map(message => `<p>${escape(message)}</p>`).join('')}</div>` : ''}
     ${role.individualWin ? '<strong class="scapegoat-win">SCAPEGOAT VICTORY</strong>' : ''}
     ${presentation ? '<button id="role-continue" class="primary" type="button">Continue to Life cards <span aria-hidden="true">→</span></button>' : ''}
-    ${view.phase === 'DAY' ? `<div class="council-vote"><h3>Council vote</h3><p>${view.councilVote?.votesCast ?? 0} ballots cast · ${view.councilVote?.required ?? 0} matching votes needed to eliminate a player.</p>
+    ${view.phase === 'DAY' && view.day?.council?.open ? `<div class="council-vote"><h3>Council vote</h3><p>${view.councilVote?.votesCast ?? 0} ballots cast · ${view.councilVote?.required ?? 0} matching votes needed to eliminate a player.</p>
       ${canVote ? `<form id="vote-action"><label>Vote to eliminate <select name="target">${choices(false)}</select></label><button ${blocked ? 'disabled' : ''}>Seal vote</button></form>` : `<p>${view.councilVote?.yourTargetId ? `Your vote: ${name(view.councilVote.yourTargetId)}` : 'Voting unavailable.'}</p>`}</div>` : ''}
     </div>`;
   root.querySelector('#role-close')?.addEventListener('click', () => { open = false; root.classList.remove('is-open'); toggle?.setAttribute('aria-expanded', 'false'); });

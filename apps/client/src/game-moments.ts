@@ -3,7 +3,7 @@ import { MOMENT_DURATION, REVEAL_STAGES, publicMoments, type GameMoment } from '
 import { renderLifeReveal } from './life-reveal';
 import { phaseIcon } from './phase-ui';
 import { roleArt } from './role-art';
-import { reducedGameMotion } from './game-preferences';
+import { gameSoundEnabled, reducedGameMotion } from './game-preferences';
 import { lifeSymbol } from './life-details';
 import { emblem } from './art';
 
@@ -34,7 +34,7 @@ export function rememberPrivatePowerTargets(view: RoomView | null, ids: string[]
 }
 export function forgetPrivatePowerTargets(): void { privateTargets = null; }
 const escape = (value: string) => value.replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[c]!);
-function inkBurst(): string {
+export function inkBurst(): string {
   const rays = Array.from({ length: 12 }, (_, i) => {
     const start = i % 2 ? -70 : 1070;
     const end = i % 2 ? 280 + i * 7 : 720 - i * 7;
@@ -58,7 +58,8 @@ function showNext(): void {
   const quiet = reducedGameMotion();
   stage = document.createElement('section'); stage.id = 'game-moment';
   stage.className = `game-moment moment-${moment.kind} tone-${moment.tone}${moment.kind === 'position' ? ' moment-reveal' : ''}${quiet ? ' moment-quiet' : ''}${moment.heavy ? ' moment-heavy' : ''}`;
-  stage.dataset.kind = moment.kind; stage.setAttribute('aria-label', `${moment.title}. ${moment.description}`);
+  stage.dataset.kind = moment.kind;
+  if(moment.cardKind)stage.dataset.cardKind=moment.cardKind; stage.setAttribute('aria-label', `${moment.title}. ${moment.description}`);
   stage.style.setProperty('--moment-duration', `${moment.duration}ms`);
   const artwork = moment.art ? `<img src="${moment.art}" alt="">` : moment.phase ? phaseIcon(moment.phase)
     : moment.sealKind ? lifeSymbol(moment.sealKind) : moment.kind === 'death'
@@ -68,7 +69,7 @@ function showNext(): void {
     <span class="moment-direction" aria-hidden="true">→</span>
     ${moment.targets.map(target => `<div class="moment-person moment-target">${target.avatar ? emblem(target.avatar) : '<span class="moment-group" aria-hidden="true">✦</span>'}<div><small>${target.label}</small><strong>${escape(target.name)}</strong></div></div>`).join('')}
   </div>` : '';
-  stage.innerHTML = `<div class="moment-veil"></div><div class="moment-aura" aria-hidden="true"></div>${inkBurst()}
+  stage.innerHTML = `<div class="moment-veil"></div><div class="moment-aura" aria-hidden="true"></div>${inkBurst()}${moment.cardKind==='COUNCIL_BELL'?'<div class="bell-shockwaves" aria-hidden="true"><i></i><i></i><i></i></div>':moment.cardKind==='CURSE'?'<div class="curse-shadows" aria-hidden="true"><i></i><i></i><i></i></div>':''}
     <div class="moment-content"><span class="moment-rule"></span>
       <p class="moment-eyebrow">${escape(moment.eyebrow)}</p><div class="moment-art">${artwork}</div>
       <h2>${escape(moment.title)}</h2>${people || (moment.route ? `<p class="moment-route"><span aria-hidden="true">↓</span> ${escape(moment.route)}</p>` : '')}
@@ -92,6 +93,13 @@ function showNext(): void {
     else if (scheduled) schedule(scheduled, remaining);
   });
   document.body.append(stage);
+  if(moment.title==='Council Bell'&&gameSoundEnabled()) {
+    try {
+      const audio=new AudioContext();const gain=audio.createGain();gain.connect(audio.destination);gain.gain.setValueAtTime(.12,audio.currentTime);gain.gain.exponentialRampToValueAtTime(.001,audio.currentTime+2);
+      for(const frequency of [440,660,880]) { const tone=audio.createOscillator();tone.frequency.value=frequency;tone.connect(gain);tone.start();tone.stop(audio.currentTime+2); }
+      setTimeout(()=>void audio.close(),2200);
+    } catch { /* Sound is optional when audio is unavailable. */ }
+  }
   if (moment.heavy && !quiet) {
     document.getElementById('action-spotlight')?.animate([
       { transform: 'translate(0,0)' }, { transform: 'translate(-3px,1px)', offset: .2 },
@@ -158,7 +166,7 @@ export function animateGameMoments(previous: RoomView | null, next: RoomView, ef
   }
   if (!moments.length || document.hidden) return;
   // Preserve a reveal already being read when the live game moves into Night.
-  const important = (kind: GameMoment['kind']) => ['reveal','position','verdict','death','victory'].includes(kind);
+  const important = (kind: GameMoment['kind']) => ['reveal','position','verdict','death','victory','resume'].includes(kind);
   if (previous.phase !== next.phase) {
     queue = queue.filter(moment => important(moment.kind));
   }

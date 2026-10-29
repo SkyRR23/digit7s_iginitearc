@@ -22,7 +22,10 @@ export interface DayState {
   statuses?: Record<string, PlayerStatus[]>; vows?: VowLink[];
   herbalRemedies?: Record<string, { sourceId: string; activeDay: number; consumed: boolean }>;
   privatePeeks?: Record<string, { id?:string; targetId: string; kind: string; expiresAt: number } | null>;
-  reveal: { chooserId: string; targetId: string } | null;
+  privateHands?: Record<string, { targetId: string; cards: ActionCard[]; expiresAt: number; id: string } | null>;
+  council?: { used: boolean; open: boolean; deadline: number; remainingTurnMs: number };
+  pendingReveals?: { chooserId: string; targetId: string }[];
+  reveal: { chooserId: string; targetId: string; remainingTurnMs?: number } | null;
   outcome: Outcome | null;
 }
 export interface DayEvent {
