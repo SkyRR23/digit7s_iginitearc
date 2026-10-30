@@ -394,7 +394,7 @@ try {
     await host.locator('#game-moment[data-reveal-stage="announcement"]').waitFor();
     assert.equal(await host.locator('#game-moment img').count(),0,'The name announcement precedes the portrait');
     assert.match(await host.locator('#game-moment h2').textContent() ?? '',/Guest 2.*Life card/s);
-    assert.equal(await host.locator('#game-moment').evaluate(el=>el.style.getPropertyValue('--moment-duration')),'8000ms');
+    assert.equal(await host.locator('#game-moment').evaluate(el=>el.style.getPropertyValue('--moment-duration')),'5000ms');
     await host.locator('#game-moment[data-reveal-stage="portrait"]').waitFor();
     await host.locator('.moment-hold').click();
     assert.equal(await host.locator('.moment-hold').getAttribute('aria-pressed'),'true');
@@ -463,7 +463,7 @@ try {
     assert.equal(await pages[1]!.locator(`#seats [data-player="${id(2)}"] .doubt-tile.filled`).count(),1,'Reconnect restores Doubt');
     if (await host.locator('.moment-skip').count()) await host.locator('.moment-skip').click();
     await host.screenshot({path:`test-results/digital-ui/game-${capacity}.png`});
-    for (const [width,height] of [[390,844],[360,640],[320,640],[390,740],[768,1024],[568,320],[640,360],[844,390],[1075,700],[1075,884],[1440,720],[1440,900]]) {
+    for (const [width,height] of [[1280,720],[390,844],[360,640],[320,640],[390,740],[768,1024],[568,320],[640,360],[844,390],[1075,700],[1075,884],[1440,720],[1440,900]]) {
       await host.setViewportSize({width,height}); await noOverflow(host);
       await noPileOverlap(host);
       const nameSizes = await host.locator('#seats .seat-name h3').evaluateAll(names => names.map(name => parseFloat(getComputedStyle(name).fontSize)));

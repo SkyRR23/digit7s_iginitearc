@@ -123,7 +123,10 @@ describe('expanded council card rules', () => {
     s.vows = [{ playerIds: ['p2','p3'], sourceId: 'p0' }];
     s.statuses = { p2: [{ kind:'VOW_HEART', sourceId:'p0', duration:'UNTIL_USED', consumed:false }],
       p3: [{ kind:'VOW_HEART', sourceId:'p0', duration:'UNTIL_USED', consumed:false }] };
-    const result = finishReveal(play(s, 'SCAPEGOAT', 'p1', { secondTargetId: 'p2' }));
+    const pending = play(s, 'SCAPEGOAT', 'p1', { secondTargetId: 'p2' });
+    expect(pending.state.doubt.p2).toBe(7);
+    expect(pending.events.find(event => event.type === 'DOUBT' && event.targetId === 'p2')?.count).toBe(2);
+    const result = finishReveal(pending);
     expect(result.state.doubt.p1).toBe(0);
     expect(result.state.doubt.p2).toBe(0); // seventh mark revealed and row cleared
     expect(result.state.doubt.p3).toBe(0);

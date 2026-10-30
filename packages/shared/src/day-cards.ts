@@ -201,8 +201,9 @@ export function resolveCard(s: DayState, actorId: string, card: ActionCard, targ
       }
       cleanse(s, actorId, id, moved, events);
       if (moved) {
-        s.doubt[other]! += moved;
-        events.push({ type: 'DOUBT', actorId, targetId: other, count: moved });
+        const added = Math.min(moved, Math.max(0, s.rules.accusationThreshold - s.doubt[other]!));
+        s.doubt[other]! += added;
+        if (added) events.push({ type: 'DOUBT', actorId, targetId: other, count: added });
         revealAtSeven(s, actorId, other, now, events, randomIndex);
       }
       break;

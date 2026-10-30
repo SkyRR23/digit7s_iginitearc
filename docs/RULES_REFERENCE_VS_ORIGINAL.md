@@ -1,5 +1,7 @@
 # Rules provenance and original design
 
+> Historical milestone notes, not the final rules or proof of legal originality. Several mechanics, counts, assets, and roles below have since changed. See FINAL_SUBMISSION_AUDIT.md for the October 30 review, including significant Salem similarity concerns. Statements below calling mechanics original are historical design claims, not a verified originality finding.
+
 Read on October 15, 2026: [Salem 1692 Second Edition rulebook](https://gamers-hq.de/media/pdf/fc/7d/89/FINAL_Salem_Rulebook_-2nd_Edition.pdf).
 The PDF was accessible. Relevant setup, day, death, win, transfer, and night
 sections were read. This is not an official adaptation. No source artwork,
