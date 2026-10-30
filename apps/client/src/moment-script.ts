@@ -52,9 +52,10 @@ export function publicMoments(previous: RoomView, next: RoomView, effects: Table
   const fallen = [...new Set(effects.filter(e => e.type === 'DEATH').map(e => e.targetId))];
   if (fallen.length) moments.push({ kind: 'death', eyebrow: 'A lantern goes dark', title: fallen.map(name).join(' & '),
     description: fallen.length > 1 ? 'Have fallen. Their remaining Life cards are public.' : 'Has fallen. Their remaining Life cards are public.', tone: 'crimson', duration: MOMENT_DURATION.death, heavy: true });
-  if (reveals.length && !next.day?.outcome && !next.deal?.players.some(player => player.seals.some(seal => seal.revealed && seal.kind === 'WITCH')))
-    moments.push({ kind: 'verdict', eyebrow: 'The hunt continues', title: 'The Ashbound still live among us.',
-      description: 'No Evil Life card has been revealed yet. A revealed Good card does not prove its owner’s allegiance.', tone: 'crimson', duration: MOMENT_DURATION.verdict });
+  const foundEvil = reveals.some(effect => next.deal?.players.find(player => player.playerId === effect.targetId)?.seals.some(seal => seal.slot === effect.slot && seal.revealed && seal.kind === 'WITCH'));
+  if (reveals.length && !next.day?.outcome && (foundEvil || !next.deal?.players.some(player => player.seals.some(seal => seal.revealed && seal.kind === 'WITCH'))))
+    moments.push({ kind: 'verdict', eyebrow: 'The hunt continues', title: foundEvil ? 'Evil found.' : 'Evil still lurks among us.',
+      description: foundEvil ? 'One Evil Life card has been revealed. More Evil may still remain.' : 'No Evil Life card has been revealed yet. A revealed Good card does not prove its owner’s allegiance.', tone: 'crimson', duration: MOMENT_DURATION.verdict });
   if(reveals.length && next.phase==='DAY' && !next.day?.outcome)
     moments.push({kind:'resume',title:'RESUME THE HUNT',eyebrow:'The council continues',description:'Keep your secrets. The hunt is not over.',tone:'crimson',duration:MOMENT_DURATION.resume,heavy:true});
   if (previous.phase !== next.phase && next.phase === 'GAME_OVER') {

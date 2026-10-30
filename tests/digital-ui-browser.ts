@@ -414,7 +414,7 @@ try {
     await host.screenshot({path:`test-results/digital-ui/revealed-slot-${capacity}.png`});
     await host.locator('.moment-next').click();
     await host.locator('#game-moment[data-kind="verdict"]').waitFor();
-    assert.match(await host.locator('#game-moment h2').textContent() ?? '',/Ashbound still live among us/);
+    assert.match(await host.locator('#game-moment h2').textContent() ?? '',/Evil still lurks among us/);
     await host.locator('.moment-skip').click();
     await finishPresentations(pages);
     assert.equal(view().deal!.players[2]!.seals.filter(card=>card.revealed).length,1);

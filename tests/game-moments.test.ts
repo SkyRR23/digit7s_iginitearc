@@ -21,7 +21,7 @@ describe('public animation story', () => {
     const effects:TableEffect[]=[{id:'death',type:'DEATH',targetId:'b'},{id:'win',type:'VOTE_VICTORY',targetId:'b'}];
     const moments=publicMoments(before,after,effects);
     expect(moments.map(moment=>moment.kind)).toEqual(['death','victory']);
-    expect(moments[1]).toMatchObject({title:'Outcast victory',art:'/art/roles/outcast-chained-transparent.webp',duration:8000,heavy:true});
+    expect(moments[1]).toMatchObject({title:'Outcast victory',art:'/art/roles/outcast-chained-transparent.webp',duration:5000,heavy:true});
     expect(moments[1]!.description).toContain('River');
     expect(moments[1]!.description).toContain('match has ended');
     expect(JSON.stringify(moments)).not.toContain('SECRET INVESTIGATION');
@@ -33,7 +33,7 @@ describe('public animation story', () => {
     expect(publicMoments(view,view,[played('one')])).toEqual([]);
     const moments=publicMoments(view,view,[played('one'),played('two'),played('three')]);
     expect(moments).toHaveLength(1);
-    expect(moments[0]).toMatchObject({kind:'card',title:'Evidence \u00d73',duration:6500});
+    expect(moments[0]).toMatchObject({kind:'card',title:'Evidence \u00d73',duration:4000});
     expect(moments[0]!.description).toContain('3 cards played');
     const five=publicMoments(view,view,Array.from({length:5},(_,i)=>played(String(i))));
     expect(five).toHaveLength(1);
@@ -49,7 +49,7 @@ describe('public animation story', () => {
     const effects:TableEffect[]=[{id:'revealed',type:'REVEAL',targetId:'b',slot:0}];
     const moments=publicMoments(before,after,effects);
     expect(moments.filter(moment=>moment.kind==='resume')).toHaveLength(1);
-    expect(moments.at(-1)).toMatchObject({kind:'resume',title:'RESUME THE HUNT',duration:2800});
+    expect(moments.at(-1)).toMatchObject({kind:'resume',title:'RESUME THE HUNT',duration:2000});
     expect(moments.some(moment=>moment.title==='Day begins')).toBe(false);
     expect(publicMoments(after,after,[])).toEqual([]);
   });
@@ -66,13 +66,13 @@ describe('public animation story', () => {
     expect(publicMoments(before,after,[])).toContainEqual(expect.objectContaining({kind:'phase',title:'Day begins',eyebrow:'Day 2'}));
     for(const cardKind of ['TESTIMONY','VOW_OF_HEARTS','COUNCIL_BELL','CURSE'] as const) {
       expect(publicMoments(after,after,[{id:cardKind,type:'PLAY',cardKind,actorId:'a',targetId:'b'}])[0])
-        .toMatchObject({kind:'card',cardKind,duration:6500,actor:{name:'Alex'},targets:[expect.objectContaining({name:cardKind==='COUNCIL_BELL'?'All living players':'River'})]});
+        .toMatchObject({kind:'card',cardKind,duration:4000,actor:{name:'Alex'},targets:[expect.objectContaining({name:cardKind==='COUNCIL_BELL'?'All living players':'River'})]});
     }
   });
-  it('gives each close-up 6–8 seconds and divides the Life reveal into a complete eight-second story', () => {
-    expect(Object.entries(MOMENT_DURATION).filter(([kind])=>kind!=='resume').every(([,duration])=>duration>=6000&&duration<=8000)).toBe(true);
-    expect(MOMENT_DURATION.resume).toBe(2800);
-    expect(REVEAL_STAGES.reduce((total,step)=>total+step.duration,0)).toBe(8000);
+  it('keeps close-ups brief and divides the Life reveal into a five-second story', () => {
+    expect(Object.entries(MOMENT_DURATION).filter(([kind])=>kind!=='resume').every(([,duration])=>duration>=3500&&duration<=5000)).toBe(true);
+    expect(MOMENT_DURATION.resume).toBe(2000);
+    expect(REVEAL_STAGES.reduce((total,step)=>total+step.duration,0)).toBe(5000);
   });
   it('announces before showing a full public Life portrait, then identifies the exact slot and survival', () => {
     const before=snapshot(), after=structuredClone(before);
@@ -88,8 +88,8 @@ describe('public animation story', () => {
     expect((positions.match(/data-reveal-slot=/g)??[])).toHaveLength(5);
     expect((positions.match(/just revealed/g)??[])).toHaveLength(1);
     expect(positions).not.toMatch(/SLEUTH|SECRET|ashbound.webp/);
-    expect(moments[1]).toMatchObject({kind:'position',duration:6000});
-    expect(moments[2]).toMatchObject({kind:'verdict',title:'The Ashbound still live among us.'});
+    expect(moments[1]).toMatchObject({kind:'position',duration:3500});
+    expect(moments[2]).toMatchObject({kind:'verdict',title:'Evil still lurks among us.'});
     expect([0,1,2,3,4].map(lifePosition)).toEqual(['left corner','left inner','middle','right inner','right corner']);
   });
   it('does not manufacture a still-hidden Ashbound verdict after the Village has already won', () => {
@@ -100,6 +100,13 @@ describe('public animation story', () => {
     const moments=publicMoments(before,after,[{id:'reveal',type:'REVEAL',targetId:'b',slot:0},{id:'death',type:'DEATH',targetId:'b'}]);
     expect(moments.some(moment=>moment.kind==='verdict')).toBe(false);
     expect(moments.at(-1)).toMatchObject({kind:'victory'});
+  });
+  it('announces an Evil reveal when the match continues', () => {
+    const before=snapshot(), after=structuredClone(before);
+    after.deal!.players[1]!.seals[0]={slot:0,revealed:true,kind:'WITCH'};
+    const moments=publicMoments(before,after,[{id:'reveal',type:'REVEAL',targetId:'b',slot:0}]);
+    expect(moments.find(moment=>moment.kind==='verdict')).toMatchObject({title:'Evil found.'});
+    expect(moments.find(moment=>moment.kind==='verdict')?.description).toContain('may still remain');
   });
   it('shows public card actors and targets without copying private role results', () => {
     const view = snapshot();

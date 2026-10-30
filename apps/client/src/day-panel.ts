@@ -172,7 +172,7 @@ export function updateDayTimers(): void {
     const paused=document.body.classList.contains('table-paused');
     const remaining=document.body.dataset.presentationRemaining;
     const decision = !!currentView?.day?.reveal || !!currentView?.day?.council?.open;
-    el.textContent = decision ? 'PAUSED' : paused ? `Ⅱ ${remaining ? `${Math.ceil(Number(remaining)/1000)}s` : 'Paused'}` : deadline ? `${Math.max(0,Math.ceil((deadline-Date.now())/1000))}s` : '';
+    el.textContent = decision ? 'PAUSED' : paused ? `${remaining ? `${Math.ceil(Number(remaining)/1000)}s` : 'Paused'} Ⅱ` : deadline ? `${Math.max(0,Math.ceil((deadline-Date.now())/1000))}s` : '';
     el.setAttribute('aria-label', decision ? 'Turn timer paused for a decision' : paused ? 'Timer paused during close-up' : el.closest('.turn-clock') ? 'Turn time remaining' : 'Phase time remaining');
   });
   const peek = document.querySelector<HTMLElement>('.whisper-peek');

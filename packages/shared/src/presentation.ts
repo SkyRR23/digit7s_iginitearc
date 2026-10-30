@@ -2,8 +2,8 @@ import type { ActionKind } from './day-views.js';
 import type { PublicDealView } from './identity-views.js';
 import type { RoomView } from './index.js';
 
-export const PRESENTATION_DURATION = { card:6500, power:6500, reveal:8000, position:6000, death:7000, phase:6000, victory:8000, verdict:6000, resume:2800 } as const;
-export const REVEAL_STAGES = [{ name:'announcement',duration:1600 },{ name:'portrait',duration:6400 }] as const;
+export const PRESENTATION_DURATION = { card:4000, power:5000, reveal:5000, position:3500, death:5000, phase:5000, victory:5000, verdict:3500, resume:2000 } as const;
+export const REVEAL_STAGES = [{ name:'announcement',duration:1000 },{ name:'portrait',duration:4000 }] as const;
 export type PublicMomentKind = Exclude<keyof typeof PRESENTATION_DURATION,'power'>;
 export interface PresentationEvent { type:string; targetId?:string; actorId?:string; slot?:number; cardKind?:ActionKind; secondTargetId?:string }
 export interface PublicMomentStep { kind:PublicMomentKind; duration:number; eventIndex?:number; count?:number }
@@ -32,7 +32,8 @@ export function publicPresentationPlan(previousPhase: RoomView['phase'], next: {
     }
   });
   if(events.some(event=>event.type==='DEATH')) add('death');
-  if(hasReveals&&!next.hasOutcome&&!next.deal?.players.some(player=>player.seals.some(seal=>seal.revealed&&seal.kind==='WITCH'))) add('verdict');
+  const foundEvil = events.some(event => validReveal(event) && next.deal?.players.find(player => player.playerId === event.targetId)?.seals.some(seal => seal.slot === event.slot && seal.revealed && seal.kind === 'WITCH'));
+  if(hasReveals&&!next.hasOutcome&&(foundEvil || !next.deal?.players.some(player=>player.seals.some(seal=>seal.revealed&&seal.kind==='WITCH')))) add('verdict');
   if(hasReveals && next.phase==='DAY' && !next.hasOutcome) add('resume');
   if(previousPhase!==next.phase) {
     if(next.phase==='GAME_OVER') add('victory');
