@@ -1,4 +1,6 @@
 import { IDENTITY_LABELS, type DayIntent, type RoomView } from '@ashfall/shared';
+import { emblem } from './art';
+import { cardArt } from './card-info';
 import { cardTitle } from './card-info';
 import { cardGlyph } from './card-art';
 import { lifeSymbol } from './life-details';
@@ -26,7 +28,7 @@ export function renderDecisionUI(view: RoomView | null, blocked: boolean, choose
 
   if(view!==clockView) { clockView=view;clockOffset=view?.serverTime===undefined?0:view.serverTime-Date.now(); }
   const day=view?.day, me=view?.you?.playerId;
-  if(!view||!day||!me||view.presentation){panel.replaceChildren();panel.hidden=true;renderKey='';pendingChoice=false;return;}
+  if(!view||!day||!me||view.phase==='GAME_OVER'||view.presentation){panel.replaceChildren();panel.hidden=true;renderKey='';pendingChoice=false;return;}
   const name=(id:string)=>esc(view.players.find(player=>player.id===id)?.name??'A player');
   const lifeKey=view.phase==='REVEAL_RESOLUTION'&&day.reveal?`${view.deal?.matchId}:${day.version}:${day.reveal.targetId}:${day.reveal.chooserId}`:'';
   if(lifeKey&&lifeKey===renderKey&&!panel.hidden) {
@@ -40,7 +42,7 @@ export function renderDecisionUI(view: RoomView | null, blocked: boolean, choose
     updateDecisionTimers();return;
   }
   renderKey=lifeKey;previousBlocked=blocked;pendingChoice=false;
-  panel.replaceChildren();panel.hidden=true;panel.classList.toggle('life-decision',!!lifeKey);
+  panel.replaceChildren();panel.hidden=true;panel.classList.toggle('life-decision',!!lifeKey);panel.classList.toggle('council-decision',view.phase==='DAY'&&!!day.council?.open);
   let content='';
   if(view.phase==='REVEAL_RESOLUTION'&&day.reveal) {
     const reveal=day.reveal, own=reveal.chooserId===me;
@@ -48,7 +50,7 @@ export function renderDecisionUI(view: RoomView | null, blocked: boolean, choose
     content=`<span class="eyebrow">SEVEN DOUBT · TURN TIMER PAUSED</span><h2>${own?'Choose a Life card':`Waiting for ${name(reveal.chooserId)}`}</h2><p>${own?`Choose which of ${name(reveal.targetId)}’s hidden Life cards to flip.`:'Waiting for another player to finish their action.'}</p><strong class="decision-clock" data-decision-deadline="${day.deadline??0}"></strong><div class="decision-lives">${seals.map((seal,index)=>`<button type="button" class="life-fate-card ${seal.revealed?'life-already-revealed':''}" style="--life-order:${index}" data-reveal-choice="${seal.slot}" data-public-revealed="${seal.revealed}" ${!own||blocked||seal.revealed?'disabled':''} aria-label="${seal.revealed?'Already revealed: '+IDENTITY_LABELS[seal.kind]:'Choose Life card '+(seal.slot+1)}"><span class="life-slot-number">${seal.slot+1}</span><span class="life-card-face">${seal.revealed?`<span class="life-public-face">${lifeSymbol(seal.kind)}</span>`:'<img class="life-card-paint" src="/art/cards/hidden-life-v1.webp" alt="" draggable="false">'}<span class="life-card-gleam" aria-hidden="true"></span></span><small>${seal.revealed?IDENTITY_LABELS[seal.kind]:'Hidden Life'}</small></button>`).join('')}</div><small>If time runs out, the first remaining hidden Life card flips automatically.</small>`;
   } else if(day.council?.open) {
     const canVote=!view.councilVote?.yourTargetId&&view.deal?.players.some(p=>p.playerId===me&&p.alive);
-    content=`<span class="eyebrow">COUNCIL BELL · TURN TIMER PAUSED</span><h2>Hear ye, hear ye!</h2><p>${canVote?'Choose one living player to vote out. Your ballot is final.':'Waiting for other players to finish their action.'}</p><strong class="decision-clock" data-decision-deadline="${day.deadline??0}"></strong><p>${view.councilVote?.votesCast??0} ballots · ${view.councilVote?.required??0} matching votes needed</p><div class="decision-ballots">${view.deal?.players.filter(p=>p.alive).map(p=>`<button type="button" data-council-choice="${p.playerId}" ${!canVote||blocked?'disabled':''}>${name(p.playerId)}${view.councilVote?.yourTargetId===p.playerId?' · Your vote':''}</button>`).join('')}</div><small>A split vote ends without elimination after all ballots or the deadline.</small>`;
+    content=`<header class="council-summons"><div class="council-bell-art"><img src="${cardArt('COUNCIL_BELL')}" alt=""><span aria-hidden="true"></span></div><div><span class="eyebrow">COUNCIL BELL &middot; THE COUNCIL IS CALLED</span><h2>Hear ye, hear ye!</h2><p>${canVote?'Choose who must answer to the council. Your ballot is final.':view.councilVote?.yourTargetId?'Your ballot is sealed. Await the verdict.':'The living council is casting its ballots.'}</p></div></header><div class="council-tally"><strong class="decision-clock" data-decision-deadline="${day.deadline??0}"></strong><span><b>${view.councilVote?.votesCast??0}</b> ballots sealed</span><span><b>${view.councilVote?.required??0}</b> matching votes to condemn</span></div><div class="decision-ballots">${view.deal?.players.filter(p=>p.alive).map(p=>{const player=view.players.find(player=>player.id===p.playerId);const chosen=view.councilVote?.yourTargetId===p.playerId;return `<button type="button" class="council-candidate ${chosen?'ballot-sealed':''}" data-council-choice="${p.playerId}" ${!canVote||blocked?'disabled':''} aria-label="${chosen?'Your sealed vote: ':'Vote to condemn '}${name(p.playerId)}"><span class="council-avatar">${player?emblem(player.avatar):''}</span><strong>${name(p.playerId)}</strong><small>${chosen?'BALLOT SEALED':'CAST BALLOT'}</small></button>`;}).join('')}</div><small class="council-vote-note">A split council condemns no one. The vote closes when all ballots are sealed or time runs out.</small>`;
   } else if(view.handPeek&&view.handPeek.expiresAt>Date.now()+clockOffset) {
     const peek=view.handPeek; inspected=peek.id;
     if(dismissed===inspected)return;
@@ -56,7 +58,7 @@ export function renderDecisionUI(view: RoomView | null, blocked: boolean, choose
   }
   if(!content)return;
   panel.hidden=false;panel.setAttribute('role','dialog');panel.setAttribute('aria-modal','true');panel.setAttribute('aria-label','Current council decision');
-  panel.innerHTML=`${lifeKey?`<div class="decision-atmosphere" aria-hidden="true"><div class="moment-aura"></div>${inkBurst()}<div class="decision-glass-sheen"></div></div>`:''}<div class="decision-content">${content}</div>`;
+  panel.innerHTML=`${lifeKey||day.council?.open?`<div class="decision-atmosphere" aria-hidden="true"><div class="moment-aura"></div>${inkBurst()}<div class="decision-glass-sheen"></div></div>`:''}<div class="decision-content">${content}</div>`;
   panel.querySelectorAll<HTMLButtonElement>('[data-reveal-choice]').forEach(button=>button.onclick=()=>{
     if(pendingChoice||button.disabled)return;
     pendingChoice=true;button.classList.add('decision-selected');

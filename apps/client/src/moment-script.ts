@@ -2,6 +2,8 @@ import { IDENTITY_LABELS, PRESENTATION_DURATION, publicPresentationPlan, type Av
 export { REVEAL_STAGES } from '@ashfall/shared';
 import { cardArt, cardTitle, CARD_INFO } from './card-info';
 import { phaseName } from './phase-ui';
+import { matchResult } from './match-result';
+import { roleArt } from './role-art';
 
 export interface GameMoment {
   kind: 'card' | 'reveal' | 'position' | 'death' | 'phase' | 'victory' | 'power' | 'verdict' | 'resume';
@@ -20,7 +22,7 @@ export function publicMoments(previous: RoomView, next: RoomView, effects: Table
   const moments: GameMoment[] = [];
   const reveals = effects.filter(effect => effect.type === 'REVEAL' && next.deal?.players.find(player => player.playerId === effect.targetId)?.seals.some(seal => seal.slot === effect.slot && seal.revealed));
   for (const effect of effects) {
-    if (effect.type === 'PLAY' && effect.cardKind && !reveals.length &&
+    if (effect.type === 'PLAY' && effect.cardKind && (!reveals.length || effect.cardKind === 'EVIDENCE') &&
       ['EVIDENCE','TESTIMONY','CURSE','COUNCIL_BELL','EAVESDROP','WITNESS','STOCKS','DISPEL','CONSPIRACY','CINDER_SHIFT','SCAPEGOAT','VOW_OF_HEARTS','WHISPER','ASYLUM'].includes(effect.cardKind)) {
       const kind = effect.cardKind;
       const supportive = ['ALIBI','MERCY','HEARTHWARD','PIETY','ASYLUM'].includes(kind);
@@ -52,12 +54,14 @@ export function publicMoments(previous: RoomView, next: RoomView, effects: Table
     description: fallen.length > 1 ? 'Have fallen. Their remaining Life cards are public.' : 'Has fallen. Their remaining Life cards are public.', tone: 'crimson', duration: MOMENT_DURATION.death, heavy: true });
   if (reveals.length && !next.day?.outcome && !next.deal?.players.some(player => player.seals.some(seal => seal.revealed && seal.kind === 'WITCH')))
     moments.push({ kind: 'verdict', eyebrow: 'The hunt continues', title: 'The Ashbound still live among us.',
-      description: 'No Ashbound Life card has been caught yet. A revealed Villager card does not prove its owner’s allegiance.', tone: 'crimson', duration: MOMENT_DURATION.verdict });
+      description: 'No Evil Life card has been revealed yet. A revealed Good card does not prove its owner’s allegiance.', tone: 'crimson', duration: MOMENT_DURATION.verdict });
   if(reveals.length && next.phase==='DAY' && !next.day?.outcome)
     moments.push({kind:'resume',title:'RESUME THE HUNT',eyebrow:'The council continues',description:'Keep your secrets. The hunt is not over.',tone:'crimson',duration:MOMENT_DURATION.resume,heavy:true});
   if (previous.phase !== next.phase && next.phase === 'GAME_OVER') {
-    moments.push({ kind: 'victory', eyebrow: 'The final verdict', title: next.day?.outcome?.winner === 'HUMAN' ? 'The village survives' : 'The Ashbound prevail',
-      description: next.day?.outcome?.winner === 'HUMAN' ? 'Every Ashbound Life card has been revealed.' : 'Every surviving player is Witch-aligned.', tone: next.day?.outcome?.winner === 'HUMAN' ? 'ivory' : 'crimson', duration: MOMENT_DURATION.victory });
+    const result = matchResult(next);
+    moments.push({ kind: 'victory', eyebrow: 'The final verdict · match ended', title: result.title,
+      description: result.description, art: roleArt(result.roleArt), heavy: true,
+      tone: next.day?.outcome?.winner === 'WITCH' ? 'crimson' : 'ivory', duration: MOMENT_DURATION.victory });
   } else if (previous.phase !== next.phase && (next.phase==='NIGHT'||next.phase==='DAWN'||next.phase==='DAY'&&(previous.phase==='DAWN'||previous.phase==='PRIVATE_DEAL'||previous.phase==='LOBBY'))) {
     moments.push({ kind: 'phase', phase: next.phase, eyebrow: next.phase === 'DAY' ? `Day ${next.day?.dayNumber ?? 1}` : 'The village changes',
       title: next.phase === 'NIGHT' ? 'Night falls' : next.phase === 'DAWN' ? 'Dawn breaks' : 'Day begins',
@@ -69,10 +73,10 @@ export function publicMoments(previous: RoomView, next: RoomView, effects: Table
     all.findIndex(other => other.kind === moment.kind && other.reveal?.playerId === moment.reveal?.playerId && other.reveal?.slot === moment.reveal?.slot) === index);
   return publicPresentationPlan(previous.phase,{phase:next.phase,deal:next.deal,hasOutcome:!!next.day?.outcome},effects).flatMap(step=>{
     const event=step.eventIndex===undefined?null:effects[step.eventIndex];
-    const index=story.findIndex(moment=>moment.kind===step.kind&&(!event||!['reveal','position'].includes(step.kind)||
-      moment.reveal?.playerId===event.targetId&&moment.reveal?.slot===event.slot));
+    const index=story.findIndex(moment=>moment.kind===step.kind&&(!event || (step.kind==='card' ? moment.cardKind===event.cardKind && moment.actor?.name===name(event.actorId) && (moment.targets?.[0]?.name===name(event.targetId) || ['CONSPIRACY','COUNCIL_BELL'].includes(event.cardKind ?? '')) : !['reveal','position'].includes(step.kind) || moment.reveal?.playerId===event.targetId&&moment.reveal?.slot===event.slot)));
     if(index<0)return [];
-    return [{...story.splice(index,1)[0]!,duration:step.duration}];
+    const moment=story.splice(index,1)[0]!;
+    return [{...moment,duration:step.duration,...(step.kind==='card' && (step.count??0)>1 ? {title:`${moment.title} ×${step.count}`,description:`${step.count} cards played. ${moment.description}`} : {})}];
   });
 }
 export const readablePhase = phaseName;

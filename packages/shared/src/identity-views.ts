@@ -1,7 +1,7 @@
 /** Wire types only. Internal ownership and shuffle state never belong in RoomView. */
 export type IdentityKind = 'HUMAN' | 'WITCH' | 'CONSTABLE';
 export const IDENTITY_LABELS: Record<IdentityKind, string> = {
-  HUMAN: 'Villager', WITCH: 'Ashbound', CONSTABLE: 'Lanternkeeper',
+  HUMAN: 'Good', WITCH: 'Evil', CONSTABLE: 'Lanternkeeper',
 };
 export type PublicSeal = { slot: number; revealed: false } |
   { slot: number; revealed: true; kind: IdentityKind };

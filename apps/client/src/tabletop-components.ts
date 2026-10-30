@@ -1,3 +1,4 @@
+import { matchResult } from './match-result';
 import { IDENTITY_LABELS, type ActionCard, type PublicPlayer, type RoomView } from '@ashfall/shared';
 import { emblem } from './art';
 import { cardGlyph } from './card-art';
@@ -130,7 +131,7 @@ export function renderTableCenter(view: RoomView): string {
   const active = view.players.find(player => player.id === day.activePlayerId)?.name ?? 'Council';
   const phase = view.phase.replaceAll('_', ' ');
   const canDraw = view.phase === 'DAY' && day.activePlayerId === view.you?.playerId && !day.playedThisTurn && day.deckCount > 0;
-  return `<div class="table-phase"><span>${phase}</span><b>${view.phase === 'DAY' ? `${escape(active)}’s turn` : view.phase === 'REVEAL_RESOLUTION' ? 'A Seal must open' : view.phase === 'GAME_OVER' ? `${day.outcome?.winner === 'HUMAN' ? 'Village' : 'Ashbound'} victory` : `Day ${day.dayNumber}`}</b></div>
+  return `<div class="table-phase"><span>${phase}</span><b>${view.phase === 'DAY' ? `${escape(active)}’s turn` : view.phase === 'REVEAL_RESOLUTION' ? 'A Seal must open' : view.phase === 'GAME_OVER' ? `${escape(matchResult(view).title)}` : `Day ${day.dayNumber}`}</b></div>
     ${day.deadline ? `<div class="table-timer" aria-label="Phase timer"><span aria-hidden="true">◷</span><strong data-deadline="${day.deadline}"></strong></div>` : ''}
     <div class="table-piles" aria-label="Action card piles">
       <button id="table-draw" class="card-pile draw-pile" ${canDraw ? '' : 'disabled'} aria-label="${canDraw ? `Draw ${Math.min(2, day.deckCount)} cards and end turn` : `${day.deckCount} cards in draw deck`}">

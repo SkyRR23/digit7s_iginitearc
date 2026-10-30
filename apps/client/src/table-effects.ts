@@ -224,7 +224,7 @@ export function animateTableChanges(previous: RoomView | null, next: RoomView, b
       setTimeout(() => label('PROTECTED', effect.targetId, 'clean'), delay);
     } else if (effect.type === 'VOTE_VICTORY') {
       const banner = document.createElement('div'); banner.className = 'scapegoat-announcement';
-      banner.setAttribute('role', 'status'); banner.textContent = 'SCAPEGOAT VICTORY';
+      banner.setAttribute('role', 'status'); banner.textContent = 'OUTCAST VICTORY';
       document.body.append(banner); setTimeout(() => banner.remove(), 2800);
     } else if (effect.type === 'TURN_SKIPPED') {
       setTimeout(() => label('TURN SKIPPED — BOUND', effect.actorId), delay);

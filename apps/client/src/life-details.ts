@@ -3,8 +3,8 @@ import { emblem } from './art';
 
 export const lifeSymbol = (kind: IdentityKind) => emblem(kind === 'HUMAN' ? 'reed' : kind === 'WITCH' ? 'moth' : 'lantern');
 const descriptions: Record<IdentityKind,string> = {
-  HUMAN: 'This Villager Life card is publicly revealed. It does not prove the player’s current allegiance.',
-  WITCH: 'This Ashbound Life card is publicly revealed and counts toward revealing all Ashbound Life cards.',
+  HUMAN: 'This Good Life card is publicly revealed. It does not prove the player’s current allegiance.',
+  WITCH: 'This Evil Life card is publicly revealed and counts toward revealing all Evil Life cards.',
   CONSTABLE: 'This Lanternkeeper Life card is publicly revealed. Its night protection belongs to the Life card and is unavailable once revealed.',
 };
 let popup: HTMLElement | null = null;

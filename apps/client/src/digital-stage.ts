@@ -1,3 +1,4 @@
+import { matchResult } from './match-result';
 import type { RoomView } from '@ashfall/shared';
 import { emblem } from './art';
 import { cardTitle } from './card-info';
@@ -8,7 +9,7 @@ const escape = (text: string) => text.replace(/[&<>"']/g, c => ({ '&':'&amp;','<
 export function renderMatchHud(view: RoomView): string {
   if (!view.day) return `<span class="phase-banner">${view.phase === 'PRIVATE_DEAL' ? 'Private reveal' : 'Council gathering'}</span><p>Only you can inspect your role and Life cards.</p>`;
   const active = view.players.find(p => p.id === view.day!.activePlayerId);
-  return `<span class="phase-banner" data-phase-icon="${view.phase === 'NIGHT' ? 'moon' : 'sun'}">${phaseIcon(view.phase)}<span>${phaseName(view.phase)}</span></span><p>${view.phase === 'NIGHT' ? 'Night' : 'Day'} ${view.day.dayNumber} <span>·</span> ${view.phase === 'DAY' ? `Turn: <b class="turn-name">${active?.id === view.you?.playerId ? 'You' : escape(active?.name ?? 'a player')}</b>` : view.phase === 'NIGHT' ? 'Make your private choices' : view.phase === 'DAWN' ? 'See who survived' : view.phase === 'GAME_OVER' ? 'The match has ended' : 'A Life card is revealed'}</p><strong class="hud-deadline" data-deadline="${view.day.deadline ?? 0}" aria-label="Phase time remaining"></strong><small class="hud-piles">Draw ${view.day.deckCount} · Discard ${view.day.discardCount}</small>`;
+  return `<span class="phase-banner" data-phase-icon="${view.phase === 'NIGHT' ? 'moon' : 'sun'}">${phaseIcon(view.phase)}<span>${phaseName(view.phase)}</span></span><p>${view.phase === 'NIGHT' ? 'Night' : 'Day'} ${view.day.dayNumber} <span>·</span> ${view.phase === 'DAY' ? `Turn: <b class="turn-name">${active?.id === view.you?.playerId ? 'You' : escape(active?.name ?? 'a player')}</b>` : view.phase === 'NIGHT' ? 'Make your private choices' : view.phase === 'DAWN' ? 'See who survived' : view.phase === 'GAME_OVER' ? 'The match has ended' : 'A Life card is revealed'}</p>${view.phase === 'DAY' ? '' : `<strong class="hud-deadline" data-deadline="${view.day.deadline ?? 0}" aria-label="Phase time remaining"></strong>`}<small class="hud-piles">Draw ${view.day.deckCount} · Discard ${view.day.discardCount}</small>`;
 }
 export function renderLocalLife(view: RoomView): string {
   const me = view.players.find(player => player.id === view.you?.playerId);
@@ -31,7 +32,7 @@ export function renderActionSpotlight(view: RoomView, selection: TableSelection,
     const first = selection.selectedTargetId || hoveredId;
     return `<div class="power-aiming"><span class="eyebrow">YOUR PRIVATE POWER · CHOOSE A PLAYER</span><img src="${selection.power.art}" alt=""><h2>${escape(selection.power.name)}</h2><p>${escape(selection.power.description)}</p>${first ? `<strong>${escape(view.players.find(p => p.id === first)?.name ?? '')}${selection.secondTargetId ? ` &amp; ${escape(view.players.find(p => p.id === selection.secondTargetId)?.name ?? '')}` : ''}</strong>` : '<strong>Tap a highlighted player</strong>'}<small>Escape cancels · Nothing is used until you confirm</small></div>`;
   }
-  if (view.phase === 'GAME_OVER') return `<div class="spotlight-global"><span class="eyebrow">COUNCIL RESULT</span><h2>${view.day.outcome?.winner === 'HUMAN' ? 'The village survives.' : 'The Ashbound prevail.'}</h2><p>${view.day.outcome?.reason === 'ALL_WITCH_SEALS_REVEALED' ? 'Every Ashbound Life card has been revealed.' : 'Every surviving player is Witch-aligned.'}</p><p>${view.personalResult ? `Your result: ${view.personalResult === 'WIN' ? 'Victory' : 'Defeat'}.` : ''}</p></div>`;
+  if (view.phase === 'GAME_OVER') { const result = matchResult(view); return `<div class="spotlight-global"><span class="eyebrow">COUNCIL RESULT</span><h2>${escape(result.title)}</h2><p>${escape(result.description)}</p><p>${view.personalResult ? `Your result: ${view.personalResult === 'WIN' ? 'Victory' : 'Defeat'}.` : ''}</p></div>`; }
   if (view.phase === 'DAWN') {
     const name = view.players.find(player => player.id === view.dawn?.deceasedId)?.name;
     return `<div class="spotlight-global"><span class="eyebrow">DAWN BREAKS</span><h2>${name ? `${escape(name)} has fallen.` : 'The village wakes.'}</h2><p>${name ? 'Their remaining Life cards are now public.' : 'No one died tonight.'}</p></div>`;

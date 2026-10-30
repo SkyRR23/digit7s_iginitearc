@@ -74,7 +74,7 @@ function showNext(): void {
       <p class="moment-eyebrow">${escape(moment.eyebrow)}</p><div class="moment-art">${artwork}</div>
       <h2>${escape(moment.title)}</h2>${people || (moment.route ? `<p class="moment-route"><span aria-hidden="true">↓</span> ${escape(moment.route)}</p>` : '')}
       <p class="moment-description">${escape(moment.description)}</p><span class="moment-rule"></span>
-    </div><div class="moment-controls"><small class="moment-pause-note">Gameplay and timer paused · everyone finishes before play resumes</small><button type="button" class="moment-help">Card info ?</button><button type="button" class="moment-hold" aria-pressed="false">Keep open</button><button type="button" class="moment-next">Next <span aria-hidden="true">→</span></button><button type="button" class="moment-skip" aria-label="Dismiss animation">Back to table</button></div>`;
+    </div><div class="moment-controls"><small class="moment-pause-note">${moment.kind === 'victory' ? 'Match ended. Close the verdict to view results.' : 'Gameplay and timer paused &middot; everyone finishes before play resumes'}</small><button type="button" class="moment-help">Card info ?</button><button type="button" class="moment-hold" aria-pressed="false">Keep open</button><button type="button" class="moment-next">Next <span aria-hidden="true">→</span></button><button type="button" class="moment-skip" aria-label="Dismiss animation">${moment.kind === 'victory' ? 'View results' : 'Back to table'}</button></div>`;
   stage.querySelector('.moment-help')?.addEventListener('click',()=>{
     heldForGuide=!paused;if(heldForGuide)stage?.querySelector<HTMLButtonElement>('.moment-hold')?.click();
     document.dispatchEvent(new Event('ashfall:open-guide'));

@@ -1,3 +1,4 @@
+import { matchResult } from './match-result';
 import { cardRequiresOtherPlayer, type ActionKind, type DayIntent, type ProtectionKind, type RoomView } from '@ashfall/shared';
 import { renderActionCard, type TableSelection } from './tabletop-components';
 import { CARD_INFO, cardTitle } from './card-info';
@@ -102,8 +103,8 @@ export function renderDayPanel(root: HTMLElement, view: RoomView | null, blocked
   const phaseText = view.phase === 'NIGHT' ? `Night ${day.dayNumber} · your cards remain` : view.phase === 'DAWN' ? 'Dawn · discard reshuffles' : active
     ? selectedCardKind ? mode === 'global' ? 'All living players are affected' : mode === 'two' && first ? 'Choose SECOND player' : 'Choose a highlighted player' : 'Drag a card · or tap to select'
     : `${name(day.activePlayerId)}’s turn`;
-  let content = `<div class="action-dock-heading"><p class="eyebrow">${phaseText}</p><p class="turn-clock"><strong data-deadline="${day.deadline ?? 0}" data-decision-active="${!!day.reveal||!!day.council?.open}"></strong></p><div class="day-buttons">${active ? `<button id="select-all" class="quiet" ${blocked || !view.hand?.length ? 'disabled' : ''}>${selectedCards.length ? 'Cancel selection' : 'Select alike'}</button><button id="draw-cards" class="quiet" ${blocked || day.playedThisTurn || !day.deckCount ? 'disabled' : ''}>Draw ${Math.min(2,day.deckCount)}</button><button id="end-turn" class="primary" ${blocked || (!day.playedThisTurn && day.deckCount > 0) ? 'disabled' : ''}>${day.deckCount ? 'End turn' : 'End day'}</button>` : ''}</div></div>`;
-  if (view.phase === 'GAME_OVER') content += `<div class="outcome"><h2>${day.outcome?.winner === 'HUMAN' ? 'The village survives.' : 'The Ashbound remain.'}</h2></div>`;
+  let content = `<div class="action-dock-heading"><p class="eyebrow">${phaseText}</p><p class="turn-clock"><span aria-hidden="true">TURN</span><strong data-deadline="${day.deadline ?? 0}" data-decision-active="${!!day.reveal||!!day.council?.open}" aria-label="Turn time remaining"></strong></p><div class="day-buttons">${active ? `<button id="select-all" class="quiet" ${blocked || !view.hand?.length ? 'disabled' : ''}>${selectedCards.length ? 'Cancel selection' : 'Select alike'}</button><button id="draw-cards" class="quiet" ${blocked || day.playedThisTurn || !day.deckCount ? 'disabled' : ''}>Draw ${Math.min(2,day.deckCount)}</button><button id="end-turn" class="primary" ${blocked || (!day.playedThisTurn && day.deckCount > 0) ? 'disabled' : ''}>${day.deckCount ? 'End turn' : 'End day'}</button>` : ''}</div></div>`;
+  if (view.phase === 'GAME_OVER') content += `<div class="outcome"><h2>${escape(matchResult(view).title)}</h2></div>`;
   else if (view.hand) {
     const groups = [...new Set(view.hand.map(card => card.kind))].map(kind => ({ kind, cards: view.hand!.filter(card => card.kind === kind) }));
     content += `<div class="hand-heading"><span class="eyebrow">YOUR HAND · ${view.hand.length} cards / ${groups.length} types</span><span class="hand-help">${active ? 'Tap a stack to choose a card. + and − adjust repeatable cards.' : 'Your cards remain yours through night.'}</span></div>
@@ -170,8 +171,9 @@ export function updateDayTimers(): void {
     const deadline = Number(el.dataset.deadline);
     const paused=document.body.classList.contains('table-paused');
     const remaining=document.body.dataset.presentationRemaining;
-    el.textContent = !!currentView?.day?.reveal||!!currentView?.day?.council?.open ? 'Turn paused ? decision in progress' : paused ? `Ⅱ ${remaining ? `${Math.ceil(Number(remaining)/1000)}s` : 'Paused'}` : deadline ? `${Math.max(0,Math.ceil((deadline-Date.now())/1000))}s` : '';
-    el.setAttribute('aria-label',paused?'Timer paused during close-up':'Phase time remaining');
+    const decision = !!currentView?.day?.reveal || !!currentView?.day?.council?.open;
+    el.textContent = decision ? 'PAUSED' : paused ? `Ⅱ ${remaining ? `${Math.ceil(Number(remaining)/1000)}s` : 'Paused'}` : deadline ? `${Math.max(0,Math.ceil((deadline-Date.now())/1000))}s` : '';
+    el.setAttribute('aria-label', decision ? 'Turn timer paused for a decision' : paused ? 'Timer paused during close-up' : el.closest('.turn-clock') ? 'Turn time remaining' : 'Phase time remaining');
   });
   const peek = document.querySelector<HTMLElement>('.whisper-peek');
   if (peek && currentView?.peek && !currentView.presentation && Date.now() >= currentView.peek.expiresAt) peek.remove();

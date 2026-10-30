@@ -29,7 +29,7 @@ export interface DayState {
   outcome: Outcome | null;
 }
 export interface DayEvent {
-  type: 'DAY_STARTED' | 'DRAW' | 'PLAY' | 'TRANSFER' | 'BLOCK' | 'ROLE_BLOCK' | 'REVEAL_PENDING' | 'REVEAL' | 'DEATH' | 'TURN' | 'TURN_SKIPPED' | 'NIGHT' | 'DAWN' | 'WIN' | 'TIMEOUT' | 'DOUBT' | 'CLEANSE' | 'STATUS' | 'VOW' | 'CONSPIRACY' | 'PEEK';
+  type: 'DAY_STARTED' | 'DRAW' | 'PLAY' | 'TRANSFER' | 'BLOCK' | 'ROLE_BLOCK' | 'REVEAL_PENDING' | 'REVEAL' | 'DEATH' | 'TURN' | 'TURN_SKIPPED' | 'NIGHT' | 'DAWN' | 'WIN' | 'TIMEOUT' | 'DOUBT' | 'CLEANSE' | 'STATUS' | 'VOW' | 'CONSPIRACY' | 'PEEK' | 'VOTE_VICTORY';
   actorId?: string; targetId?: string; cardKind?: ActionCard['kind'];
   slot?: number; count?: number; statusKind?: StatusKind; secondTargetId?: string; blocked?: boolean;
 }

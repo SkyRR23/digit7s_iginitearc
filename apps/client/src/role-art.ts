@@ -5,9 +5,11 @@ export const roleDescriptions: Record<string, string> = {
   HERBALIST: 'During Day, set a remedy on one other living player. It blocks one targeted harmful card or night attack. An unused remedy fades at Dawn.',
   GOSSIP: 'Once per match during Day, privately compare the current allegiance of two different living players.',
   HEXER: 'Once per match during Night, suppress an active protection on one other living player for that night.',
-  SCAPEGOAT: 'Win individually only if a completed council vote eliminates you. Accusation reveals and night deaths do not grant your individual victory.',
+  SCAPEGOAT: 'Win individually only if a completed council vote eliminates you. Your victory ends the match for everyone. Accusation reveals and night deaths do not grant your individual victory.',
 };
-export const roleArt = (kind: string) => `/art/roles/${kind.toLowerCase()}.webp`;
+export const roleName = (kind: string) => kind === 'SCAPEGOAT' ? 'Outcast' : kind.replaceAll('_', ' ');
+export const roleArt = (kind: string) => `/art/roles/${kind === 'SCAPEGOAT' ? 'outcast-chained-transparent' : kind.toLowerCase()}.webp`;
+export const lifeArt = (kind: string) => kind === 'HUMAN' ? '/art/roles/good-life-v2.webp' : kind === 'WITCH' ? '/art/roles/evil-life.webp' : roleArt('VILLAGER');
 const paths: Record<string, string> = {
   VILLAGER: '<path d="M19 12h26l-3 37H22zM16 49h32M22 12V8h20v4M26 8a6 6 0 0 1 12 0M23 22h18M25 39l7-13 7 13z"/>',
   ASHBOUND: '<path d="M39 6a25 25 0 1 0 17 39A25 25 0 0 1 39 6Z"/><path d="M35 49c-13-8 3-15 0-27 16 11 18 22 0 27Z"/>',

@@ -72,6 +72,42 @@ try {
   },choice);
   assert.deepEqual(await page.evaluate(()=>(window as unknown as {chosen:number[]}).chosen),[2]);
   await page.waitForTimeout(500);await clear(page);
+  // The voting scene shares the illustrated compositor, supports ten public
+  // avatars, and keeps the sealed ballot available without hidden role data.
+  for(const size of [6,10]) {
+    const council=snapshot();
+    council.players=Array.from({length:size},(_,i)=>({...council.players[0]!,id:`p${i}`,name:`Councilor ${i+1}`}));
+    council.deal!.players=Array.from({length:size},(_,i)=>({...council.deal!.players[0]!,playerId:`p${i}`}));
+    council.day!.council={used:true,open:true,deadline:Date.now()+30000};
+    council.councilVote={dayNumber:2,votesCast:0,required:Math.floor(size/2)+1,yourTargetId:null};
+    for(const viewport of [{width:1440,height:900},{width:390,height:844},{width:844,height:390}]) {
+      await clear(page);await page.setViewportSize(viewport);
+      await page.evaluate(async view=>{const {renderDecisionUI}=await import('/src/decision-ui.ts');renderDecisionUI(view,false,()=>{},id=>{(window as unknown as {ballot:string}).ballot=id;});},council);
+      await page.locator('.council-bell-art img').evaluate((img:HTMLImageElement)=>img.decode());
+      assert.equal(await page.locator('[data-council-choice]').count(),size);
+      assert.equal(await page.locator('.council-avatar svg').count(),size);
+      await page.locator('[data-council-choice="p1"]').click();
+      assert.equal(await page.evaluate(()=>(window as unknown as {ballot:string}).ballot),'p1');
+      assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+      await page.waitForTimeout(1600);
+      await page.screenshot({path:`test-results/cinematic-polish/council-${size}-${viewport.width}.png`});
+    }
+  }
+  await clear(page);await page.setViewportSize({width:1440,height:900});
+  const verdictBefore=snapshot(),verdictAfter=structuredClone(verdictBefore);
+  verdictAfter.phase='GAME_OVER';verdictAfter.day!.outcome={winner:'SCAPEGOAT',reason:'COUNCIL_VOTE',playerId:'p1'};
+  verdictAfter.presentation={id:'scapegoat-verdict',scope:'PUBLIC',awaitingYou:true,until:Date.now()+45000,remainingMs:null,previousPhase:'DAY',events:[{id:'death',type:'DEATH',targetId:'p1'},{id:'winner',type:'VOTE_VICTORY',targetId:'p1'}]};
+  await page.evaluate(async({before,after})=>{const {animateGameMoments}=await import('/src/game-moments.ts');animateGameMoments(before,after,[]);},{before:verdictBefore,after:verdictAfter});
+  await page.locator('#game-moment[data-kind="death"]').waitFor();await page.locator('.moment-next').click();
+  await page.locator('#game-moment[data-kind="victory"]').waitFor();
+  assert.equal(await page.locator('#game-moment h2').textContent(),'Outcast victory');
+  assert.match(await page.locator('#game-moment img').getAttribute('src')??'',/outcast-chained-transparent.webp$/);
+  assert.match(await page.locator('.moment-pause-note').textContent()??'',/Match ended/);
+  assert.equal(await page.locator('.moment-skip').textContent(),'View results');
+  await page.waitForTimeout(1700);await page.locator('.moment-hold').click();
+  await page.screenshot({path:'test-results/cinematic-polish/scapegoat-victory-desktop.png'});
+  await page.setViewportSize({width:390,height:844});await page.screenshot({path:'test-results/cinematic-polish/scapegoat-victory-phone.png'});
+  await clear(page);
   const before=snapshot();before.phase='REVEAL_RESOLUTION';const after=structuredClone(before);after.phase='DAY';
   after.deal!.players[1]!.seals[2]={slot:2,revealed:true,kind:'HUMAN'};
   after.presentation={id:'resume',scope:'PUBLIC',awaitingYou:true,until:Date.now()+45000,remainingMs:50000,previousPhase:'REVEAL_RESOLUTION',events:[{id:'life',type:'REVEAL',targetId:'p1',actorId:'p0',slot:2,count:7}]};

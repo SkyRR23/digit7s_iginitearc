@@ -6,7 +6,7 @@ export const PRESENTATION_DURATION = { card:6500, power:6500, reveal:8000, posit
 export const REVEAL_STAGES = [{ name:'announcement',duration:1600 },{ name:'portrait',duration:6400 }] as const;
 export type PublicMomentKind = Exclude<keyof typeof PRESENTATION_DURATION,'power'>;
 export interface PresentationEvent { type:string; targetId?:string; actorId?:string; slot?:number; cardKind?:ActionKind; secondTargetId?:string }
-export interface PublicMomentStep { kind:PublicMomentKind; duration:number; eventIndex?:number }
+export interface PublicMomentStep { kind:PublicMomentKind; duration:number; eventIndex?:number; count?:number }
 const closeupCards: readonly ActionKind[] = ['EVIDENCE','TESTIMONY','CURSE','COUNCIL_BELL','EAVESDROP','WITNESS','STOCKS','DISPEL','CONSPIRACY','CINDER_SHIFT','SCAPEGOAT','VOW_OF_HEARTS','WHISPER','ASYLUM'];
 
 /** One public plan drives both the authoritative pause and the client's story. */
@@ -16,8 +16,16 @@ export function publicPresentationPlan(previousPhase: RoomView['phase'], next: {
   const validReveal = (event:PresentationEvent) => event.type==='REVEAL' && next.deal?.players.find(player=>player.playerId===event.targetId)?.seals.some(seal=>seal.slot===event.slot&&seal.revealed);
   const hasReveals=events.some(validReveal), seen=new Set<string>(), steps:PublicMomentStep[]=[];
   const add=(kind:PublicMomentKind,eventIndex?:number)=>steps.push({kind,duration:PRESENTATION_DURATION[kind],...(eventIndex===undefined?{}:{eventIndex})});
+  const grouped = new Set<string>();
   events.forEach((event,index)=>{
-    if(event.type==='PLAY'&&event.cardKind&&closeupCards.includes(event.cardKind)&&!hasReveals) add('card',index);
+    if(event.type==='PLAY'&&event.cardKind&&closeupCards.includes(event.cardKind)) {
+      const key = JSON.stringify([event.cardKind,event.actorId,event.targetId,event.secondTargetId]);
+      const count = events.filter(item=>item.type==='PLAY'&&JSON.stringify([item.cardKind,item.actorId,item.targetId,item.secondTargetId])===key).length;
+      if (!grouped.has(key) && (event.cardKind==='EVIDENCE' ? count>1 : !hasReveals)) {
+        steps.push({kind:'card',duration:PRESENTATION_DURATION.card,eventIndex:index,count});
+      }
+      grouped.add(key);
+    }
     if(validReveal(event)) {
       const key=`${event.targetId}:${event.slot}`;
       if(!seen.has(key)) {seen.add(key);add('reveal',index);add('position',index);}

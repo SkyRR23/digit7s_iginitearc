@@ -43,3 +43,18 @@ The shared prompt constraints were hand-drawn high-contrast ink, deep black/ivor
 - `npx tsx tests/digital-ui-browser.ts`: six- and ten-player game, actual chosen-slot reveal, timers, privacy, voting, Night/Dawn, reconnect, and rematch.
 
 Browser captures are under ignored `test-results/cinematic-polish/` and `test-results/digital-ui/`. Tests cover desktop, phone, short landscape, and reduced-motion game layouts. Visual review checks text contrast and card-frame sizing as well as functionality. Physical-device and multi-person playtests remain useful for subjective motion and sound tuning.
+
+
+## Council verdict and victory consistency
+
+A majority Council vote that eliminates a Scapegoat is a terminal public outcome. The server commits the death, named Scapegoat victory, stopped deadlines, and presentation events together. The existing shared presentation plan pauses the death and illustrated portrait victory sequence for all readers; finishing or reconnecting cannot resume the match. All result surfaces use the same public outcome text. The Scapegoat role artwork is public only after this winning verdict.
+
+Council voting reuses the Bell illustration, ink atmosphere, glowing gold accents, condensed heading, public avatar sigils, sealed-ballot feedback, and responsive choices. Keep future phase and result scenes consistent with this compositor and preserve reduced-motion support.
+
+Regression coverage: presentation-enabled Council majority, named outcome and personal results, paused victory events, reconnect and no resumed deadlines; 6/10-player voting captures at desktop, phone and landscape widths, plus Scapegoat portrait victory captures.
+
+## Names and grouped card close-ups
+
+The neutral SCAPEGOAT role is displayed as Outcast and uses a chained portrait. The separate Scapegoat action card retains its name and effect. HUMAN and WITCH Life cards display as Good and Evil, with separate artwork; the Lanternkeeper Life card and its protection remain distinct. Internal identifiers remain unchanged.
+
+The shared presentation plan groups successfully played cards of the same kind, actor, and targets into one counted close-up. A single Evidence card has no close-up. The count comes from approved PLAY events, including partially resolved batches; the server pause and client sequence use the same plan.

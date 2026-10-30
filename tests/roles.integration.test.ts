@@ -204,18 +204,21 @@ describe('server-assigned special roles', () => {
 
   it('lets Scapegoat win only through a completed server-counted council vote', async () => {
     await h.close();
-    h=await createHarness(60000,{now:()=>clock,randomIndex:max=>max-1,dayFactory:(identity,now)=>{
+    h=await createHarness(60000,{presentations:true,now:()=>clock,randomIndex:max=>max-1,dayFactory:(identity,now)=>{
       const result=createDay(identity,originalPrototypePreset,max=>max-1,randomUUID,now);
       result.state.hands[result.state.activePlayerId]![0]!.kind='COUNCIL_BELL';return result;
     }});
     const party = await h.six();
     const host = party[0]!;
     await h.accepted(host, { type: 'setScapegoat', expectedVersion: (await h.sync(host)).version, enabled: true });
+    const finishAll = async () => { for (const client of party) { const view=await h.sync(client); if(view.presentation) await h.accepted(client,{type:'finishPresentation',matchId:view.deal!.matchId,presentationId:view.presentation.id}); } await Promise.all(party.map(h.sync)); };
     await begin(party);
+    await finishAll();
     const actor=party.find(c=>id(c)===c.view!.day!.activePlayerId)!;
     expect(await h.send(actor,{type:'councilVote',matchId:actor.view!.deal!.matchId,dayNumber:1,targetId:id(host)})).toMatchObject({code:'PHASE'});
     await h.accepted(actor,{type:'playCard',matchId:actor.view!.deal!.matchId,turnNumber:actor.view!.day!.turnNumber,gameVersion:actor.view!.day!.version,cardId:actor.view!.hand![0]!.id,targetId:id(actor)});
     await Promise.all(party.map(h.sync));
+    await finishAll();
     const scapegoat = party.find(c => c.view!.role?.kind === 'SCAPEGOAT')!;
     expect(scapegoat.view!.personalResult).toBeNull();
     const targetId = id(scapegoat), matchId = scapegoat.view!.deal!.matchId;
@@ -231,10 +234,31 @@ describe('server-assigned special roles', () => {
     await Promise.all(party.map(h.sync));
     expect(scapegoat.view!.personalResult).toBe('WIN');
     expect(scapegoat.view!.deal!.players.find(p => p.playerId === targetId)?.alive).toBe(false);
-    expect(scapegoat.view!.feed.some(entry => entry.text.includes('SCAPEGOAT VICTORY'))).toBe(true);
+    expect(scapegoat.view!.feed.some(entry => entry.text.includes('OUTCAST VICTORY'))).toBe(true);
     expect(party.filter(c => c !== scapegoat).every(c => c.view!.personalResult !== 'WIN')).toBe(true);
+    for (const client of party) {
+      expect(client.view!.phase).toBe('GAME_OVER');
+      expect(client.view!.day!.outcome).toEqual({winner:'SCAPEGOAT',reason:'COUNCIL_VOTE',playerId:targetId});
+      expect(client.view!.day!.deadline).toBeNull();
+      expect(client.view!.presentation?.events).toContainEqual(expect.objectContaining({type:'VOTE_VICTORY',targetId}));
+    }
+    await finishAll();
+    const turn=scapegoat.view!.day!.turnNumber;
+    clock+=120_000;h.server.store.sweep();
+    await Promise.all(party.map(h.sync));
+    expect(party.every(client=>client.view!.phase==='GAME_OVER'&&client.view!.day!.deadline===null&&client.view!.day!.turnNumber===turn)).toBe(true);
+    const reconnect=await h.connect();
+    await h.accepted(reconnect,{type:'resume',session:scapegoat.session!});
+    expect(reconnect.view!.day!.outcome).toEqual({winner:'SCAPEGOAT',reason:'COUNCIL_VOTE',playerId:targetId});
+    expect(reconnect.view!.personalResult).toBe('WIN');
     const lateVoter = party.slice(4).find(client => client !== scapegoat)!;
     expect(await h.send(lateVoter, { type: 'councilVote', matchId, dayNumber, targetId: id(lateVoter) }))
       .toMatchObject({ code: 'PHASE' });
+    expect(await h.send(lateVoter, { type: 'endTurn', matchId, turnNumber: lateVoter.view!.day!.turnNumber, gameVersion: lateVoter.view!.day!.version }))
+      .toMatchObject({ code: 'PHASE' });
+    const currentHost = id(host) === targetId ? reconnect : host;
+    await h.accepted(currentHost, { type: 'rematch', expectedVersion: (await h.sync(currentHost)).version });
+    expect(currentHost.view!.phase).toBe('LOBBY');
+    expect(currentHost.view!.day).toBeNull();
   });
 });

@@ -39,8 +39,9 @@ export function describeDayEvent(event: DayEvent, state: DayState, name: (id: st
     case 'DAWN': return state.dawn?.deceasedId
       ? `Dawn arrives. ${name(state.dawn.deceasedId)} did not survive the night.`
       : 'Dawn arrives. No one died tonight.';
-    case 'WIN': return state.outcome!.winner === 'HUMAN'
-      ? 'The village wins: every Ashbound Seal has been revealed.' : 'The Ashbound win: every living player is Witch-aligned.';
+    case 'VOTE_VICTORY': return ''; // WIN publishes the completed verdict once.
+    case 'WIN': return state.outcome!.winner === 'SCAPEGOAT' ? `${name(state.outcome!.playerId)} wins as the Outcast. The match has ended.` : state.outcome!.winner === 'HUMAN'
+      ? 'The village wins: every Evil Life card has been revealed.' : 'The Ashbound win: every living player is Witch-aligned.';
     case 'TIMEOUT': return `${actor}’s server deadline expired. The default action was resolved.`;
   }
 }

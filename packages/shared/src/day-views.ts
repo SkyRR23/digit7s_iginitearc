@@ -4,7 +4,8 @@ export type ProtectionKind = 'HEARTHWARD' | 'PIETY' | 'ASYLUM' | 'VOW_OF_HEARTS'
 export type StatusKind = 'BOUND' | 'ASYLUM' | 'PIETY' | 'HEARTHWARD' | 'VOW_HEART' | 'BLACK_CAT';
 export interface PlayerStatus { kind: StatusKind; sourceId: string; duration: 'NEXT_TURN' | 'UNTIL_DAWN' | 'UNTIL_USED'; consumed: boolean; cardId?: string }
 export interface VowLink { playerIds: [string, string]; sourceId: string }
-export interface Outcome { winner: 'HUMAN' | 'WITCH'; reason: 'ALL_WITCH_SEALS_REVEALED' | 'ONLY_WITCHES_ALIVE' }
+export type Outcome = { winner: 'HUMAN' | 'WITCH'; reason: 'ALL_WITCH_SEALS_REVEALED' | 'ONLY_WITCHES_ALIVE' }
+  | { winner: 'SCAPEGOAT'; reason: 'COUNCIL_VOTE'; playerId: string };
 export interface DayView {
   council?: { open: boolean; used: boolean; deadline: number };
   dayNumber: number;

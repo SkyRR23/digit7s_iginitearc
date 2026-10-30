@@ -164,7 +164,7 @@ export class RoomStore {
       case 'setScapegoat':
         this.requireHost(room, player); this.requireOpenLobby(room);
         room.scapegoatEnabled = command.enabled;
-        this.event(room, `Optional Scapegoat ${command.enabled ? 'enabled' : 'disabled'} for the next match.`);
+        this.event(room, `Optional Outcast ${command.enabled ? 'enabled' : 'disabled'} for the next match.`);
         break;
       case 'removeBot': {
         this.requireHost(room, player); this.requireOpenLobby(room);
@@ -493,12 +493,21 @@ export class RoomStore {
     room.day.council!.open=false;
     room.day.deadline=this.now()+room.day.council!.remainingTurnMs;
     const scapegoat = room.roles?.[targetId]?.kind === 'SCAPEGOAT';
-    this.commitDay(room, eliminatePlayer(room.day, targetId, this.now()));
+    const result = eliminatePlayer(room.day, targetId, this.now());
     if (scapegoat) {
       room.roles![targetId]!.individualWin = true;
-      room.effects = [...(room.effects ?? []), { id: randomUUID(), type: 'VOTE_VICTORY' as const, targetId }].slice(-24);
-      this.event(room, `${room.players.find(p => p.id === targetId)?.name ?? 'A player'} was voted out — SCAPEGOAT VICTORY.`);
-    } else this.event(room, `${room.players.find(p => p.id === targetId)?.name ?? 'A player'} was eliminated by council vote.`);
+      result.state.outcome = { winner: 'SCAPEGOAT', reason: 'COUNCIL_VOTE', playerId: targetId };
+      result.state.phase = 'GAME_OVER';
+      result.state.deadline = null;
+      result.state.reveal = null;
+      result.state.pendingReveals = [];
+      result.state.night = null;
+      // The council verdict takes precedence over faction victory from this death.
+      result.events = result.events.filter(event => !['TURN', 'TURN_SKIPPED', 'NIGHT', 'WIN'].includes(event.type));
+      result.events.push({ type: 'VOTE_VICTORY', targetId }, { type: 'WIN' });
+    }
+    this.commitDay(room, result);
+    this.event(room, `${room.players.find(p => p.id === targetId)?.name ?? 'A player'} was ${scapegoat ? 'voted out — OUTCAST VICTORY.' : 'eliminated by council vote.'}`);
     room.voteComplete = true;
   }
 
@@ -592,7 +601,7 @@ export class RoomStore {
       const owner = room.players.find(p => p.id === id); if (owner) owner.privateVersion++;
     }
     if (room.day && room.voteDay !== room.day.dayNumber) { room.votes = {}; room.voteDay = room.day.dayNumber; room.voteComplete = false; }
-    const visualTypes = new Set(['PLAY', 'DRAW', 'DEATH', 'REVEAL_PENDING', 'REVEAL', 'NIGHT', 'DAWN', 'DOUBT', 'CLEANSE', 'STATUS', 'VOW', 'CONSPIRACY', 'TRANSFER', 'BLOCK', 'ROLE_BLOCK', 'TURN_SKIPPED']);
+    const visualTypes = new Set(['PLAY', 'DRAW', 'DEATH', 'REVEAL_PENDING', 'REVEAL', 'NIGHT', 'DAWN', 'DOUBT', 'CLEANSE', 'STATUS', 'VOW', 'CONSPIRACY', 'TRANSFER', 'BLOCK', 'ROLE_BLOCK', 'TURN_SKIPPED', 'VOTE_VICTORY']);
     const newEffects:TableEffect[]=result.events.filter(event => visualTypes.has(event.type)).map(event => ({
       id: randomUUID(), type: event.type as TableEffect['type'],
       ...(event.actorId ? { actorId: event.actorId } : {}), ...(event.targetId ? { targetId: event.targetId } : {}),

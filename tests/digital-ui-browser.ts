@@ -197,7 +197,7 @@ try {
     for (let i=0;i<pages.length;i++) { await phase(pages[i]!,'DAY'); await teamMarkers(pages[i]!,view(i)); }
     assert.equal(await host.locator('.turn-dust i').first().evaluate(el=>getComputedStyle(el).display),'none','Reduced motion removes drifting particles');
     assert.ok(view().presentation,'Day opening pauses the table');
-    const pausedTime=await host.locator('.hud-deadline').textContent();
+    const pausedTime=await host.locator('.turn-clock strong').textContent();
     const pausedTurn=view().day!.turnNumber;
     assert.equal(await host.locator('#draw-cards').isDisabled(),true);
     await host.locator('.moment-skip').click();
@@ -205,8 +205,32 @@ try {
     assert.equal(await host.locator('#draw-cards').isDisabled(),true,'One reader cannot resume everyone else');
     offset+=5_000;game.store.sweep();
     assert.equal(view().day!.turnNumber,pausedTurn);
-    assert.equal(await host.locator('.hud-deadline').textContent(),pausedTime,'The visible turn clock does not count down during a close-up');
+    assert.equal(await host.locator('.turn-clock strong').textContent(),pausedTime,'The visible turn clock does not count down during a close-up');
     await finishPresentations(pages);
+    for (const size of [{width:1440,height:900},{width:390,height:844},{width:568,height:320}]) {
+      await host.setViewportSize(size);
+      const timer=host.locator('#day-panel .turn-clock');
+      assert.equal(await timer.isVisible(),true,'The Day turn clock is visible beside the hand');
+      await host.waitForFunction(()=>/\d+s/.test(document.querySelector('.turn-clock strong')?.textContent ?? ''));
+      const badge=await timer.boundingBox(), hand=await host.locator('#day-panel').boundingBox();
+      assert.ok(badge && hand && badge.x>=0 && badge.x+badge.width<=size.width && badge.y>=0 && badge.y+badge.height<=size.height);
+      assert.ok(badge.x>=hand.x-2 && badge.x<hand.x+hand.width,'The clock stays at the hand edge');
+      for (const button of await host.locator('#day-panel .day-buttons button').all()) {
+        const box=await button.boundingBox();
+        if(box) assert.ok(badge.x+badge.width<=box.x || box.x+box.width<=badge.x || badge.y+badge.height<=box.y || box.y+box.height<=badge.y,'The timer does not cover turn controls');
+      }
+      assert.equal(await host.locator('.hud-deadline').count(),0,'The floating Day clock is removed');
+      await noOverflow(host);
+      await host.screenshot({path:`test-results/digital-ui/turn-clock-${capacity}-${size.width}.png`});
+    }
+    await host.setViewportSize({width:1440,height:900});
+    const transparentOutcast=await host.evaluate(async()=>{
+      const img=new Image();img.src='/art/roles/outcast-chained-transparent.webp';await img.decode();
+      const canvas=document.createElement('canvas');canvas.width=img.width;canvas.height=img.height;
+      const context=canvas.getContext('2d')!;context.drawImage(img,0,0);
+      return context.getImageData(0,0,1,1).data[3];
+    });
+    assert.equal(transparentOutcast,0,'Outcast portrait has a transparent background');
     // Role powers use the player table, with a safe, explicit confirmation.
     for (const kind of ['SLEUTH','HERBALIST','GOSSIP']) {
       const owner = views.findIndex(v => v.role?.kind === kind);
@@ -397,7 +421,7 @@ try {
     assert.equal(view().day!.players.find(p=>p.playerId===id(2))!.doubt,0);
     const revealedBadge = host.locator(`#seats [data-player="${id(2)}"] .revealed-life-badge`).first();
     await revealedBadge.focus(); await host.locator('#life-inspection[role="tooltip"]').waitFor();
-    assert.match(await host.locator('#life-inspection h3').textContent() ?? '', /Villager|Ashbound|Lanternkeeper/);
+    assert.match(await host.locator('#life-inspection h3').textContent() ?? '', /Good|Evil|Lanternkeeper/);
     await host.keyboard.press('Escape'); await revealedBadge.click();
     await host.locator('#life-inspection[role="dialog"]').waitFor();
     await host.locator('.life-inspection-close').click();

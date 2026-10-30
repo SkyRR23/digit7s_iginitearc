@@ -14,6 +14,35 @@ function snapshot(): RoomView {
   };
 }
 describe('public animation story', () => {
+  it('shows a public Scapegoat portrait victory through the server presentation plan',()=>{
+    const before=snapshot(),after=structuredClone(before);
+    after.phase='GAME_OVER';
+    after.day!.outcome={winner:'SCAPEGOAT',reason:'COUNCIL_VOTE',playerId:'b'};
+    const effects:TableEffect[]=[{id:'death',type:'DEATH',targetId:'b'},{id:'win',type:'VOTE_VICTORY',targetId:'b'}];
+    const moments=publicMoments(before,after,effects);
+    expect(moments.map(moment=>moment.kind)).toEqual(['death','victory']);
+    expect(moments[1]).toMatchObject({title:'Outcast victory',art:'/art/roles/outcast-chained-transparent.webp',duration:8000,heavy:true});
+    expect(moments[1]!.description).toContain('River');
+    expect(moments[1]!.description).toContain('match has ended');
+    expect(JSON.stringify(moments)).not.toContain('SECRET INVESTIGATION');
+    expect(publicMoments(after,after,[])).toEqual([]);
+  });
+  it('groups successfully played Evidence and skips a single Evidence close-up',()=>{
+    const view=snapshot();
+    const played=(id:string):TableEffect=>({id,type:'PLAY',cardKind:'EVIDENCE',actorId:'a',targetId:'b'});
+    expect(publicMoments(view,view,[played('one')])).toEqual([]);
+    const moments=publicMoments(view,view,[played('one'),played('two'),played('three')]);
+    expect(moments).toHaveLength(1);
+    expect(moments[0]).toMatchObject({kind:'card',title:'Evidence \u00d73',duration:6500});
+    expect(moments[0]!.description).toContain('3 cards played');
+    const five=publicMoments(view,view,Array.from({length:5},(_,i)=>played(String(i))));
+    expect(five).toHaveLength(1);
+    expect(five[0]!.title).toBe('Evidence ×5');
+    const interrupted=structuredClone(view);interrupted.deal!.players[1]!.seals[0]={slot:0,revealed:true,kind:'HUMAN'};
+    const partial=publicMoments(view,interrupted,[played('one'),played('two'),{id:'reveal',type:'REVEAL',targetId:'b',slot:0}]);
+    expect(partial[0]).toMatchObject({title:'Evidence ×2'});
+    expect(partial.some(moment=>moment.kind==='reveal')).toBe(true);
+  });
   it('resumes the hunt once after a continuing reveal without announcing a new day',()=>{
     const before=snapshot(),after=structuredClone(before);before.phase='REVEAL_RESOLUTION';
     after.deal!.players[1]!.seals[0]={slot:0,revealed:true,kind:'HUMAN'};
@@ -52,7 +81,7 @@ describe('public animation story', () => {
     const reveal=moments[0]!;
     expect(reveal).toMatchObject({kind:'reveal',sealKind:'HUMAN',reveal:{playerId:'b',slot:2,eliminated:false,reason:'Seven Doubt'}});
     expect(renderLifeReveal(reveal,'announcement')).not.toContain('<img');
-    expect(renderLifeReveal(reveal,'portrait')).toContain('/art/roles/villager.webp');
+    expect(renderLifeReveal(reveal,'portrait')).toContain('/art/roles/good-life-v2.webp');
     expect(renderLifeReveal(reveal,'portrait')).toContain('still alive');
     const positions=renderLifeReveal(reveal,'position');
     expect(positions).toContain('Life card 3 · middle');
