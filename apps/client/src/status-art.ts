@@ -1,5 +1,5 @@
 const paths: Record<string,string> = {
-  BLACK_CAT: '<path d="M8 15 5 3l9 6h4l9-6-3 12c5 9-1 14-8 14S3 24 8 15Z" fill="#16121e"/><path d="m9 17 4 1m6 0 4-1M13 23l3 2 3-2M3 20l7 1m12 0 7-1" stroke="#d7b9f2"/>',
+  BLACK_CAT: '<circle cx="16" cy="16" r="13"/><path d="m16 4 10 18H6Zm0 24L6 10h20ZM16 9l3 5-3 3 2 6"/>',
   BOUND: '<path d="m10 19 9-9m-4 14 9-9"/><rect x="3" y="11" width="16" height="10" rx="5" transform="rotate(-45 11 16)"/><rect x="13" y="1" width="16" height="10" rx="5" transform="rotate(-45 21 6)"/>',
   ASYLUM: '<path d="M21 3A13 13 0 1 0 29 24 13 13 0 0 1 21 3Z"/>',
   PIETY: '<circle cx="16" cy="16" r="8"/><path d="M16 1v4m0 22v4M1 16h4m22 0h4M5 5l3 3m16 16 3 3M5 27l3-3M24 8l3-3"/>',

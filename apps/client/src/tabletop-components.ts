@@ -60,7 +60,7 @@ const statusInfo = {
   PIETY: ['✦','Blessed: blocks the next Evidence or Witness.'],
   HEARTHWARD: ['♨','Warded: blocks the next Whisper.'],
   VOW_HEART: ['♥','Linked Heart: direct Doubt from a played card shares one Doubt with each other Heart holder. Lasts until Dispel removes this Heart or this player dies.'],
-  BLACK_CAT: ['◆','Black Cat curse: Conspiracy reveals one random hidden Life card on this player before Life cards shift. Scapegoat moves the curse; Dispel removes it.'],
+  BLACK_CAT: ['◆','Curse: Conspiracy reveals one random hidden Life card on this player before Life cards shift. Scapegoat moves the curse; Dispel removes it.'],
 } as const;
 
 export function renderPlayerSeat(view: RoomView, player: PublicPlayer, absoluteIndex: number,
@@ -146,7 +146,7 @@ export function renderActionCard(card: ActionCard, selected: boolean, disabled: 
   index: number, handSize: number, copies = 1, selectedCopies = 0): string {
   const title = cardTitle(card.kind);
   const detail: Record<ActionCard['kind'], string> = {
-    EVIDENCE: '+1 Doubt', TESTIMONY:'+3 Doubt', CURSE:'Attach Black Cat', COUNCIL_BELL:'Call council vote', EAVESDROP:'Inspect playable hand', WITNESS: 'Reveal a Life card', ALIBI: 'Remove 2 Doubt', STOCKS: 'Skip next turn',
+    EVIDENCE: '+1 Doubt', TESTIMONY:'+3 Doubt', CURSE:'Place a Curse', COUNCIL_BELL:'Call council vote', EAVESDROP:'Inspect a player’s hand', WITNESS: 'Reveal a Life card', ALIBI: 'Remove 2 Doubt', STOCKS: 'Skip next turn',
     ASYLUM: 'Night shield', PIETY: 'Bless one player', DISPEL: 'Break protection', MERCY: 'Cleanse and unbind',
     SCAPEGOAT: 'Transfer all Doubt & effects', VOW_OF_HEARTS: 'Give one Heart', CONSPIRACY: 'Shift hidden lives',
     WHISPER: 'Secret insight', HEARTHWARD: 'Block one Whisper', CINDER_SHIFT: 'Random Life swap',
