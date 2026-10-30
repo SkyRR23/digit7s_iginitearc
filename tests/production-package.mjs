@@ -7,6 +7,10 @@ import {io} from 'socket.io-client';
 import {chromium} from 'playwright';
 const root=path.resolve(process.argv[2]);const origin='http://127.0.0.1:5194';
 const manifest=JSON.parse(fs.readFileSync(path.join(root,'release.json'),'utf8'));
+const packageLock=JSON.parse(fs.readFileSync(path.join(root,'package-lock.json'),'utf8'));
+assert.ok(!packageLock.packages['node_modules/@ashfall/shared'].link,'Shared runtime must be installed as a package, not a host-dependent link');
+assert.equal(fs.lstatSync(path.join(root,'node_modules/@ashfall/shared')).isSymbolicLink(),false);
+assert.equal(JSON.parse(fs.readFileSync(path.join(root,'server/package.json'),'utf8')).type,'module');
 for(const file of manifest.files)assert.equal(createHash('sha256').update(fs.readFileSync(path.join(root,file.path))).digest('hex'),file.sha256,file.path);
 const child=spawn(process.execPath,['app.js'],{cwd:root,env:{...process.env,PORT:'5194',ALLOWED_ORIGINS:origin},stdio:['ignore','pipe','pipe']});
 let log='';child.stdout.on('data',d=>{log+=d;});child.stderr.on('data',d=>{log+=d;});const clients=[];let browser;
@@ -15,6 +19,7 @@ async function connect(transport){const socket=io(origin,{transports:[transport]
 async function finish(party){for(let round=0;round<3;round++){for(const c of party){await command(c,{type:'sync'});const v=c.view;if(v.presentation?.awaitingYou)await command(c,{type:'finishPresentation',matchId:v.deal.matchId,presentationId:v.presentation.id});}}}
 try{
  for(let i=0;i<80;i++){try{if((await fetch(origin+'/health')).ok)break;}catch{}await new Promise(r=>setTimeout(r,100));if(i===79)throw new Error(log);}
+ assert.ok(!log.includes('MODULE_TYPELESS_PACKAGE_JSON'),log);
  const html=await fetch(origin).then(r=>r.text());assert.ok(html.includes('Ashfall Council'));
  for(const file of manifest.files.filter(f=>f.path.startsWith('public/'))){const response=await fetch(origin+'/'+file.path.slice(7));assert.equal(response.status,200,file.path);}
  assert.equal((await fetch(origin+'/package.json')).status,404);assert.equal((await fetch(origin+'/%2e%2e%2fpackage.json')).status,403);
