@@ -4,12 +4,14 @@ import { CommandSchema, type ClientEvents, type ServerEvents } from '@ashfall/sh
 import { RoomStore } from './rooms.js';
 import type { BotRuntimeOptions, IdentityFactory } from './rooms.js';
 import type { DayFactory } from './day-runtime.js';
+import { serveStatic } from './static.js';
 
 // Clock/factory injection is for trusted in-process tests, never a browser setting.
 export function createGameServer(options: { graceMs?: number; sweepMs?: number; botTickMs?: number; now?: () => number;
   dayFactory?: DayFactory; identityFactory?: IdentityFactory; randomIndex?: (max: number) => number;
-  bots?: BotRuntimeOptions; rateLimit?: boolean; presentations?:boolean } = {}) {
+  bots?: BotRuntimeOptions; rateLimit?: boolean; presentations?:boolean; staticDir?:string } = {}) {
   const http = createServer((req, res) => {
+    if(options.staticDir && req.url?.split('?')[0]!=='/health') {void serveStatic(options.staticDir,req,res);return;}
     res.setHeader('Content-Type', 'application/json');
     res.setHeader('Cache-Control', 'no-store');
     res.writeHead(req.url === '/health' ? 200 : 404);

@@ -6,3 +6,4 @@ dist/
 test-results/
 *.log
 .npm-cache/
+release/

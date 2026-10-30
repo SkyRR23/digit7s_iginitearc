@@ -1,0 +1,25 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import {execFileSync} from 'node:child_process';
+import crypto from 'node:crypto';
+const commit=execFileSync('git',['rev-parse','--short=12','HEAD'],{encoding:'utf8'}).trim();
+const root=path.resolve('release',`AshfallCouncil-${commit}`);
+if(fs.existsSync(root))throw new Error('Release folder already exists; preserve it and use a new source commit.');
+fs.mkdirSync(root,{recursive:true});
+fs.cpSync('apps/client/dist',path.join(root,'public'),{recursive:true});
+fs.cpSync('apps/server/dist',path.join(root,'server'),{recursive:true,filter:p=>fs.statSync(p).isDirectory()||p.endsWith('.js')});
+fs.mkdirSync(path.join(root,'packages/shared'),{recursive:true});
+fs.cpSync('packages/shared/dist',path.join(root,'packages/shared/dist'),{recursive:true,filter:p=>fs.statSync(p).isDirectory()||p.endsWith('.js')});
+const shared=JSON.parse(fs.readFileSync('packages/shared/package.json','utf8'));delete shared.scripts;
+shared.dependencies.zod=JSON.parse(fs.readFileSync('node_modules/zod/package.json','utf8')).version;
+fs.writeFileSync(path.join(root,'packages/shared/package.json'),JSON.stringify(shared,null,2));
+fs.copyFileSync('deployment/app.js',path.join(root,'app.js'));
+fs.writeFileSync(path.join(root,'package.json'),JSON.stringify({name:'ashfall-council-production',version:'0.1.0',private:true,engines:{node:'>=22.12.0'},scripts:{start:'node app.js'},dependencies:{'@ashfall/shared':'file:packages/shared','socket.io':JSON.parse(fs.readFileSync('node_modules/socket.io/package.json','utf8')).version}},null,2));
+// A self-contained production lockfile, not the development workspace lockfile.
+execFileSync(process.env.ComSpec??'cmd.exe',['/d','/s','/c','npm.cmd install --package-lock-only --ignore-scripts --omit=dev'],{cwd:root,stdio:'inherit'});
+const walk=d=>fs.readdirSync(d,{withFileTypes:true}).flatMap(e=>e.isDirectory()?walk(path.join(d,e.name)):[path.join(d,e.name)]);
+const files=walk(root);const manifest=files.map(p=>({path:path.relative(root,p).replaceAll('\\','/'),bytes:fs.statSync(p).size,sha256:crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex')}));
+fs.writeFileSync(path.join(root,'release.json'),JSON.stringify({sourceCommit:commit,files:manifest},null,2));
+const code='import sys,zipfile;from pathlib import Path;r=Path(sys.argv[1]);out=Path(sys.argv[2]);z=zipfile.ZipFile(out,"w",zipfile.ZIP_DEFLATED);[z.write(p,p.relative_to(r).as_posix()) for p in r.rglob("*") if p.is_file()];z.close()';
+for(const suffix of ['cPanel','Competition'])execFileSync('python',['-c',code,root,`${root}-${suffix}.zip`]);
+console.log(JSON.stringify({root,sourceCommit:commit,files:files.length,bytes:manifest.reduce((n,f)=>n+f.bytes,0),zipBytes:fs.statSync(`${root}-cPanel.zip`).size},null,2));

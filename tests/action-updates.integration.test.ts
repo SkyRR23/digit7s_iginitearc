@@ -31,8 +31,9 @@ describe('interactive action privacy and presentation synchronization',()=>{
     expect(await h.send(actor,{type:'revealSeal',matchId:actor.view!.deal!.matchId,turnNumber:actor.view!.day!.turnNumber,gameVersion:actor.view!.day!.version,slot:3})).toMatchObject({code:'CINEMATIC'});
     await finish(party);expect(actor.view!.day!.deadline).toBe(clock+10000);
     const v=actor.view!;
-    await h.accepted(actor,{type:'revealSeal',matchId:v.deal!.matchId,turnNumber:v.day!.turnNumber,gameVersion:v.day!.version,slot:3});
-    expect(actor.view!.deal!.players.find(p=>p.playerId===target.session!.playerId)!.seals[3]!.revealed).toBe(true);
+    const safeSlot=target.view!.private!.identities.find(card=>card.kind==='HUMAN')!.slot;
+    await h.accepted(actor,{type:'revealSeal',matchId:v.deal!.matchId,turnNumber:v.day!.turnNumber,gameVersion:v.day!.version,slot:safeSlot});
+    expect(actor.view!.deal!.players.find(p=>p.playerId===target.session!.playerId)!.seals[safeSlot]!.revealed).toBe(true);
     expect(actor.view!.presentation?.remainingMs).toBe(60000);
   });
   it('sends a hand inspection only to its owner and revokes the snapshot on death',async()=>{
