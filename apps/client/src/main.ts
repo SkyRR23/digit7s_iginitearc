@@ -1,3 +1,4 @@
+import {audio} from './audio';
 import { renderDecisionUI, updateDecisionTimers } from './decision-ui';
 import './decision-ui.css';
 import { AVATARS, canStart, type Avatar, type BotDifficulty, type Command, type DayIntent, type RoomView } from '@ashfall/shared';
@@ -205,6 +206,7 @@ function render(next: RoomView): void {
   const previous = view;
   const positions = captureTablePositions();
   view = next;
+  audio.setScene(next.phase==='GAME_OVER'?'result':next.phase==='LOBBY'?'lobby':next.phase==='DAY'||next.phase==='PRIVATE_DEAL'?'day':'night');
   element('entry').hidden = true;
   element('lobby').hidden = false;
   const inGame = !!next.deal || !!next.day;
@@ -272,6 +274,7 @@ function clearSeat(): void {
   connectionEpoch++; busy = false; recovering = false;
   coverPrivateIdentities();
   document.body.classList.remove('game-screen');
+  audio.setScene('menu');
   session = null; saveSession(null); view = null;
   updatePresentationUI(null); renderDecisionUI(null,true,()=>{},()=>{});
   element('entry').hidden = false; element('lobby').hidden = true; element('feed').replaceChildren(); element('event-feed').replaceChildren();

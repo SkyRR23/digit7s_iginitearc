@@ -1,9 +1,10 @@
+import {audio, cardSound} from './audio';
 import type { RoomView, TableEffect } from '@ashfall/shared';
 import { MOMENT_DURATION, REVEAL_STAGES, publicMoments, type GameMoment } from './moment-script';
 import { renderLifeReveal } from './life-reveal';
 import { phaseIcon } from './phase-ui';
 import { roleArt } from './role-art';
-import { gameSoundEnabled, reducedGameMotion } from './game-preferences';
+import { reducedGameMotion } from './game-preferences';
 import { lifeSymbol } from './life-details';
 import { emblem } from './art';
 
@@ -14,6 +15,7 @@ let match = '';
 let activePresentationId='';
 let handledPresentationId='';
 let heldForGuide=false;
+let resultCue: 'victory'|'defeat' = 'victory';
 function finishedPresentation():void {
   const id=activePresentationId;activePresentationId='';
   if(id)document.dispatchEvent(new CustomEvent('ashfall:presentation-finished',{detail:{id}}));
@@ -93,13 +95,10 @@ function showNext(): void {
     else if (scheduled) schedule(scheduled, remaining);
   });
   document.body.append(stage);
-  if(moment.title==='Council Bell'&&gameSoundEnabled()) {
-    try {
-      const audio=new AudioContext();const gain=audio.createGain();gain.connect(audio.destination);gain.gain.setValueAtTime(.12,audio.currentTime);gain.gain.exponentialRampToValueAtTime(.001,audio.currentTime+2);
-      for(const frequency of [440,660,880]) { const tone=audio.createOscillator();tone.frequency.value=frequency;tone.connect(gain);tone.start();tone.stop(audio.currentTime+2); }
-      setTimeout(()=>void audio.close(),2200);
-    } catch { /* Sound is optional when audio is unavailable. */ }
-  }
+  if(moment.kind==='card')audio.play(cardSound(moment.cardKind));
+  else if(moment.kind==='death')audio.play('death');
+  else if(moment.kind==='phase')audio.play(moment.phase==='DAY'?'dawn':'night');
+  else if(moment.kind==='victory')audio.play(resultCue);
   if (moment.heavy && !quiet) {
     document.getElementById('action-spotlight')?.animate([
       { transform: 'translate(0,0)' }, { transform: 'translate(-3px,1px)', offset: .2 },
@@ -111,6 +110,7 @@ function showNext(): void {
     const renderStep = (index: number) => {
       const step = REVEAL_STAGES[index]; if (!step || !stage) { showNext(); return; }
       stage.dataset.revealStage = step.name;
+      if(index===1)audio.play('reveal');
       stage.querySelector('.moment-content')!.innerHTML = renderLifeReveal(moment, step.name);
       schedule(() => renderStep(index + 1), step.duration);
     };
@@ -125,6 +125,9 @@ function showNext(): void {
   }
 }
 export function animateGameMoments(previous: RoomView | null, next: RoomView, effects: TableEffect[]): void {
+  const outcome=next.day?.outcome;
+  resultCue=outcome?.winner==='SCAPEGOAT'?(outcome.playerId===next.you?.playerId?'victory':'defeat')
+    : outcome&&next.private?((outcome.winner==='WITCH')===next.private.everWitch?'victory':'defeat'):'victory';
   const id = next.deal?.matchId ?? '';
   if(!previous||!id||id!==match){activePresentationId='';handledPresentationId='';resetMoments();match=id;}
   if(next.presentation!==undefined) {

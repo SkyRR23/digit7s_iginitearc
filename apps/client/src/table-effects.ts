@@ -1,9 +1,11 @@
+import {audio, cardSound} from './audio';
+import {publicMoments} from './moment-script';
 import { type RoomView, type TableEffect } from '@ashfall/shared';
 import { emblem } from './art';
 import { lifeHeart } from './tabletop-components';
 import { cardArt } from './card-info';
 import { animateGameMoments } from './game-moments';
-import { gameSoundEnabled, reducedGameMotion } from './game-preferences';
+import { reducedGameMotion } from './game-preferences';
 
 type Point = { x: number; y: number };
 export type TablePositions = Map<string, Point>;
@@ -25,31 +27,7 @@ export function captureTablePositions(): TablePositions {
 }
 let seen = new Set<string>();
 let currentMatch = '';
-let soundContext: AudioContext | null = null;
-function sound(kind: 'stamp' | 'cleanse'): void {
-  if (!gameSoundEnabled()) return;
-  try {
-    soundContext ??= new AudioContext();
-    if (soundContext.state !== 'running') return;
-    const oscillator = soundContext.createOscillator();
-    const gain = soundContext.createGain();
-    const time = soundContext.currentTime;
-    oscillator.type = kind === 'stamp' ? 'triangle' : 'sine';
-    oscillator.frequency.setValueAtTime(kind === 'stamp' ? 165 : 560, time);
-    oscillator.frequency.exponentialRampToValueAtTime(kind === 'stamp' ? 65 : 920, time + .16);
-    gain.gain.setValueAtTime(.0001, time);
-    gain.gain.exponentialRampToValueAtTime(kind === 'stamp' ? .12 : .045, time + .008);
-    gain.gain.exponentialRampToValueAtTime(.0001, time + (kind === 'stamp' ? .18 : .28));
-    oscillator.connect(gain).connect(soundContext.destination);
-    oscillator.start(time); oscillator.stop(time + .3);
-  } catch { /* Audio is decorative; muted browsers still play the game. */ }
-}
-document.addEventListener('pointerdown', () => {
-  try {
-    soundContext ??= new AudioContext();
-    if (soundContext.state === 'suspended') void soundContext.resume();
-  } catch { /* Browser audio may be unavailable. */ }
-}, { passive: true });
+const sound = (kind: 'stamp' | 'cleanse') => audio.play(kind);
 function label(text: string, targetId?: string, kind = ''): void {
   const seat = targetId ? document.querySelector<HTMLElement>(`[data-player="${targetId}"]`) : null;
   const item = document.createElement('span'); item.className = `effect-label ${kind}`;
@@ -114,6 +92,7 @@ export function animateTableChanges(previous: RoomView | null, next: RoomView, b
   const match = next.deal?.matchId ?? '';
   if (!previous || match !== currentMatch) { currentMatch = match; seen = new Set(next.effects?.map(effect => effect.id)); animateGameMoments(null, next, []); return; }
   const effects = (next.effects ?? []).filter(effect => !seen.has(effect.id));
+  const closeupCards=new Set(publicMoments(previous,next,effects).filter(moment=>moment.kind==='card').map(moment=>moment.cardKind));
   animateGameMoments(previous, next, effects);
   for (const effect of next.effects ?? []) seen.add(effect.id);
   if (seen.size > 200) seen = new Set(next.effects?.map(effect => effect.id));
@@ -130,6 +109,7 @@ export function animateTableChanges(previous: RoomView | null, next: RoomView, b
   effects.forEach((effect, index) => {
     const delay = Math.min(index * 135, 1800);
     if (effect.type === 'PLAY') {
+      if(!closeupCards.has(effect.cardKind))setTimeout(()=>audio.play(cardSound(effect.cardKind)),delay);
       const own = effect.actorId === next.you?.playerId ? removed.find(card => card.kind === effect.cardKind) : undefined;
       if (own) removed.splice(removed.indexOf(own), 1);
       const target = effect.cardKind === 'CONSPIRACY' ? { x: innerWidth/2, y: innerHeight*.4 } : after.get(effect.targetId ?? '');
@@ -148,9 +128,11 @@ export function animateTableChanges(previous: RoomView | null, next: RoomView, b
       if (effect.cardKind === 'DISPEL' && !blockedTargets.has(effect.targetId)) setTimeout(() => label(`REMOVED: ${effects.filter(item=>item.type==='STATUS'&&item.targetId===effect.targetId&&item.count===0).map(item=>item.statusKind==='BLACK_CAT'?'CURSE':item.statusKind==='VOW_HEART'?'VOW OF HEARTS':item.statusKind?.replaceAll('_',' ')).filter(Boolean).join(', ')}`, effect.targetId, 'danger'), delay + 580);
       if (effect.cardKind === 'SCAPEGOAT') setTimeout(() => label('DOUBT TRANSFERRED', effect.secondTargetId, 'danger'), delay + 700);
     } else if (effect.type === 'DRAW') {
+      setTimeout(()=>audio.play('draw'),delay);
       for (let i = 0; i < (effect.count ?? 2); i++) fly(before.get('draw'), undefined,
         effect.actorId === next.you?.playerId ? { x: innerWidth / 2 + i * 24, y: innerHeight - 100 } : after.get(effect.actorId ?? ''), effect, delay + i * 140);
     } else if (effect.type === 'DEATH') {
+      if(!next.presentation)audio.play('death');
       pulse(effect.targetId, 'death-impact');
       const notice = document.createElement('div'); notice.className = 'fallen-announcement'; notice.setAttribute('role', 'status');
       const cross = document.createElement('span'); cross.textContent = '×'; cross.setAttribute('aria-hidden', 'true');

@@ -1144,3 +1144,9 @@ select:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
   .notice { bottom: max(12px, env(safe-area-inset-bottom)); }
   main { padding-bottom: env(safe-area-inset-bottom); }
 }
+
+/* Audio preferences remain separate from gameplay controls. */
+#audio-settings{color:#eee7d6;background:#10151a;border:1px solid #a59576;border-radius:6px;padding:24px;width:min(420px,calc(100vw - 32px));max-height:85dvh;overflow:auto}
+#audio-settings::backdrop{background:#000a;backdrop-filter:blur(3px)}
+#audio-settings input{display:block;width:100%;min-height:44px;accent-color:#ae2536}
+.game-preferences{flex-wrap:wrap}

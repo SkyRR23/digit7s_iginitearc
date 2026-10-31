@@ -1,5 +1,7 @@
 # Ashfall Council
 
+Continuing on another PC/account? Start with [the latest library-PC handover](docs/SCHOOL_LIBRARY_HANDOFF.md).
+
 An original folk-horror social deduction game in development for Digit7 Jam 2026.
 **Playable vertical slice:** six to ten mixed human/server-bot seats, secure private Life cards, day turns,
 18 action card types, seven-Doubt accusations, accuser-chosen ten-second Life reveals, deaths, and both victory checks.
@@ -7,8 +9,8 @@ Server-owned deadlines keep turns, reveals and Night moving. Secret Witch votes,
 Constable protection, dawn deaths and the next day now complete the gameplay loop.
 Forfeit rules, rematch lobbies, reconnect recovery and mobile controls are now
 implemented. Easy and Normal rule-based bots use the same authoritative command
-path as humans. Provider-neutral voice permissions are defined, while audio remains
-optional and unconfigured. Physical-device and six-human playtests remain.
+path as humans. Voice chat remains postponed. Optional procedural atmospheric audio includes phase crossfades,
+card effects and persistent independent volume controls. Physical-device and six-human playtests remain.
 
 This separate workspace preserves the existing Broken Drum prototypes.
 
@@ -229,3 +231,9 @@ strict TypeScript and unused-symbol checks are configured.
 See [architecture](docs/ARCHITECTURE.md), [rules provenance](docs/RULES_REFERENCE_VS_ORIGINAL.md),
 [build plan](docs/BUILD_PLAN.md), [voice design](docs/VOICE_PHASE2.md), and
 [server-controlled bot design](docs/TESTING_BOTS.md).
+
+## Soundscape
+
+Interact once with the page to enable browser audio. Use **Sound: On/Off** for mute or **Audio settings** for Master, Music, Ambience and Sound Effects. Audio suspends in background tabs. No microphone access is used.
+
+See [audio implementation](AUDIO_IMPLEMENTATION_REPORT.md), [asset inventory](AUDIO_ASSET_CREDITS.csv), and [licensing evidence](AUDIO_LICENSES.md). Run `node tests/audio-browser.mjs` for browser audio lifecycle checks.

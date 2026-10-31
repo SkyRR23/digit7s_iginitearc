@@ -9,3 +9,7 @@ Prepared 30 October 2026. **Team confirmation required; this is not a signed dec
 - **Influences:** Salem 1692 rules informed the design; dark woodcut/chibi/occult visual references and Darkest Dungeon impact/chained-character direction informed art discussions. The audit identifies substantial Salem similarity risk; inspiration is disclosed and not offered as a license or eligibility waiver.
 
 Before submitting, the team must supply: registered team and reviewer names, confirmed tools/models and affected assets where recorded, source-generation records, rights/terms supporting lawful use, actual human review/modification summary, final release commit and test evidence. The team must resolve the originality concerns before signing an unconditional ownership/originality declaration.
+
+## Atmospheric audio update ? 30 October 2026
+
+Codex assisted in writing `apps/client/src/audio.ts`, its UI/event integrations, audio browser tests and audio documentation. All current audio is runtime programmatic synthesis using Web Audio oscillators, envelopes, filtered random noise and amplitude modulation. No downloaded audio or AI-generated audio recordings/models were used. Human requirements and direction are supplied in this conversation; final human listening review and legal/project ownership confirmation remain pending. See root AUDIO_ASSET_CREDITS.csv, AUDIO_IMPLEMENTATION_REPORT.md and AUDIO_LICENSES.md for actual assets, triggers and evidence.

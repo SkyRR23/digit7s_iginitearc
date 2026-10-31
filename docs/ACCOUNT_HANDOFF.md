@@ -1,5 +1,7 @@
 # Ashfall Council — account and GitHub handoff
 
+**Latest continuation:** read [SCHOOL_LIBRARY_HANDOFF.md](SCHOOL_LIBRARY_HANDOFF.md) first (31 October 2026). This older record includes superseded names, timings, deck descriptions and Git/hosting state. The latest handover also records procedural audio and the owner's unconfirmed Myanmar-theme exploration.
+
 Use this file when continuing development from another Codex account. It records the project state and the design decisions from the original conversation. The repository is the source of truth for implementation details; inspect it before making changes.
 
 The October 29 action update in `docs/ACTION_UPDATES.md` supersedes the older random-reveal and always-open-voting descriptions below. Read it before changing rules.
