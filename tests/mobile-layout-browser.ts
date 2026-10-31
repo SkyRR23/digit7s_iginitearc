@@ -76,6 +76,8 @@ try {
     assert.equal(await page.locator('.life-identity-art').count(),5);
     await page.screenshot({path:`test-results/mobile-layout/opening-${capacity}.png`});
     await page.locator('#acknowledge').click();
+    await game.finishOpening(party.slice(1),party[0]!);
+    if(await page.locator('#curse-target').isVisible()){await page.locator('#curse-target').selectOption(party[0]!.session!.playerId);await page.locator('#curse-seal').click();}
     await page.locator('#lobby[data-phase="DAY"]').waitFor();
     await page.locator('#mobile-nav').waitFor({state:'visible'});
     assert.equal(await page.locator('#seats .table-seat:visible').count(),capacity);

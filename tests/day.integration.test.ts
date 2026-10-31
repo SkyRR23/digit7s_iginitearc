@@ -17,11 +17,8 @@ afterEach(async () => h.close());
 async function begin(capacity = 6, safeOpening = false) {
   const party = await h.party(capacity);
   await h.start(party,!safeOpening);
-  if(safeOpening) {
-    const target=party.find(client=>client.view!.private!.identities.every(card=>card.kind==='HUMAN'))!;
-    for(const client of party)if(client.view!.blackCatChoice)await h.accepted(client,{type:'chooseBlackCat',matchId:client.view!.deal!.matchId,targetId:target.session!.playerId});
-  }
   await Promise.all(party.map(client => h.accepted(client, { type:'acknowledgeDeal', matchId:client.view!.deal!.matchId })));
+  if(safeOpening)await h.finishOpening(party,party.find(client=>client.view!.private!.identities.every(card=>card.kind==='HUMAN'))!);
   await Promise.all(party.map(h.sync));
   return party;
 }

@@ -86,14 +86,12 @@ is never silently replaced by a bot.
    allegiance and ability independently. Living Cultist players know their living
    allies, but cannot see allies' Seals. Public seats show only face-down slots.
 6. Before confirming, tap two Seals to swap their positions, drag them, or choose
-   **Shuffle positions**. Cultists also choose a player for the opening Black Cat
-   and select **Seal opening curse** before confirming. Choices are private;
-   most votes determines the single cursed player, with earliest seat breaking a
-   tie. A Cultist may choose themselves to disguise their allegiance.
+   **Shuffle positions**. Normal inspection lasts at most 90 server-timed seconds; unfinished arrangements are automatically acknowledged without changing positions. All-player confirmation advances early.
+   A separate **The Curse Awakens** scene then gives eligible Cultists at most 30 seconds for one secret vote each. They may target themselves. All votes resolve early; timeout uses accepted votes only, with earliest-seat ties. With zero votes (or no eligible voters), the server chooses a living player uniformly at random. The existing single Black Cat is attached to that player, who starts Day 1 after the public Curse and Day announcements. The tutorial keeps its untimed, isolated practice opening.
    Choose **Confirm & continue** in every tab. This locks
    the order, covers the private display,
    and shares only acknowledgement status. The final acknowledgement begins
-   **Day**, deals three action cards each, publicly places the Black Cat, and
+   **The Curse Awakens**. Resolution deals three action cards each, publicly places the Black Cat, and
    starts the cursed player's turn.
    **Cover all Seals**, closing the overlay, tab blur, and disconnection
    also cover the display. Covering is a shoulder-surfing aid, not encryption from

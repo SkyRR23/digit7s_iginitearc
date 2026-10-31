@@ -35,6 +35,7 @@ export function renderRolePanel(root: HTMLElement, view: RoomView | null, blocke
   const resultKey = `${view?.deal?.matchId ?? ''}:${role?.result ?? ''}`;
   if (role?.result && resultKey !== shownResult) { shownResult = resultKey; if (role.peek) open = true; }
   if (!view?.deal) shownResult = '';
+  if(view?.phase==='OPENING_CURSE'||presentation&&view?.phase!=='PRIVATE_DEAL'){open=false;presentation=false;}
   root.hidden = !view || !role;
   const toggle = document.getElementById('role-toggle');
   if (toggle) {

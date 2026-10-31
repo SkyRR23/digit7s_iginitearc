@@ -38,7 +38,7 @@ async function play(host:Client,target:Client,kind:'WHISPER'|'STOCKS'){
 describe('authoritative cinematic pause',()=>{
   it('includes the opening Curse event in the same synchronized Day 1 pause',async()=>{
     const party=await begin(),view=party[0]!.view!,presentation=view.presentation!;
-    expect(presentation.previousPhase).toBe('PRIVATE_DEAL');
+    expect(presentation.previousPhase).toBe('OPENING_CURSE');
     expect(presentation.events).toContainEqual(expect.objectContaining({type:'STATUS',statusKind:'BLACK_CAT',targetId:view.day!.activePlayerId,count:1}));
     expect(view.day!.deadline).toBeNull();
     await finishAll(party);expect(party[0]!.view!.presentation).toBeNull();
@@ -130,6 +130,8 @@ describe('authoritative cinematic pause',()=>{
     h.server.store.tickBots();await h.sync(human);
     if(human.view!.blackCatChoice)await h.accepted(human,{type:'chooseBlackCat',matchId:human.view!.deal!.matchId,targetId:id(human)});
     await h.accepted(human,{type:'acknowledgeDeal',matchId:human.view!.deal!.matchId});
+    h.server.store.tickBots();await h.sync(human);
+    if(human.view!.blackCatChoice&&!human.view!.blackCatChoice.submitted)await h.accepted(human,{type:'chooseBlackCat',matchId:human.view!.deal!.matchId,targetId:id(human)});
     h.server.store.tickBots();await h.sync(human);
     expect(human.view!.presentation).toBeTruthy();
     const state=human.view!;

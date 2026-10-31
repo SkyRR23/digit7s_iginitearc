@@ -84,11 +84,13 @@ try {
   // Keep the legitimate private acknowledgement flow, then check assistance and direct help.
   await page.locator('#role-continue').click();if(await page.locator('#role-continue').isVisible())await page.locator('#role-continue').click();
   await page.locator('#reveal-all').click();
-  // An Ashbound trainee in the new random deal has a genuine opening vote.
-  if(await page.locator('#black-cat-target').isVisible()){
-   await page.locator('#black-cat-target').selectOption(normal.you!.playerId);await page.locator('#seal-black-cat').click();
+  // The real match confirms Lives before the separate Curse vote.
+  await page.locator('#acknowledge').click();
+  await page.waitForTimeout(600);
+  if(await page.locator('#curse-target').isVisible()){
+   await page.locator('#curse-target').selectOption(normal.you!.playerId);await page.locator('#curse-seal').click();
   }
-  await page.locator('#acknowledge').click();await settle(page);await page.locator('#beginner-assistance').waitFor();
+  await settle(page);await page.locator('#beginner-assistance').waitFor();
   if(width===360)await page.locator('#mobile-menu-toggle').click();
   await page.locator('#game-help').click();await page.locator('#how-to-dialog[open]').waitFor();assert.equal(await page.locator('#learning-menu').isVisible(),false);await page.locator('#guide-close').click();
   assert.equal(await page.locator('#learning-menu').isVisible(),false);

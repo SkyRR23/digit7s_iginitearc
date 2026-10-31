@@ -8,5 +8,5 @@ export function phaseIcon(phase: RoomView['phase']): string {
 }
 
 export function phaseName(phase: RoomView['phase']): string {
-  return { LOBBY: 'Lobby', PRIVATE_DEAL: 'Private reveal', DAY: 'Day', REVEAL_RESOLUTION: 'Life reveal', NIGHT: 'Night', DAWN: 'Dawn', GAME_OVER: 'Game over' }[phase];
+  return { LOBBY: 'Lobby', PRIVATE_DEAL: 'Private reveal', OPENING_CURSE:'The Curse awakens', DAY: 'Day', REVEAL_RESOLUTION: 'Life reveal', NIGHT: 'Night', DAWN: 'Dawn', GAME_OVER: 'Game over' }[phase];
 }

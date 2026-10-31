@@ -25,8 +25,8 @@ export function publicMoments(previous: RoomView, next: RoomView, effects: Table
   const moments: GameMoment[] = [];
   const reveals = effects.filter(effect => effect.type === 'REVEAL' && next.deal?.players.find(player => player.playerId === effect.targetId)?.seals.some(seal => seal.slot === effect.slot && seal.revealed));
   for (const effect of effects) {
-    if(previous.phase==='PRIVATE_DEAL'&&next.phase==='DAY'&&effect.type==='STATUS'&&effect.statusKind==='BLACK_CAT'&&(effect.count??0)>0&&next.deal?.players.some(player=>player.playerId===effect.targetId&&player.alive)) {
-      moments.push({kind:'event',event:'opening-curse',cardKind:'CURSE',eyebrow:'THE OPENING CURSE',title:name(effect.targetId),
+    if(['PRIVATE_DEAL','OPENING_CURSE'].includes(previous.phase)&&next.phase==='DAY'&&effect.type==='STATUS'&&effect.statusKind==='BLACK_CAT'&&(effect.count??0)>0&&next.deal?.players.some(player=>player.playerId===effect.targetId&&player.alive)) {
+      moments.push({kind:'event',event:'opening-curse',cardKind:'CURSE',eyebrow:'THE CURSE HAS FALLEN',title:name(effect.targetId),
         description:'The Curse has fallen on this player. They take the first turn of Day 1.',art:cardArt('CURSE'),tone:'crimson',duration:MOMENT_DURATION.event,
         targets:[{...person(effect.targetId),label:'CURSED · FIRST TO ACT'}],heavy:true});
     }
@@ -78,7 +78,7 @@ export function publicMoments(previous: RoomView, next: RoomView, effects: Table
     moments.push({ kind: 'victory', eyebrow: 'The final verdict · match ended', title: result.title,
       description: result.description, art: roleArt(result.roleArt), heavy: true,
       tone: next.day?.outcome?.winner === 'WITCH' ? 'crimson' : 'ivory', duration: MOMENT_DURATION.victory });
-  } else if (previous.phase !== next.phase && (next.phase==='NIGHT'||next.phase==='DAWN'||next.phase==='DAY'&&(previous.phase==='DAWN'||previous.phase==='PRIVATE_DEAL'||previous.phase==='LOBBY'))) {
+  } else if (previous.phase !== next.phase && (next.phase==='NIGHT'||next.phase==='DAWN'||next.phase==='DAY'&&(previous.phase==='DAWN'||previous.phase==='PRIVATE_DEAL'||previous.phase==='OPENING_CURSE'||previous.phase==='LOBBY'))) {
     moments.push({ kind: 'phase', phase: next.phase, eyebrow: next.phase === 'DAY' ? `Day ${next.day?.dayNumber ?? 1}` : 'The village changes',
       title: next.phase === 'NIGHT' ? 'Night falls' : next.phase === 'DAWN' ? 'Dawn breaks' : 'Day begins',
       description: next.phase === 'NIGHT' ? 'Public chat is silent. Check your private night choices.' : next.phase === 'DAWN' ? 'The night is over. The village learns who survived.' : 'Talk, play your cards, and cast your vote.',

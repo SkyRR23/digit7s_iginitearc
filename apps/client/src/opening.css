@@ -1,0 +1,22 @@
+/* Reuse cinematic opening composition, fonts and existing primary buttons. */
+#opening-ritual{position:fixed;inset:0;z-index:13000;overflow:auto;background:#05070a;color:#e0d5c1}
+#opening-ritual .opening-screen{min-height:100dvh;padding-bottom:76px;justify-content:center;gap:12px}
+#opening-ritual header{position:absolute;top:20px;left:24px;width:auto;color:#c6c0af}
+.ritual-art{position:relative;width:min(170px,30vw);filter:drop-shadow(0 0 28px #a525383d)}
+.ritual-art img{filter:grayscale(1) sepia(1) saturate(3) hue-rotate(310deg);width:100%;max-height:28dvh;object-fit:contain}
+.ritual-choice{width:min(500px,100%);text-align:center;display:grid;gap:10px}
+.ritual-choice label,.ritual-choice h3{color:#e8bc61;letter-spacing:.1em}
+.ritual-choice select,.ritual-choice button{width:100%;min-height:46px}
+.ritual-choice small{font:12px/1.5 'Segoe UI',sans-serif;color:#b6ab97}
+.ritual-error{min-height:18px;color:#eab9b4;margin:0}
+.opening-clock{position:fixed;z-index:14000;right:16px;top:58px;border:1px solid #b6a06a88;background:#0b1018ed;color:#e8d8b3;padding:9px 14px;font:18px/1.2 var(--heading);font-variant-numeric:tabular-nums;pointer-events:none}
+.opening-clock.opening-urgent{color:#f0a0a0;border-color:#ac3c49}
+.vote-sealed .ritual-art{filter:drop-shadow(0 0 36px #bc293f88)}
+@keyframes ritual-arrive{from{opacity:.5;transform:translateY(5px)}to{opacity:1;transform:none}}
+@media(max-width:600px),(max-height:500px){#opening-ritual .opening-screen{padding:66px 16px 24px;gap:8px}.opening-clock{top:42px;right:8px;font-size:15px}#opening-ritual header{top:16px;left:12px;font-size:8px}#opening-ritual .opening-copy h2{font-size:32px}.ritual-art img{max-height:20dvh}.ritual-choice{gap:7px}}
+@media(prefers-reduced-motion:reduce){#opening-ritual{animation:none}}
+body.quiet-motion #opening-ritual{animation:none}
+
+#opening-ritual .ritual-art,#opening-ritual .ritual-choice{animation:ritual-arrive .25s ease-out}
+@media(prefers-reduced-motion:reduce){#opening-ritual .ritual-art,#opening-ritual .ritual-choice{animation:none}}
+body.quiet-motion #opening-ritual .ritual-art,body.quiet-motion #opening-ritual .ritual-choice{animation:none}

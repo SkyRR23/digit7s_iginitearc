@@ -29,8 +29,9 @@ try{
   for(let i=1;i<capacity;i++){const c=await connect(transport);await command(c,{type:'join',roomCode:host.view.code,name:`Guest ${i}`,avatar:'moth'});party.push(c);}
   for(const c of party){await command(c,{type:'sync'});await command(c,{type:'ready',ready:true,expectedVersion:c.view.version});}
   await command(host,{type:'sync'});await command(host,{type:'start',expectedVersion:host.view.version});
+  for(const c of party)await command(c,{type:'acknowledgeDeal',matchId:c.view.deal.matchId});
   for(const c of party){await command(c,{type:'sync'});if(c.view.blackCatChoice&&!c.view.blackCatChoice.submitted)await command(c,{type:'chooseBlackCat',matchId:c.view.deal.matchId,targetId:host.session.playerId});}
-  for(const c of party)await command(c,{type:'acknowledgeDeal',matchId:c.view.deal.matchId});await finish(party);await command(host,{type:'sync'});assert.equal(host.view.phase,'DAY');
+  await finish(party);await command(host,{type:'sync'});assert.equal(host.view.phase,'DAY');
   const actor=party.find(c=>c.session.playerId===host.view.day.activePlayerId);await command(actor,{type:'sync'});const v=actor.view;await command(actor,{type:'drawCards',matchId:v.deal.matchId,turnNumber:v.day.turnNumber,gameVersion:v.day.version});await finish(party);
   const previous=party[1];const session=previous.session;previous.socket.disconnect();const resumed=await connect(transport);await command(resumed,{type:'resume',session});assert.equal(resumed.view.you.playerId,session.playerId);
   const separate=await connect(transport);await command(separate,{type:'create',name:'Other room',avatar:'moon',capacity:6});assert.notEqual(separate.view.code,host.view.code);assert.equal(separate.view.players.length,1);

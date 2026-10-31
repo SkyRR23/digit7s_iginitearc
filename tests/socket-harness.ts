@@ -9,6 +9,7 @@ export async function createHarness(graceMs = 1000, options: Parameters<typeof c
   const server = createGameServer({ graceMs, sweepMs: 20, presentations:false, ...options });
   const port = await server.listen(0);
   const clients: Client[] = [];
+  const plannedOpenings=new Map<string,Client[]>();
   async function connect() {
     const socket: Client['socket'] = io(`http://127.0.0.1:${port}`, { transports: ['websocket'], reconnection: false, forceNew: true });
     const client: Client = { socket, events: [], replies: [] }; clients.push(client);
@@ -31,7 +32,16 @@ export async function createHarness(graceMs = 1000, options: Parameters<typeof c
   async function accepted(client: Client, input: Input) {
     const reply = await send(client, input);
     if (!reply.ok) throw new Error(`Unexpected rejection: ${reply.code}`);
+    if(input.type==='acknowledgeDeal'&&client.view?.phase==='OPENING_CURSE') {
+      const party=plannedOpenings.get(client.view.deal!.matchId);
+      if(party){plannedOpenings.delete(client.view.deal!.matchId);await finishOpening(party,party[0]!);}
+    }
     return reply;
+  }
+  async function finishOpening(party:Client[],target=party[0]!){
+    await Promise.all(party.map(sync));
+    for(const c of party){if(c.view?.blackCatChoice&&!c.view.blackCatChoice.submitted)await accepted(c,{type:'chooseBlackCat',matchId:c.view.deal!.matchId,targetId:target.session!.playerId});}
+    await Promise.all(party.map(sync));
   }
   async function sync(client: Client) { await accepted(client, { type: 'sync' }); return client.view!; }
   async function party(capacity = 6) {
@@ -50,10 +60,9 @@ export async function createHarness(graceMs = 1000, options: Parameters<typeof c
     const command = { type: 'start' as const, actionId: randomUUID(), expectedVersion: (await sync(party[0]!)).version };
     await accepted(party[0]!, command);
     await Promise.all(party.map(sync));
-    if (chooseOpening) for (const client of party) if (client.view!.blackCatChoice && !client.view!.blackCatChoice.submitted)
-      await accepted(client, { type: 'chooseBlackCat', matchId: client.view!.deal!.matchId, targetId: party[0]!.session!.playerId });
+    if(chooseOpening)plannedOpenings.set(party[0]!.view!.deal!.matchId,party);
     return command;
   }
-  return { connect, send, accepted, sync, six, party, start, server,
+  return { connect, send, accepted, sync, six, party, start, finishOpening, server,
     close: async () => { clients.forEach(c => c.socket.disconnect()); await server.close(); } };
 }

@@ -187,3 +187,7 @@ Unit checks cover neutral reveal announcements, public portrait mood, unchanged 
 ## Remaining limitations
 
 Actual iOS/Android background/autoplay behavior, human listening/balance on phones/headphones, and a fresh multi-human sound playtest remain. Slow/cold/missing SFX intentionally produce silence rather than delayed audio. The recorded bell excerpt and edited result cadences require listening approval. No hosted game was redeployed by this source update. Historical submission/provenance issues unrelated to the imported audio are not certified resolved.
+
+## Timed opening ritual integration ? 31 October 2026
+
+The dedicated OPENING_CURSE scene reuses `swell` for entrance and `glow-mystery` for the accepted private vote, both in a cancellable opening scope. Public Curse reveal retains its existing event cues. Inspection, ritual and Day share the existing Day audio scene key so beds are not restarted between them. No recorded files, licences, source credits or global mix values changed. Repeated owner sync is tested not to repeat entrance/sealed feedback. See docs/OPENING_EXPERIENCE.md for flow and verification.

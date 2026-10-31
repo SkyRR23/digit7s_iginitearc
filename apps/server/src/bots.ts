@@ -43,10 +43,9 @@ export function enumerateLegalBotActions(view: RoomView): BotDecision[] {
   if (!me) return [];
   if (view.phase === 'PRIVATE_DEAL') {
     const player = view.deal?.players.find(candidate => candidate.playerId === me);
-    if (player && !player.acknowledged && view.blackCatChoice && !view.blackCatChoice.submitted)
-      return view.deal!.players.filter(candidate => candidate.alive).map(candidate => ({ type: 'chooseBlackCat', targetId: candidate.playerId }));
     return player && !player.acknowledged && view.private ? [{ type: 'acknowledgeDeal' }] : [];
   }
+  if(view.phase==='OPENING_CURSE'&&view.blackCatChoice&&!view.blackCatChoice.submitted)return view.deal!.players.filter(p=>p.alive).map(p=>({type:'chooseBlackCat',targetId:p.playerId}));
   if (view.phase === 'NIGHT' && view.night && view.deal) {
     const living = view.deal.players.filter(player => player.alive && player.playerId !== me);
     const actions: BotDecision[] = [];

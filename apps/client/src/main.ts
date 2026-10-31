@@ -1,3 +1,5 @@
+import {renderOpening,updateOpeningTimer} from './opening-ui';
+import './opening.css';
 import {audio} from './audio';
 import { TutorialDirector, installBeginnerAssistance } from './tutorial';
 import { confirmGameAction, dismissGamePrompt } from './game-prompts';
@@ -190,6 +192,7 @@ function connection(): void {
     () => { if (view?.deal) void act({ type: 'closeSleuth', actionId: actionId(), matchId: view.deal.matchId }); },
     targetId => { if (view?.deal && view.day) void act({ type: 'councilVote', actionId: actionId(), matchId: view.deal.matchId,
       dayNumber: view.day.dayNumber, targetId }); });
+  renderOpening(safeView,!connected||busy,targetId=>view?.deal?act({type:'chooseBlackCat',actionId:actionId(),matchId:view.deal.matchId,targetId}):Promise.resolve(false));
   renderPowerControls(safeView, gameplayBlocked, (targetId, secondTargetId) => view?.deal
     ? act({ type: 'useRole', actionId: actionId(), matchId: view.deal.matchId, targetId, ...(secondTargetId ? { secondTargetId } : {}) })
     : Promise.resolve(false));
@@ -208,7 +211,7 @@ function renderControls(): void {
   const blocked = busy || (!tutorial.active && (recovering || !socket.connected));
   element('controls').innerHTML = view.phase === 'LOBBY'
     ? `<div><p class="eyebrow">${view.players.filter(p => p.ready && p.connected).length} OF ${view.capacity} READY</p><p>Settle in, then let the host know you’re ready. Bots are server-controlled and ready immediately.</p></div><div class="control-buttons"><button id="ready" ${blocked ? 'disabled' : ''} class="${me?.ready ? '' : 'primary'}">${me?.ready ? 'Not ready' : 'I’m ready'}</button>${host ? `<button id="start" class="primary" ${blocked || !canStart(view.players, view.capacity) ? 'disabled' : ''}>Deal the Life cards</button><div class="bot-controls"><label for="lobby-capacity">Players</label><select id="lobby-capacity" ${blocked ? 'disabled' : ''}>${[6,7,8,9,10].map(count => `<option value="${count}" ${count === view!.capacity ? 'selected' : ''} ${count < view!.players.length ? 'disabled' : ''}>${count} seats</option>`).join('')}</select><label for="bot-difficulty">Bot difficulty</label><select id="bot-difficulty" ${blocked ? 'disabled' : ''}><option value="NORMAL" ${botDifficulty === 'NORMAL' ? 'selected' : ''}>Normal</option><option value="EASY" ${botDifficulty === 'EASY' ? 'selected' : ''}>Easy</option></select><button id="add-bot" ${blocked || view.players.length >= view.capacity ? 'disabled' : ''}>Add Bot</button><button id="fill-bots" ${blocked || view.players.length >= view.capacity ? 'disabled' : ''}>Fill Empty Seats</button></div>` : `<span class="host-wait">The host will deal when all ${view.capacity} are ready.</span>`}</div>`
-    : `<div class="sealed">${view.phase === 'PRIVATE_DEAL' ? `<p class="eyebrow">${view.deal?.players.filter(p => p.acknowledged).length ?? 0} OF ${view.capacity} PLAYERS ACKNOWLEDGED</p><h3>Inspect your Life cards privately.</h3><p>Acknowledge above. Day starts when all ${view.capacity} are ready.</p>` : '<p class="eyebrow">PUBLIC TABLE</p>'}${host ? `<button id="reopen" ${blocked ? 'disabled' : ''}>End match</button>` : ''}</div>`;
+    : `<div class="sealed">${view.phase === 'PRIVATE_DEAL' ? `<p class="eyebrow">${view.deal?.players.filter(p => p.acknowledged).length ?? 0} OF ${view.capacity} PLAYERS ACKNOWLEDGED</p><h3>Inspect your Life cards privately.</h3><p>Acknowledge above. The Curse ritual begins when everyone confirms, or after 90 seconds.</p>` : '<p class="eyebrow">PUBLIC TABLE</p>'}${host ? `<button id="reopen" ${blocked ? 'disabled' : ''}>End match</button>` : ''}</div>`;
   if (view.phase === 'LOBBY' && host) element('controls').insertAdjacentHTML('beforeend',
     `<label class="scapegoat-setting"><input id="scapegoat-setting" type="checkbox" ${view.scapegoatEnabled ? 'checked' : ''} ${blocked ? 'disabled' : ''}> Include one optional Outcast</label>`);
   element('ready')?.addEventListener('click', () => void act({ type: 'ready', actionId: actionId(), expectedVersion: view!.version, ready: !me?.ready }));
@@ -230,7 +233,7 @@ function render(next: RoomView): void {
   const previous = view;
   const positions = captureTablePositions();
   view = next;
-  audio.setScene(next.phase==='GAME_OVER'?'result':next.phase==='LOBBY'?'lobby':['DAY','PRIVATE_DEAL','REVEAL_RESOLUTION'].includes(next.phase)?'day':'night');
+  audio.setScene(next.phase==='GAME_OVER'?'result':next.phase==='LOBBY'?'lobby':['DAY','PRIVATE_DEAL','OPENING_CURSE','REVEAL_RESOLUTION'].includes(next.phase)?'day':'night');
   if(next.phase==='PRIVATE_DEAL')audio.prepare('curse');
   element('entry').hidden = true;
   element('lobby').hidden = false;
@@ -463,7 +466,7 @@ socket.on('replaced', () => {
   notice('Your seat is now open in another tab. Reload this tab to join as a different player.');
 });
 setInterval(() => {
-  updateDayTimers(); updateDecisionTimers();
+  updateDayTimers(); updateDecisionTimers();updateOpeningTimer();
   document.querySelectorAll<HTMLElement>('[data-until]').forEach(el => {
     const seconds = Math.max(0, Math.ceil((Number(el.dataset.until) - Date.now()) / 1000));
     el.textContent = `Reconnecting · about ${seconds}s reserved`;

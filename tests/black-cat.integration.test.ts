@@ -42,7 +42,9 @@ describe('opening Black Cat curse',()=>{
   it('requires an Ashbound choice, keeps ballots private, and restores a sealed choice on reconnect',async()=>{
     const party=await h.six(); await h.start(party,false);
     const witch=party[0]!, villager=party[1]!, matchId=witch.view!.deal!.matchId;
-    expect(await h.send(witch,{type:'acknowledgeDeal',matchId})).toMatchObject({code:'BLACK_CAT_REQUIRED'});
+    for(const client of party)await h.accepted(client,{type:'acknowledgeDeal',matchId});
+    await Promise.all(party.map(h.sync));
+    expect(witch.view!.phase).toBe('OPENING_CURSE');
     expect(await h.send(villager,{type:'chooseBlackCat',matchId,targetId:id(witch)})).toMatchObject({code:'ABILITY'});
     expect(await h.send(witch,{type:'chooseBlackCat',matchId:randomUUID(),targetId:id(villager)})).toMatchObject({code:'MATCH_CHANGED'});
     expect(await h.send(witch,{type:'chooseBlackCat',matchId,targetId:randomUUID()})).toMatchObject({code:'TARGET'});
@@ -62,6 +64,7 @@ describe('opening Black Cat curse',()=>{
   });
   it('creates one public curse after confirmation, resolves tied votes by seat, and starts with the cursed player',async()=>{
     const party=await h.six(); await h.start(party,false); const matchId=party[0]!.view!.deal!.matchId;
+    for(const client of party)await h.accepted(client,{type:'acknowledgeDeal',matchId});
     await h.accepted(party[0]!,{type:'chooseBlackCat',matchId,targetId:id(party[3]!)});
     await h.accepted(party[5]!,{type:'chooseBlackCat',matchId,targetId:id(party[2]!)});
     for(const client of party) await h.accepted(client,{type:'acknowledgeDeal',matchId});
@@ -78,6 +81,7 @@ describe('opening Black Cat curse',()=>{
   });
   it('allows an opening self-curse as a deliberate disguise and clears choices on reopening',async()=>{
     const party=await h.six(); await h.start(party,false); const host=party[0]!, matchId=host.view!.deal!.matchId;
+    for(const client of party)await h.accepted(client,{type:'acknowledgeDeal',matchId});
     await h.accepted(host,{type:'chooseBlackCat',matchId,targetId:id(host)});
     await h.accepted(party[5]!,{type:'chooseBlackCat',matchId,targetId:id(host)});
     for(const client of party) await h.accepted(client,{type:'acknowledgeDeal',matchId});

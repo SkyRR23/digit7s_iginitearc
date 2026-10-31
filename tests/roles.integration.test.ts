@@ -204,7 +204,7 @@ describe('server-assigned special roles', () => {
 
   it('lets Scapegoat win only through a completed server-counted council vote', async () => {
     await h.close();
-    h=await createHarness(60000,{presentations:true,now:()=>clock,randomIndex:max=>max-1,dayFactory:(identity,now)=>{
+    h=await createHarness(60000,{presentations:true,rateLimit:false,now:()=>clock,randomIndex:max=>max-1,dayFactory:(identity,now)=>{
       const result=createDay(identity,originalPrototypePreset,max=>max-1,randomUUID,now);
       result.state.hands[result.state.activePlayerId]![0]!.kind='COUNCIL_BELL';return result;
     }});

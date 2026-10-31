@@ -64,6 +64,8 @@ describe('mixed human and server bot match', () => {
     await h.accepted(human, { type: 'acknowledgeDeal', matchId: human.view!.deal!.matchId });
     h.server.store.tickBots();
     await h.sync(human);
+    if(human.view!.blackCatChoice&&!human.view!.blackCatChoice.submitted)await h.accepted(human,{type:'chooseBlackCat',matchId:human.view!.deal!.matchId,targetId:human.session!.playerId});
+    h.server.store.tickBots();await h.sync(human);
     expect(human.view!.phase).toBe('DAY');
 
     const botViews = Array.from({ length: 5 }, (_, index) => h.server.store.simulationView(human.view!.code, index + 1)!);
@@ -97,6 +99,8 @@ describe('mixed human and server bot match', () => {
     if (human.view!.blackCatChoice && !human.view!.blackCatChoice.submitted) await h.accepted(human,{type:'chooseBlackCat',matchId:human.view!.deal!.matchId,targetId:human.session!.playerId});
     await h.accepted(human, { type: 'acknowledgeDeal', matchId: human.view!.deal!.matchId });
     h.server.store.tickBots(); await h.sync(human);
+    if(human.view!.blackCatChoice&&!human.view!.blackCatChoice.submitted)await h.accepted(human,{type:'chooseBlackCat',matchId:human.view!.deal!.matchId,targetId:human.session!.playerId});
+    h.server.store.tickBots();await h.sync(human);
     expect(human.view!.phase).toBe('DAY');
   }, 20_000);
 

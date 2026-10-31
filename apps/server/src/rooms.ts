@@ -25,6 +25,8 @@ interface Room {
   players: Player[]; feed: FeedEntry[]; match: IdentityMatch | null; day: DayState | null;
   scapegoatEnabled: boolean; roles: Roles | null; votes: Record<string, string>; voteDay: number; voteComplete: boolean;
   blackCatVotes?: Record<string, string>;
+  openingDeadline?: number;
+  inspectionTimedOut?: boolean;
   presentation?: {id:string;startedAt:number;until:number;remainingMs:number|null;waiters:Set<string>;completed:Set<string>;
     previousPhase:RoomView['phase'];events:TableEffect[];ownerId?:string;privateAction?:{kind:import('@ashfall/shared').SpecialRole;targetIds:string[]}} | null;
 }
@@ -60,6 +62,7 @@ export class RoomStore {
       this.sweep();
       const bound = this.bindings.get(socketId);
       const presentationBefore = bound?.room.presentation?.id;
+      const phaseBefore=bound?.room.phase;
       const cache = bound?.player.receipts ?? this.bootstrap.get(socketId) ?? new Map<string, Receipt>();
       this.bootstrap.set(socketId, cache);
       const fingerprint = JSON.stringify(command);
@@ -82,7 +85,7 @@ export class RoomStore {
         if (after.player.receipts !== cache) {
           after.player.receipts.set(command.actionId, receipt);
         }
-        if (presentationBefore !== after.room.presentation?.id) this.publish(after.room);
+        if (presentationBefore !== after.room.presentation?.id || phaseBefore!==after.room.phase) this.publish(after.room);
         else if (command.type === 'finishPresentation' || command.type === 'nightAttack' || command.type === 'nightProtect' || command.type === 'arrangeSeals' || command.type === 'chooseBlackCat' ||
           command.type === 'useRole' && after.room.roles?.[after.player.id]?.kind !== 'HERBALIST' || command.type === 'closeSleuth')
           this.send(socketId, this.view(after.room, after.player.id));
@@ -212,6 +215,7 @@ export class RoomStore {
         room.votes = {}; room.voteDay = 0; room.voteComplete = false;
         room.blackCatVotes = {};
         room.phase = 'PRIVATE_DEAL';
+        room.openingDeadline = this.now() + 90_000; room.inspectionTimedOut = false;
         this.event(room, 'Five Seals have been dealt to each player. Inspect yours privately, then acknowledge.');
         break;
       case 'arrangeSeals': {
@@ -224,14 +228,15 @@ export class RoomStore {
       }
       case 'chooseBlackCat': {
         if (!room.match || room.match.id !== command.matchId) fail('MATCH_CHANGED', 'That deal has ended.');
-        if (room.phase !== 'PRIVATE_DEAL') fail('PHASE', 'The opening curse is already sealed.');
+        if (room.phase !== 'OPENING_CURSE') fail('PHASE', 'The opening Curse vote is not open.');
         const actor = room.match.players.find(p => p.id === player.id);
         if (!actor?.alive || !actor.everWitch || room.roles?.[player.id]?.kind === 'SCAPEGOAT')
           fail('ABILITY', 'Only Cultists may choose the opening Black Cat.');
-        if (actor.acknowledged || Object.hasOwn(room.blackCatVotes ?? {}, player.id)) fail('LOCKED_CHOICE', 'Your opening choice is already sealed.');
+        if (Object.hasOwn(room.blackCatVotes ?? {}, player.id)) fail('LOCKED_CHOICE', 'Your opening choice is already sealed.');
         if (!room.match.players.some(p => p.id === command.targetId && p.alive)) fail('TARGET', 'Choose a living player.');
         (room.blackCatVotes ??= {})[player.id] = command.targetId;
         player.privateVersion++;
+        if(this.openingVoters(room).every(id=>Object.hasOwn(room.blackCatVotes??{},id)))this.resolveOpeningCurse(room,this.now());
         break;
       }
       case 'acknowledgeDeal': {
@@ -241,25 +246,11 @@ export class RoomStore {
         if (!actor?.alive) fail('NOT_ALIVE', 'Only living players may acknowledge their Seals.');
         if (actor.acknowledged) break;
         if (room.phase !== 'PRIVATE_DEAL') fail('PHASE', 'The private deal has ended.');
-        if (actor.everWitch && room.roles?.[player.id]?.kind !== 'SCAPEGOAT' && !Object.hasOwn(room.blackCatVotes ?? {}, player.id))
-          fail('BLACK_CAT_REQUIRED', 'Choose the opening Black Cat before confirming your Life cards.');
         const next = acknowledgeIdentities(room.match, player.id);
         if (next !== room.match) {
           room.match = next;
           this.event(room, `${player.name} acknowledged their Seals.`);
-          if (next.players.every(p => p.acknowledged)) {
-            const initial = this.dayFactory(next, this.now());
-            initial.state.neutralIds = Object.entries(room.roles ?? {}).filter(([, role]) => role.kind === 'SCAPEGOAT').map(([id]) => id);
-            const votes = Object.values(room.blackCatVotes ?? {});
-            const cursed = next.players.filter(p => p.alive).reduce((best, candidate) =>
-              votes.filter(id => id === candidate.id).length > votes.filter(id => id === best.id).length ? candidate : best);
-            initial.state.activePlayerId = cursed.id;
-            attachOpeningCurse(initial.state, cursed.id);
-            for (const event of initial.events) if (event.type === 'DAY_STARTED') event.actorId = cursed.id;
-            initial.events.unshift({ type: 'STATUS', targetId: cursed.id, statusKind: 'BLACK_CAT', count: 1 });
-            room.blackCatVotes = {};
-            this.commitDay(room, initial);
-          }
+          if (next.players.every(p => p.acknowledged)) this.beginOpeningCurse(room,this.now());
         }
         break;
       }
@@ -329,6 +320,29 @@ export class RoomStore {
     this.publish(bound.room);
   }
 
+  private openingVoters(room:Room):string[] {
+    return room.match?.players.filter(p=>p.alive&&p.everWitch&&room.roles?.[p.id]?.kind!=='SCAPEGOAT').map(p=>p.id)??[];
+  }
+  private beginOpeningCurse(room:Room,now:number):void {
+    if(room.phase!=='PRIVATE_DEAL'||!room.match)return;
+    room.phase='OPENING_CURSE';room.openingDeadline=now+30_000;
+    this.event(room,'The Curse awakens. An ancient darkness must choose its bearer.');
+    if(!this.openingVoters(room).length)this.resolveOpeningCurse(room,now);
+  }
+  private resolveOpeningCurse(room:Room,now:number):void {
+    if(room.phase!=='OPENING_CURSE'||!room.match||room.day)return;
+    const living=room.match.players.filter(p=>p.alive);if(!living.length)return;
+    const voters=new Set(this.openingVoters(room));
+    const votes=Object.entries(room.blackCatVotes??{}).filter(([id,target])=>voters.has(id)&&living.some(p=>p.id===target)).map(([,target])=>target);
+    const cursed=votes.length?living.reduce((best,p)=>votes.filter(id=>id===p.id).length>votes.filter(id=>id===best.id).length?p:best):living[this.randomIndex(living.length)]!;
+    const initial=this.dayFactory(room.match,now);
+    initial.state.neutralIds=Object.entries(room.roles??{}).filter(([,r])=>r.kind==='SCAPEGOAT').map(([id])=>id);
+    initial.state.activePlayerId=cursed.id;attachOpeningCurse(initial.state,cursed.id);
+    for(const event of initial.events)if(event.type==='DAY_STARTED')event.actorId=cursed.id;
+    initial.events.unshift({type:'STATUS',targetId:cursed.id,statusKind:'BLACK_CAT',count:1});
+    room.openingDeadline=undefined;room.blackCatVotes={};this.commitDay(room,initial);
+  }
+
   sweep(): void {
     for (const room of this.rooms.values()) {
       this.expireSleuthPeeks(room);
@@ -337,12 +351,18 @@ export class RoomStore {
       // and are batched so seat order cannot award a premature victory.
       for (let steps = 0; steps < 100 && this.rooms.has(room.code); steps++) {
         const expiry = Math.min(...room.players.map(p => p.reconnectUntil ?? Infinity));
-        const deadline = room.day?.deadline ?? Infinity;
+        const deadline = room.openingDeadline ?? room.day?.deadline ?? Infinity;
         const presentationEnd=room.presentation?.until??Infinity;
         const due = Math.min(expiry, deadline, presentationEnd);
         if (due > this.now() || !Number.isFinite(due)) break;
         if (expiry <= Math.min(deadline,presentationEnd)) this.removeMany(room, room.players.filter(p => p.reconnectUntil !== null && p.reconnectUntil <= due), due);
         else if(presentationEnd<=deadline)this.resumePresentation(room,due);
+        else if(room.phase==='PRIVATE_DEAL'&&room.match) {
+          for(const p of room.match.players)if(!p.acknowledged)room.match=acknowledgeIdentities(room.match,p.id);
+          room.inspectionTimedOut=true;
+          this.event(room,'The council can wait no longer. Unfinished Life Card arrangements were automatically sealed.');
+          this.beginOpeningCurse(room,due);
+        } else if(room.phase==='OPENING_CURSE')this.resolveOpeningCurse(room,due);
         else if (room.day) {
           const result = expireDay(room.day, due, this.randomIndex) ?? expireNight(room.day, due, this.randomIndex);
           if (!result) break;
@@ -367,7 +387,7 @@ export class RoomStore {
     }
     if (room.players.every(p => p.abandoned)) { this.rooms.delete(room.code); return; }
     if (retained) this.commitDay(room, forfeitPlayers(room.day!, players.map(p => p.id), now));
-    else if (room.phase === 'PRIVATE_DEAL') this.openLobby(room, `A seat opened before Day. The deal was cancelled without revealing Life cards. Ready again when ${room.capacity} players are present.`);
+    else if (room.phase === 'PRIVATE_DEAL'||room.phase === 'OPENING_CURSE') this.openLobby(room, `A seat opened before Day. The deal was cancelled without revealing Life cards. Ready again when ${room.capacity} players are present.`);
     else room.players = room.players.filter(p => !p.abandoned);
     this.migrateHost(room);
   }
@@ -385,6 +405,7 @@ export class RoomStore {
   private openLobby(room: Room, message: string): void {
     room.presentation=null;
     room.effects = [];
+    room.openingDeadline=undefined;room.inspectionTimedOut=false;
     room.phase = 'LOBBY'; room.match = null; room.day = null; room.blackCatVotes = {};
     room.roles = null; room.votes = {}; room.voteDay = 0; room.voteComplete = false;
     room.players = room.players.filter(p => !p.abandoned);
@@ -628,7 +649,7 @@ export class RoomStore {
   private view(room: Room, viewerId: string): RoomView {
     // Explicit allowlist. Never spread internal player or room objects into a DTO.
     return {
-      ...(room.day?.reveal || room.day?.council?.open || room.day?.privateHands?.[viewerId] ? {serverTime:this.now()} : {}),
+      ...(room.openingDeadline || room.day?.reveal || room.day?.council?.open || room.day?.privateHands?.[viewerId] ? {serverTime:this.now()} : {}),
       ...(room.day?{cardQuantities:cardQuantities(room.day.rules)}:{}),
       effects: (room.effects ?? []).map(effect => ({ ...effect })),
       presentation:room.presentation?{
@@ -640,7 +661,8 @@ export class RoomStore {
       code: room.code, version: room.version, privateVersion: room.players.find(p => p.id === viewerId)!.privateVersion,
       phase: room.phase, hostId: room.hostId, capacity: room.capacity,
       scapegoatEnabled: room.scapegoatEnabled,
-      blackCatChoice: room.phase === 'PRIVATE_DEAL' && room.match?.players.some(p => p.id === viewerId && p.alive && p.everWitch) && room.roles?.[viewerId]?.kind !== 'SCAPEGOAT'
+      opening: room.openingDeadline!==undefined?{deadline:room.openingDeadline,inspectionTimedOut:!!room.inspectionTimedOut}:null,
+      blackCatChoice: room.phase === 'OPENING_CURSE' && room.match?.players.some(p => p.id === viewerId && p.alive && p.everWitch) && room.roles?.[viewerId]?.kind !== 'SCAPEGOAT'
         ? { submitted: Object.hasOwn(room.blackCatVotes ?? {}, viewerId), targetId: room.blackCatVotes?.[viewerId] ?? null } : null,
       councilVote: room.day?.council?.open ? { dayNumber: room.day.dayNumber, votesCast: Object.keys(room.votes).length,
         required: Math.floor(room.match!.players.filter(p => p.alive).length / 2) + 1,
@@ -718,7 +740,7 @@ export class RoomStore {
     }
     if (!this.botOptions.fast && this.botOptions.messages !== false) {
       const current = this.bindings.get(player.socketId);
-      if (current && current.room.phase !== 'NIGHT' && current.room.phase !== 'PRIVATE_DEAL' &&
+      if (current && current.room.phase !== 'NIGHT' && current.room.phase !== 'PRIVATE_DEAL' && current.room.phase !== 'OPENING_CURSE' &&
         current.room.match?.players.find(item => item.id === player.id)?.alive !== false) {
         const text = botMessage(view, decision, player.bot.memory, this.now());
         if (text) this.execute(player.socketId, { type: 'chat', actionId: randomUUID(), text });
@@ -770,7 +792,7 @@ export class RoomStore {
 
   simulationStatus(code: string): { phase: RoomView['phase']; deadline: number | null; outcome: DayState['outcome']; turnNumber: number; matchId: string | null } | null {
     const room = this.rooms.get(code);
-    return room ? { phase: room.phase, deadline: room.presentation?.until??room.day?.deadline ?? null, outcome: room.day?.outcome ?? null,
+    return room ? { phase: room.phase, deadline: room.openingDeadline??room.presentation?.until??room.day?.deadline ?? null, outcome: room.day?.outcome ?? null,
       turnNumber: room.day?.turnNumber ?? 0, matchId: room.match?.id ?? null } : null;
   }
 

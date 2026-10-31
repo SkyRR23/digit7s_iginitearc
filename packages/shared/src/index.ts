@@ -96,9 +96,10 @@ export interface RoomView {
   serverTime?: number;
   handPeek?: { targetId: string; cards: ActionCard[]; expiresAt: number; id: string } | null;
   effects?: TableEffect[];
-  code: string; version: number; privateVersion: number; phase: 'LOBBY' | 'PRIVATE_DEAL' | 'DAY' | 'REVEAL_RESOLUTION' | 'NIGHT' | 'DAWN' | 'GAME_OVER'; hostId: string;
+  code: string; version: number; privateVersion: number; phase: 'LOBBY' | 'PRIVATE_DEAL' | 'OPENING_CURSE' | 'DAY' | 'REVEAL_RESOLUTION' | 'NIGHT' | 'DAWN' | 'GAME_OVER'; hostId: string;
   capacity: number; players: PublicPlayer[]; feed: FeedEntry[];
   scapegoatEnabled?: boolean;
+  opening?: {deadline:number;inspectionTimedOut:boolean}|null;
   blackCatChoice?: { submitted: boolean; targetId: string | null } | null;
   presentation?: { id:string; scope:'PUBLIC'|'PRIVATE'|'WAIT'; until:number; remainingMs:number|null; awaitingYou:boolean;
     previousPhase?:RoomView['phase']; events?:TableEffect[]; privateAction?:{kind:SpecialRole;targetIds:string[]} } | null;

@@ -18,7 +18,7 @@ export function publicPresentationPlan(previousPhase: RoomView['phase'], next: {
   const add=(kind:PublicMomentKind,eventIndex?:number)=>steps.push({kind,duration:PRESENTATION_DURATION[kind],...(eventIndex===undefined?{}:{eventIndex})});
   const grouped = new Set<string>();
   events.forEach((event,index)=>{
-    if(previousPhase==='PRIVATE_DEAL'&&next.phase==='DAY'&&event.type==='STATUS'&&event.statusKind==='BLACK_CAT'&&(event.count??0)>0&&next.deal?.players.some(player=>player.playerId===event.targetId&&player.alive)) add('event',index);
+    if(['PRIVATE_DEAL','OPENING_CURSE'].includes(previousPhase)&&next.phase==='DAY'&&event.type==='STATUS'&&event.statusKind==='BLACK_CAT'&&(event.count??0)>0&&next.deal?.players.some(player=>player.playerId===event.targetId&&player.alive)) add('event',index);
     if(event.type==='PLAY'&&event.cardKind&&closeupCards.includes(event.cardKind)) {
       const key = JSON.stringify([event.cardKind,event.actorId,event.targetId,event.secondTargetId]);
       const count = events.filter(item=>item.type==='PLAY'&&JSON.stringify([item.cardKind,item.actorId,item.targetId,item.secondTargetId])===key).length;
@@ -39,7 +39,7 @@ export function publicPresentationPlan(previousPhase: RoomView['phase'], next: {
   if(previousPhase!==next.phase) {
     if(next.phase==='GAME_OVER') add('victory');
     else if(next.phase==='NIGHT'||next.phase==='DAWN'||next.phase==='DAY'&&
-      (events.some(event=>event.type==='DAY_STARTED')||previousPhase==='DAWN'||previousPhase==='PRIVATE_DEAL'||previousPhase==='LOBBY')) add('phase');
+      (events.some(event=>event.type==='DAY_STARTED')||previousPhase==='DAWN'||previousPhase==='PRIVATE_DEAL'||previousPhase==='OPENING_CURSE'||previousPhase==='LOBBY')) add('phase');
   }
   return steps.slice(-8);
 }

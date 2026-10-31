@@ -52,7 +52,7 @@ describe('public animation story', () => {
     expect(effect.reveal).toBeUndefined();expect(effect.sealKind).toBeUndefined();
   });
   it('announces the public opening Curse once before Day 1 without revealing the voters',()=>{
-    const before=snapshot(),after=snapshot();before.phase='PRIVATE_DEAL';
+    const before=snapshot(),after=snapshot();before.phase='OPENING_CURSE';
     const effects:TableEffect[]=[{id:'opening-curse',type:'STATUS',statusKind:'BLACK_CAT',targetId:'b',count:1},{id:'day-start',type:'DAY_STARTED',actorId:'b'}];
     const moments=publicMoments(before,after,effects);
     expect(moments.map(moment=>moment.kind)).toEqual(['event','phase']);

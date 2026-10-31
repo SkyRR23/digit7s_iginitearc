@@ -22,9 +22,8 @@ async function begin() {
   // These lifecycle fixtures deliberately start with an innocent actor, so the
   // opening curse targets that same seat before synthetic pending states run.
   const first = party.find(client=>!client.view!.private!.everWitch)!;
-  for (const client of party) if (client.view!.blackCatChoice)
-    await h.accepted(client,{type:'chooseBlackCat',matchId:client.view!.deal!.matchId,targetId:first.session!.playerId});
   await Promise.all(party.map(c => h.accepted(c, { type: 'acknowledgeDeal', matchId: c.view!.deal!.matchId })));
+  await h.finishOpening(party,first);
   await Promise.all(party.map(h.sync)); return party;
 }
 const actor = (party: Client[]) => party.find(c => id(c) === c.view!.day!.activePlayerId)!;

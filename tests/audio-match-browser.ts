@@ -48,14 +48,16 @@ try{
  const host=party[0]!,page=pages.get(host)!,evil=party[5]!,evilPage=pages.get(evil)!;
  for(const client of party)await send(client,{type:'ready',ready:true,expectedVersion:(await sync(client)).version});
  await send(host,{type:'start',expectedVersion:(await sync(host)).version});
- await send(evil,{type:'chooseBlackCat',matchId:(await sync(evil)).deal!.matchId,targetId:host.session!.playerId});
  for(const client of party){
   const p=pages.get(client);
   if(p){await p.locator('#role-continue').click();if(await p.locator('#role-continue').isVisible())await p.locator('#role-continue').click();await p.locator('#reveal-all').click();await p.locator('#acknowledge').click();}
   else await send(client,{type:'acknowledgeDeal',matchId:(await sync(client)).deal!.matchId});
  }
+ await send(evil,{type:'chooseBlackCat',matchId:(await sync(evil)).deal!.matchId,targetId:host.session!.playerId});
+ await page.locator('#game-moment[data-kind="event"]').waitFor();
+ await finish(party);
  console.log('Audio match: lobby and opening complete.');
- await page.locator('#game-moment[data-kind="phase"]').waitFor();await finish(party);
+
  await page.waitForFunction(()=>[...(window as any).audio.media].some((v:any)=>v.asset==='town-in-ruins'&&!v.retiring&&v.element.currentTime>0));
  await page.waitForFunction(()=>(window as any).audio.cache.has('card-cut'));
  const day=await mixer(page);
