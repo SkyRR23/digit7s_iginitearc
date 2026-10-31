@@ -55,8 +55,10 @@ body.digital-ui .credits-section h4 {font:21px/1.2 var(--heading);color:#edd4a1;
 .credits-intro #copy-credits {min-height:44px;}
 .credits-intro #credits-status:empty {display:none;}
 .credits-intro #credits-status {flex-basis:100%;margin:0;color:#b4d0bb;}
-.credits-required {padding:18px;border:1px solid #ceb77c88;background:#b28a3812;border-radius:3px;}
-.credits-required blockquote {margin:0;padding:12px;border-left:2px solid #ddc18a;background:#090c11;font:15px/1.65 Georgia,serif;color:#f0dfbd;}
+.credits-attribution {grid-column:1/-1;}
+.credits-attribution blockquote {margin:10px 0 6px;padding:4px 10px;border-left:2px solid #ddc18a;font:14px/1.6 Georgia,serif;color:#f0dfbd;}
+.credits-distribution-note {display:block;color:#b8b4aa;font:11px/1.5 'Segoe UI',sans-serif;}
+.credits-required-badge {border:1px solid #bb9a555c;border-radius:3px;padding:4px 7px;line-height:1.5;}
 .game-guide a {color:#e6c581;text-underline-offset:3px;}
 .game-guide a:focus-visible,.credits-source summary:focus-visible {outline:2px solid #e6c581;outline-offset:3px;}
 .credits-sources {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;align-items:start;}
@@ -70,4 +72,4 @@ body.digital-ui .credits-section h4 {font:21px/1.2 var(--heading);color:#edd4a1;
 .credits-modifications {opacity:.8;}
 .game-guide .credits-filenames {font:11px/1.6 monospace;overflow-wrap:anywhere;color:#b3b3ad;}
 .credits-copy-field {width:100%;min-height:180px;box-sizing:border-box;background:#090c11;color:#eee5d1;}
-@media(max-width:680px) {.credits-sources {grid-template-columns:minmax(0,1fr);} .credits-required {padding:12px;} .credits-section {margin-top:20px;}}
+@media(max-width:680px) {.credits-sources {grid-template-columns:minmax(0,1fr);} .credits-section {margin-top:20px;} .credits-attribution summary {flex-wrap:wrap;gap:6px;} .credits-attribution .credits-required-badge {margin-left:0;} .credits-attribution summary::after {margin-left:auto;}}

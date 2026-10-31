@@ -13,12 +13,14 @@ try {
   await page.goto(`http://127.0.0.1:${port}`);await page.locator('#create:not([disabled])').waitFor();
   await page.locator('#credits-open').click();
   assert.equal(await page.locator('#guide-credits').getAttribute('aria-selected'),'true');
-  assert.match(await page.locator('.credits-required').textContent(),/Scott Buckley.*CC-BY 4.0/s);
+  assert.match(await page.locator('.credits-attribution').textContent(),/Scott Buckley.*CC-BY 4.0/s);
+  assert.equal(await page.locator('.credits-source summary').first().locator('span').first().textContent(),'Phoenix (2026)');
+  assert.equal(await page.locator('#credits-audio').textContent(),'Music, Ambience & Sound Credits');
   assert.ok(await page.locator('#how-to-dialog').evaluate(el=>el.scrollWidth<=el.clientWidth+1),'Credits fit phone/desktop without horizontal overflow');
   await page.locator('#guide-credits').focus();await page.keyboard.press('ArrowRight');
   assert.equal(await page.locator('#guide-roles').getAttribute('aria-selected'),'true');await page.keyboard.press('End');
   assert.equal(await page.locator('#guide-credits').getAttribute('aria-selected'),'true');
-  await page.locator('.credits-source summary').first().click();
+  await page.locator('.credits-source:not(.credits-attribution) summary').first().click();
   await page.evaluate(()=>{Object.defineProperty(navigator,'clipboard',{configurable:true,value:undefined});document.execCommand=command=>{if(command==='copy'){window.copiedCredits=document.activeElement.value;return true;}return false;};});
   await page.locator('#copy-credits').click();
   assert.match(await page.evaluate(()=>window.copiedCredits),/Town in ruins loop.*Brandon Morris/s);
