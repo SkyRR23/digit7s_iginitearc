@@ -1,4 +1,4 @@
-import {audio, cardSound} from './audio';
+import {audio, cardSound,type Cue} from './audio';
 import {publicMoments} from './moment-script';
 import { type RoomView, type TableEffect } from '@ashfall/shared';
 import { emblem } from './art';
@@ -27,13 +27,29 @@ export function captureTablePositions(): TablePositions {
 }
 let seen = new Set<string>();
 let currentMatch = '';
-const sound = (kind: 'stamp' | 'cleanse') => audio.play(kind);
+const pendingTableEffects=new Set<number>();
+function scheduleTableEffect(callback:()=>void,delay:number):void {
+  const timer=window.setTimeout(()=>{pendingTableEffects.delete(timer);callback();},delay);
+  pendingTableEffects.add(timer);
+}
+/** Cancel transient work when leaving a seat or restarting local practice. */
+export function clearTableEffects():void {
+  pendingTableEffects.forEach(timer=>window.clearTimeout(timer));pendingTableEffects.clear();
+  document.querySelectorAll('.effect-label,.effect-trail,.flying-card,.flying-hidden-life,.fallen-announcement,.scapegoat-announcement,.life-choice-echo').forEach(element=>{
+    element.getAnimations().forEach(animation=>animation.cancel());element.remove();
+  });
+  document.body.classList.remove('life-reveal-active');
+  seen.clear();currentMatch='';
+}
+
+const cancelledAudio=new Set<string>();
+document.addEventListener('ashfall:presentation-finished',event=>{const id=(event as CustomEvent<{id:string}>).detail?.id;if(id){cancelledAudio.add(id);audio.stopScope(`table:${id}`);if(cancelledAudio.size>100){const last=[...cancelledAudio].slice(-50);cancelledAudio.clear();last.forEach(value=>cancelledAudio.add(value));}}});
 function label(text: string, targetId?: string, kind = ''): void {
   const seat = targetId ? document.querySelector<HTMLElement>(`[data-player="${targetId}"]`) : null;
   const item = document.createElement('span'); item.className = `effect-label ${kind}`;
   item.textContent = text; item.setAttribute('aria-live', 'polite');
   (seat ?? document.body).append(item);
-  setTimeout(() => item.remove(), 1450);
+  scheduleTableEffect(() => item.remove(), 1450);
 }
 function makeTrail(from: Point | undefined, to: Point | undefined, kind: string, delay: number): void {
   if (!from || !to || reducedGameMotion()) return;
@@ -86,13 +102,25 @@ function pulse(playerId: string | undefined, className: string): void {
   const element = document.querySelector<HTMLElement>(`[data-player="${playerId}"]`);
   if (!element) return;
   element.classList.add(className);
-  setTimeout(() => element.classList.remove(className), 1300);
+  scheduleTableEffect(() => element.classList.remove(className), 1300);
 }
 export function animateTableChanges(previous: RoomView | null, next: RoomView, before: TablePositions): void {
   const match = next.deal?.matchId ?? '';
   if (!previous || match !== currentMatch) { currentMatch = match; seen = new Set(next.effects?.map(effect => effect.id)); animateGameMoments(null, next, []); return; }
   const effects = (next.effects ?? []).filter(effect => !seen.has(effect.id));
-  const closeupCards=new Set(publicMoments(previous,next,effects).filter(moment=>moment.kind==='card').map(moment=>moment.cardKind));
+  // Warm only events already present in this client's authorized view. Playback
+  // stays at the existing animation cue; downloads never hold up presentation.
+  for (const effect of effects) {
+    if (effect.type === 'PLAY' && effect.cardKind) audio.prepare(cardSound(effect.cardKind));
+    else if (effect.type === 'DEATH') audio.prepare('death');
+    else if (effect.type === 'REVEAL') audio.prepare('reveal');
+  }
+  const closeups=publicMoments(previous,next,effects);
+  const closeupCards=new Set(closeups.filter(moment=>moment.kind==='card').map(moment=>moment.cardKind));
+  const closeupDoubt=new Set(closeups.filter(moment=>(moment.doubtMarks??0)>0).map(moment=>moment.targetId));
+  const closeupProtections=new Set(closeups.filter(moment=>['ASYLUM','PIETY','HEARTHWARD'].includes(moment.cardKind??'')).map(moment=>moment.targetId));
+  const presentationId=next.presentation?.id;
+  const play=(cue:Cue,key:string)=>{if(presentationId&&cancelledAudio.has(presentationId))return;audio.play(cue,`${match}:${key}`,presentationId?`table:${presentationId}`:undefined);};
   animateGameMoments(previous, next, effects);
   for (const effect of next.effects ?? []) seen.add(effect.id);
   if (seen.size > 200) seen = new Set(next.effects?.map(effect => effect.id));
@@ -109,35 +137,35 @@ export function animateTableChanges(previous: RoomView | null, next: RoomView, b
   effects.forEach((effect, index) => {
     const delay = Math.min(index * 135, 1800);
     if (effect.type === 'PLAY') {
-      if(!closeupCards.has(effect.cardKind))setTimeout(()=>audio.play(cardSound(effect.cardKind)),delay);
+      if(!closeupCards.has(effect.cardKind))scheduleTableEffect(()=>play(['PIETY','HEARTHWARD'].includes(effect.cardKind??'')?'place':cardSound(effect.cardKind),effect.id),delay);
       const own = effect.actorId === next.you?.playerId ? removed.find(card => card.kind === effect.cardKind) : undefined;
       if (own) removed.splice(removed.indexOf(own), 1);
       const target = effect.cardKind === 'CONSPIRACY' ? { x: innerWidth/2, y: innerHeight*.4 } : after.get(effect.targetId ?? '');
       const origin = before.get(own?.id ?? '') ?? (own ? before.get(`kind:${own.kind}`) : undefined) ?? before.get(effect.actorId ?? '');
       fly(origin, target, after.get('discard'), effect, delay);
-      setTimeout(() => pulse(effect.targetId, 'card-hit'), delay + 500);
+      scheduleTableEffect(() => pulse(effect.targetId, 'card-hit'), delay + 500);
       if (['EVIDENCE','TESTIMONY','WITNESS'].includes(effect.cardKind??''))
         makeTrail(before.get(own?.id ?? effect.actorId ?? ''), target, 'red', delay + 320);
       if (effect.cardKind === 'DISPEL') makeTrail(before.get(effect.actorId ?? ''), target, 'violet', delay + 300);
-      if (effect.cardKind === 'WITNESS') setTimeout(() => pulse(effect.targetId, 'witness-impact'), delay + 350);
-      if (effect.cardKind === 'EVIDENCE') setTimeout(() => pulse(effect.targetId, 'evidence-impact'), delay + 350);
+      if (effect.cardKind === 'WITNESS') scheduleTableEffect(() => pulse(effect.targetId, 'witness-impact'), delay + 350);
+      if (effect.cardKind === 'EVIDENCE') scheduleTableEffect(() => pulse(effect.targetId, 'evidence-impact'), delay + 350);
       if (effect.cardKind === 'SCAPEGOAT') makeTrail(after.get(effect.targetId ?? ''), after.get(effect.secondTargetId ?? ''), 'red', delay + 500);
-      if (effect.cardKind === 'WITNESS') setTimeout(() => label('WITNESS TESTIFIED', effect.targetId, 'danger'), delay + 580);
-      if (effect.cardKind === 'ALIBI') setTimeout(() => label('ALIBI ACCEPTED', effect.targetId, 'clean'), delay + 580);
-      if (effect.cardKind === 'MERCY') setTimeout(() => label('MERCY GRANTED', effect.targetId, 'clean'), delay + 580);
-      if (effect.cardKind === 'DISPEL' && !blockedTargets.has(effect.targetId)) setTimeout(() => label(`REMOVED: ${effects.filter(item=>item.type==='STATUS'&&item.targetId===effect.targetId&&item.count===0).map(item=>item.statusKind==='BLACK_CAT'?'CURSE':item.statusKind==='VOW_HEART'?'VOW OF HEARTS':item.statusKind?.replaceAll('_',' ')).filter(Boolean).join(', ')}`, effect.targetId, 'danger'), delay + 580);
-      if (effect.cardKind === 'SCAPEGOAT') setTimeout(() => label('DOUBT TRANSFERRED', effect.secondTargetId, 'danger'), delay + 700);
+      if (effect.cardKind === 'WITNESS') scheduleTableEffect(() => label('WITNESS TESTIFIED', effect.targetId, 'danger'), delay + 580);
+      if (effect.cardKind === 'ALIBI') scheduleTableEffect(() => label('ALIBI ACCEPTED', effect.targetId, 'clean'), delay + 580);
+      if (effect.cardKind === 'MERCY') scheduleTableEffect(() => label('MERCY GRANTED', effect.targetId, 'clean'), delay + 580);
+      if (effect.cardKind === 'DISPEL' && !blockedTargets.has(effect.targetId)) scheduleTableEffect(() => label(`REMOVED: ${effects.filter(item=>item.type==='STATUS'&&item.targetId===effect.targetId&&item.count===0).map(item=>item.statusKind==='BLACK_CAT'?'CURSE':item.statusKind==='VOW_HEART'?'VOW OF HEARTS':item.statusKind?.replaceAll('_',' ')).filter(Boolean).join(', ')}`, effect.targetId, 'danger'), delay + 580);
+      if (effect.cardKind === 'SCAPEGOAT') scheduleTableEffect(() => label('DOUBT TRANSFERRED', effect.secondTargetId, 'danger'), delay + 700);
     } else if (effect.type === 'DRAW') {
-      setTimeout(()=>audio.play('draw'),delay);
+      scheduleTableEffect(()=>play('draw',effect.id),delay);
       for (let i = 0; i < (effect.count ?? 2); i++) fly(before.get('draw'), undefined,
         effect.actorId === next.you?.playerId ? { x: innerWidth / 2 + i * 24, y: innerHeight - 100 } : after.get(effect.actorId ?? ''), effect, delay + i * 140);
     } else if (effect.type === 'DEATH') {
-      if(!next.presentation)audio.play('death');
+      if(!next.presentation&&!closeups.some(moment=>moment.kind==='death'))play('death',effect.id);
       pulse(effect.targetId, 'death-impact');
       const notice = document.createElement('div'); notice.className = 'fallen-announcement'; notice.setAttribute('role', 'status');
       const cross = document.createElement('span'); cross.textContent = '×'; cross.setAttribute('aria-hidden', 'true');
       const label = document.createElement('b'); label.textContent = `${next.players.find(player => player.id === effect.targetId)?.name ?? 'A villager'} has fallen`;
-      notice.append(cross, label); document.body.append(notice); setTimeout(() => notice.remove(), 2100);
+      notice.append(cross, label); document.body.append(notice); scheduleTableEffect(() => notice.remove(), 2100);
     } else if (effect.type === 'REVEAL') {
       // The central sequence announces, reveals the full portrait, and then
       // points out the exact slot. Do not race it with an instant second reveal.
@@ -161,11 +189,10 @@ export function animateTableChanges(previous: RoomView | null, next: RoomView, b
           mark.style.left = `${(old+amount)*100/7}%`; mark.style.width = `${100/7}%`; mark.style.opacity = '0';
           track.append(mark);
         }
-        if (mark) setTimeout(() => { mark!.style.removeProperty('opacity'); mark!.classList.add('new-mark'); sound('stamp'); }, delay + 105 * amount);
-        else setTimeout(() => sound('stamp'), delay + 105 * amount);
+        if (mark) scheduleTableEffect(() => { if(!mark!.isConnected)return;mark!.style.removeProperty('opacity'); mark!.classList.add('new-mark'); if(!closeupDoubt.has(effect.targetId))play(completesRow&&old+amount===6?'threshold':'stamp',`${effect.id}:mark:${amount}`); }, delay + 105 * amount);
       }
       const amount = effect.count ?? 1;
-      setTimeout(() => label(`+${amount} DOUBT`, effect.targetId, 'danger'), delay + 180);
+      scheduleTableEffect(() => label(`+${amount} DOUBT`, effect.targetId, 'danger'), delay + 180);
     } else if (effect.type === 'CLEANSE') {
       const old = doubt.get(effect.targetId ?? '') ?? 0;
       doubt.set(effect.targetId ?? '', Math.max(0, old - (effect.count ?? 1)));
@@ -173,13 +200,13 @@ export function animateTableChanges(previous: RoomView | null, next: RoomView, b
       for (let amount = 0; amount < (effect.count ?? 1); amount++) {
         const ghost = document.createElement('span'); ghost.className = 'doubt-tile filled cleansing-ghost'; ghost.textContent = '×';
         if (seat) { ghost.style.position = 'absolute'; ghost.style.left = `${(old-amount-1)*100/7}%`; ghost.style.width = `${100/7}%`; seat.append(ghost); }
-        setTimeout(() => { ghost.classList.add('cleansing'); sound('cleanse'); }, delay + amount*110);
-        setTimeout(() => ghost.remove(), delay + amount*110 + 700);
+        scheduleTableEffect(() => { ghost.classList.add('cleansing');play('cleanse',`${effect.id}:clear:${amount}`); }, delay + amount*110);
+        scheduleTableEffect(() => ghost.remove(), delay + amount*110 + 700);
       }
-      setTimeout(() => label('DOUBT REMOVED', effect.targetId, 'clean'), delay + 130);
+      scheduleTableEffect(() => label('DOUBT REMOVED', effect.targetId, 'clean'), delay + 130);
     } else if (effect.type === 'REVEAL_PENDING') {
       const seat = document.querySelector<HTMLElement>(`[data-player="${effect.targetId}"]`);
-      setTimeout(() => {
+      scheduleTableEffect(() => {
         document.body.classList.add('life-reveal-active');
         seat?.classList.add('accusation-seven');
         const track = seat?.querySelector<HTMLElement>('.doubt-track');
@@ -187,7 +214,7 @@ export function animateTableChanges(previous: RoomView | null, next: RoomView, b
           const ghost = document.createElement('span'); ghost.className = 'doubt-tile filled seven-ghost'; ghost.textContent = '×';
           ghost.style.left = `${i*100/7}%`; ghost.style.width = `${100/7}%`; track.append(ghost);
         }
-        setTimeout(() => { seat?.classList.remove('accusation-seven'); seat?.querySelectorAll('.seven-ghost').forEach(mark => mark.remove()); document.body.classList.remove('life-reveal-active'); }, 1200);
+        scheduleTableEffect(() => { seat?.classList.remove('accusation-seven'); seat?.querySelectorAll('.seven-ghost').forEach(mark => mark.remove()); document.body.classList.remove('life-reveal-active'); }, 1200);
       }, delay);
     } else if (effect.type === 'STATUS') {
       if (!effect.count && (curseTargets.has(effect.targetId) || blockedTargets.has(effect.targetId))) return;
@@ -195,23 +222,27 @@ export function animateTableChanges(previous: RoomView | null, next: RoomView, b
         : effect.statusKind === 'BOUND' ? (effect.count ? 'BOUND' : 'CHAINS BROKEN')
         : effect.statusKind === 'ASYLUM' ? (effect.count ? 'ASYLUM' : 'NIGHT SHIELD GONE')
           : effect.statusKind === 'PIETY' ? (effect.count ? 'BLESSED' : 'PIETY SPENT') : effect.count ? 'WARDED' : 'WARD SPENT';
-      setTimeout(() => label(words, effect.targetId), delay + 130);
+      scheduleTableEffect(() => label(words, effect.targetId), delay + 130);
+      if(effect.count&&['PIETY','HEARTHWARD','ASYLUM'].includes(effect.statusKind??'')&&!closeupProtections.has(effect.targetId))scheduleTableEffect(()=>{pulse(effect.targetId,'block-piety');play('protect',`${effect.id}:activation`);},delay+130);
+      if(!effect.count&&effect.statusKind==='BOUND')scheduleTableEffect(()=>play('blocked',`${effect.id}:release`),delay+130);
     } else if (effect.type === 'BLOCK') {
+      if(!closeupCards.has(effect.cardKind))play('blocked',effect.id);
       pulse(effect.targetId, effect.statusKind === 'ASYLUM' ? 'block-asylum'
         : effect.cardKind === 'WHISPER' ? 'block-hearthward' : 'block-piety');
-      setTimeout(() => label(effect.statusKind === 'ASYLUM' ? 'NIGHT EFFECT BLOCKED'
+      scheduleTableEffect(() => label(effect.statusKind === 'ASYLUM' ? 'NIGHT EFFECT BLOCKED'
         : effect.cardKind === 'WHISPER' ? 'WHISPER BLOCKED' : 'PROTECTED BY PIETY', effect.targetId, 'clean'), delay);
     } else if (effect.type === 'ROLE_BLOCK') {
+      if(!closeupCards.has(effect.cardKind))play('blocked',effect.id);
       pulse(effect.targetId, 'block-herbalist');
-      setTimeout(() => label('PROTECTED', effect.targetId, 'clean'), delay);
+      scheduleTableEffect(() => label('PROTECTED', effect.targetId, 'clean'), delay);
     } else if (effect.type === 'VOTE_VICTORY') {
       const banner = document.createElement('div'); banner.className = 'scapegoat-announcement';
       banner.setAttribute('role', 'status'); banner.textContent = 'OUTCAST VICTORY';
-      document.body.append(banner); setTimeout(() => banner.remove(), 2800);
+      document.body.append(banner); scheduleTableEffect(() => banner.remove(), 2800);
     } else if (effect.type === 'TURN_SKIPPED') {
-      setTimeout(() => label('TURN SKIPPED — BOUND', effect.actorId), delay);
+      scheduleTableEffect(() => label('TURN SKIPPED — BOUND', effect.actorId), delay);
     } else if (effect.type === 'VOW' && effect.count) {
-      setTimeout(() => label(effect.cardKind ? 'SHARED SUSPICION' : 'HEARTS BOUND', effect.targetId), delay);
+      scheduleTableEffect(() => label(effect.cardKind ? 'SHARED SUSPICION' : 'HEARTS BOUND', effect.targetId), delay);
     } else if (effect.type === 'CONSPIRACY') {
       label('CONSPIRACY', undefined, 'global');
       const living = next.deal?.players.filter(p => p.alive) ?? [];
@@ -223,7 +254,7 @@ export function animateTableChanges(previous: RoomView | null, next: RoomView, b
       // These are anonymous heart silhouettes between rows, never actual hidden slots.
       flyHiddenLife(before.get(`${effect.actorId}:life`), after.get(`${effect.targetId}:life`), effect.targetId ?? '', delay + 120);
       flyHiddenLife(before.get(`${effect.targetId}:life`), after.get(`${effect.actorId}:life`), effect.actorId ?? '', delay + 120);
-      setTimeout(() => label('THE CINDERS SHIFT', effect.targetId), delay + 400);
+      scheduleTableEffect(() => label('THE CINDERS SHIFT', effect.targetId), delay + 400);
     }
   });
 }

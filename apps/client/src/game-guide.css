@@ -4,8 +4,8 @@ body.digital-ui #how-to-dialog.game-guide {width:min(1120px,calc(100vw - 24px));
 .guide-heading {display:flex;justify-content:space-between;align-items:center;gap:15px;}
 body.digital-ui .guide-heading h2 {font:36px/1.1 var(--heading);margin:5px 0 14px;}
 .guide-heading #guide-close {min-width:44px;min-height:44px;padding:0;font-size:26px;background:none;}
-.guide-tabs {display:flex;gap:8px;padding-bottom:15px;margin-bottom:18px;border-bottom:1px solid #d5c6a44d;}
-.guide-tabs button {min-height:44px;flex:1;max-width:240px;background:#131b25;color:#cfbea1;}
+.guide-tabs {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;padding-bottom:15px;margin-bottom:18px;border-bottom:1px solid #d5c6a44d;}
+.guide-tabs button {min-height:44px;min-width:0;padding:8px;background:#131b25;color:#cfbea1;}
 .guide-tabs [aria-selected='true'] {border-color:#e6c581;background:#5a402433;color:#ffe8b1;box-shadow:inset 0 -2px #e6c581;}
 .game-guide p {font:13px/1.65 'Segoe UI',sans-serif;color:#ddd0b8;}
 .guide-lead {max-width:700px;}
@@ -29,6 +29,7 @@ body.digital-ui .guide-step h3 {font:32px/1.2 var(--heading);margin:5px 0 14px;}
 .guide-step footer {display:flex;justify-content:space-between;gap:10px;margin-top:15px;}
 .guide-step footer button {min-height:44px;}
 @media(max-width:680px) {
+  .guide-tabs {grid-template-columns:repeat(2,minmax(0,1fr));}
   body.digital-ui #how-to-dialog.game-guide {padding:14px;width:calc(100vw - 16px);max-height:calc(100dvh - 16px);}
   body.digital-ui .guide-heading h2 {font-size:28px;}
   .guide-roles {grid-template-columns:minmax(0,1fr);}
@@ -46,3 +47,27 @@ body.digital-ui .guide-step h3 {font:32px/1.2 var(--heading);margin:5px 0 14px;}
   body.digital-ui.game-screen .game-preferences {margin-right:2px;gap:3px;}
   body.digital-ui.game-screen .game-preferences #game-help {min-width:28px;width:28px;min-height:28px;}
 }
+.credits-section {margin-top:24px;}
+body.digital-ui .credits-section h3 {font:26px/1.2 var(--heading);color:#edd4a1;margin:0 0 9px;}
+body.digital-ui .credits-section h4 {font:21px/1.2 var(--heading);color:#edd4a1;margin:0 0 12px;}
+.credits-intro {display:flex;align-items:center;flex-wrap:wrap;gap:8px 18px;}
+.credits-intro .guide-lead {flex:1 1 300px;}
+.credits-intro #copy-credits {min-height:44px;}
+.credits-intro #credits-status:empty {display:none;}
+.credits-intro #credits-status {flex-basis:100%;margin:0;color:#b4d0bb;}
+.credits-required {padding:18px;border:1px solid #ceb77c88;background:#b28a3812;border-radius:3px;}
+.credits-required blockquote {margin:0;padding:12px;border-left:2px solid #ddc18a;background:#090c11;font:15px/1.65 Georgia,serif;color:#f0dfbd;}
+.game-guide a {color:#e6c581;text-underline-offset:3px;}
+.game-guide a:focus-visible,.credits-source summary:focus-visible {outline:2px solid #e6c581;outline-offset:3px;}
+.credits-sources {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;align-items:start;}
+.credits-source {border:1px solid #bb9a554d;background:#0e141dbb;border-radius:3px;min-width:0;}
+.credits-source summary {display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;padding:12px 14px;min-height:56px;box-sizing:border-box;font:15px/1.4 Georgia,serif;color:#e8d7b4;}
+.credits-source summary::after {content:'+';color:#c6b17e;}
+.credits-source[open] summary::after {content:'−';}
+.credits-source summary small {display:block;font:12px/1.6 'Segoe UI',sans-serif;color:#b8b4aa;}
+.credits-licence {margin-left:auto;color:#c5b582;font:11px 'Segoe UI',sans-serif;}
+.credits-source > div {padding:0 14px 10px;border-top:1px solid #bb9a5528;}
+.credits-modifications {opacity:.8;}
+.game-guide .credits-filenames {font:11px/1.6 monospace;overflow-wrap:anywhere;color:#b3b3ad;}
+.credits-copy-field {width:100%;min-height:180px;box-sizing:border-box;background:#090c11;color:#eee5d1;}
+@media(max-width:680px) {.credits-sources {grid-template-columns:minmax(0,1fr);} .credits-required {padding:12px;} .credits-section {margin-top:20px;}}

@@ -1,4 +1,3 @@
-import {audio, cardSound} from './audio';
 import type { RoomView, TableEffect } from '@ashfall/shared';
 import { MOMENT_DURATION, REVEAL_STAGES, publicMoments, type GameMoment } from './moment-script';
 import { renderLifeReveal } from './life-reveal';
@@ -7,6 +6,7 @@ import { roleArt } from './role-art';
 import { reducedGameMotion } from './game-preferences';
 import { lifeSymbol } from './life-details';
 import { emblem } from './art';
+import {startEventEffect,playEventOnce,type EventEffect} from './event-effects';
 
 let queue: GameMoment[] = [];
 let timer: ReturnType<typeof setTimeout> | undefined;
@@ -16,6 +16,9 @@ let activePresentationId='';
 let handledPresentationId='';
 let heldForGuide=false;
 let resultCue: 'victory'|'defeat' = 'victory';
+let ownWitchHistory:boolean|undefined;
+let ownOutcast=false;
+let eventEffect:EventEffect|undefined;
 function finishedPresentation():void {
   const id=activePresentationId;activePresentationId='';
   if(id)document.dispatchEvent(new CustomEvent('ashfall:presentation-finished',{detail:{id}}));
@@ -46,27 +49,31 @@ export function inkBurst(): string {
   return `<div class="moment-ink" aria-hidden="true"><svg viewBox="0 0 1000 650" preserveAspectRatio="none"><path class="ink-slash" d="M-40 280 110 223 86 244 330 168 307 187 710 120 680 140 970 170 938 184 1030 390 810 416 847 399 520 458 548 440 310 480 334 463 30 445Z"/>${rays}</svg></div>`;
 }
 function resetMoments():void {
+  eventEffect?.stop();eventEffect=undefined;
   clearTimeout(timer); timer = undefined; queue = []; stage?.remove(); stage = null; privateTargets = null; paused = false; scheduled = null;
   heldForGuide=false;document.body.classList.remove('cinematic-active');
   document.querySelectorAll('.revealed-slot-emphasis').forEach(element => element.classList.remove('revealed-slot-emphasis'));
 }
 export function clearGameMoments():void {resetMoments();finishedPresentation();}
 function showNext(): void {
+  eventEffect?.stop();eventEffect=undefined;
   stage?.remove(); stage = null; clearTimeout(timer); timer = undefined; paused = false; scheduled = null;
   document.querySelectorAll('.revealed-slot-emphasis').forEach(element => element.classList.remove('revealed-slot-emphasis'));
   if (document.hidden) { queue = [];document.body.classList.remove('cinematic-active');finishedPresentation(); return; }
   const moment = queue.shift(); if (!moment) {document.body.classList.remove('cinematic-active');finishedPresentation();return;}
+  if(moment.kind==='victory')moment.soundMood=resultCue==='victory'?'good':'bad';
   document.body.classList.add('cinematic-active');
   const quiet = reducedGameMotion();
   stage = document.createElement('section'); stage.id = 'game-moment';
   stage.className = `game-moment moment-${moment.kind} tone-${moment.tone}${moment.kind === 'position' ? ' moment-reveal' : ''}${quiet ? ' moment-quiet' : ''}${moment.heavy ? ' moment-heavy' : ''}`;
   stage.dataset.kind = moment.kind;
+  if(moment.event)stage.dataset.event=moment.event;
   if(moment.cardKind)stage.dataset.cardKind=moment.cardKind; stage.setAttribute('aria-label', `${moment.title}. ${moment.description}`);
   stage.style.setProperty('--moment-duration', `${moment.duration}ms`);
   const artwork = moment.art ? `<img src="${moment.art}" alt="">` : moment.phase ? phaseIcon(moment.phase)
     : moment.sealKind ? lifeSymbol(moment.sealKind) : moment.kind === 'death'
       ? '<span class="moment-death-sigil" aria-hidden="true">×</span>' : '<span class="moment-verdict" aria-hidden="true">✦</span>';
-  const people = moment.actor && moment.targets ? `<div class="moment-people" aria-label="Card actor and targets">
+  const people = moment.kind==='event'&&moment.targets ? `<div class="moment-event-target"><small>${escape(moment.targets[0]!.label)}</small>${moment.targets[0]!.avatar?emblem(moment.targets[0]!.avatar):''}</div>` : moment.actor && moment.targets ? `<div class="moment-people" aria-label="Card actor and targets">
     <div class="moment-person moment-actor">${moment.actor.avatar ? emblem(moment.actor.avatar) : ''}<div><small>${moment.kind === 'power' ? 'USED BY' : 'PLAYED BY'}</small><strong>${escape(moment.actor.name)}</strong></div></div>
     <span class="moment-direction" aria-hidden="true">→</span>
     ${moment.targets.map(target => `<div class="moment-person moment-target">${target.avatar ? emblem(target.avatar) : '<span class="moment-group" aria-hidden="true">✦</span>'}<div><small>${target.label}</small><strong>${escape(target.name)}</strong></div></div>`).join('')}
@@ -93,12 +100,10 @@ function showNext(): void {
     button.textContent = paused ? 'Resume' : 'Keep open';
     if (paused) { remaining = Math.max(0, dueAt - Date.now()); clearTimeout(timer); }
     else if (scheduled) schedule(scheduled, remaining);
+    if(paused)eventEffect?.pause();else eventEffect?.resume();
   });
   document.body.append(stage);
-  if(moment.kind==='card')audio.play(cardSound(moment.cardKind));
-  else if(moment.kind==='death')audio.play('death');
-  else if(moment.kind==='phase')audio.play(moment.phase==='DAY'?'dawn':'night');
-  else if(moment.kind==='victory')audio.play(resultCue);
+  if(moment.kind==='victory')playEventOnce(resultCue,`${moment.soundKey}:music`);
   if (moment.heavy && !quiet) {
     document.getElementById('action-spotlight')?.animate([
       { transform: 'translate(0,0)' }, { transform: 'translate(-3px,1px)', offset: .2 },
@@ -110,8 +115,9 @@ function showNext(): void {
     const renderStep = (index: number) => {
       const step = REVEAL_STAGES[index]; if (!step || !stage) { showNext(); return; }
       stage.dataset.revealStage = step.name;
-      if(index===1)audio.play('reveal');
+      eventEffect?.stop();
       stage.querySelector('.moment-content')!.innerHTML = renderLifeReveal(moment, step.name);
+      eventEffect=startEventEffect(stage,moment,quiet,step.name,step.duration);
       schedule(() => renderStep(index + 1), step.duration);
     };
     renderStep(0);
@@ -121,14 +127,21 @@ function showNext(): void {
       stage.querySelector('.moment-content')!.innerHTML = renderLifeReveal(moment,'position');
       document.querySelector(`[data-player="${moment.reveal.playerId}"] [data-seal-slot="${moment.reveal.slot}"]`)?.classList.add('revealed-slot-emphasis');
     }
+    eventEffect=startEventEffect(stage,moment,quiet);
     schedule(showNext, moment.duration);
   }
 }
 export function animateGameMoments(previous: RoomView | null, next: RoomView, effects: TableEffect[]): void {
+  const id = next.deal?.matchId ?? '';
+  if(id!==match){ownWitchHistory=undefined;ownOutcast=false;}
+  // An eliminated player's private projection is cleared. Retain only this
+  // browser's already-authorized allegiance for its eventual result sound.
+  if(next.private)ownWitchHistory=next.private.everWitch;
+  else ownWitchHistory ??= next.deal?.players.find(player=>player.playerId===next.you?.playerId)?.historicalWitch;
+  if(next.role)ownOutcast=next.role.kind==='SCAPEGOAT';
   const outcome=next.day?.outcome;
   resultCue=outcome?.winner==='SCAPEGOAT'?(outcome.playerId===next.you?.playerId?'victory':'defeat')
-    : outcome&&next.private?((outcome.winner==='WITCH')===next.private.everWitch?'victory':'defeat'):'victory';
-  const id = next.deal?.matchId ?? '';
+    : ownOutcast?'defeat':outcome&&ownWitchHistory!==undefined?((outcome.winner==='WITCH')===ownWitchHistory?'victory':'defeat'):'victory';
   if(!previous||!id||id!==match){activePresentationId='';handledPresentationId='';resetMoments();match=id;}
   if(next.presentation!==undefined) {
     const presentation=next.presentation;
@@ -142,13 +155,13 @@ export function animateGameMoments(previous: RoomView | null, next: RoomView, ef
     activePresentationId=presentation.id;
     if(document.hidden){finishedPresentation();return;}
     if(presentation.scope==='PUBLIC') {
-      queue=publicMoments({...next,phase:presentation.previousPhase??next.phase},next,presentation.events??[]);
+      queue=publicMoments({...next,phase:presentation.previousPhase??next.phase},next,presentation.events??[]).map((moment,index)=>({...moment,soundKey:`${id}:${presentation.id}:${index}`}));
     } else {
       const action=presentation.privateAction,role=next.role;
       if(action?.kind==='SLEUTH'&&role?.peek)return;
       if(action&&role&&action.kind===role.kind&&['HERBALIST','GOSSIP','HEXER'].includes(action.kind)) {
         const owner=next.players.find(player=>player.id===next.you?.playerId);
-        queue=[{kind:'power',eyebrow:'Your private power',title:role.kind==='HERBALIST'?'Remedy prepared':role.kind==='HEXER'?'Hex sealed':'Whispers compared',
+        queue=[{kind:'power',soundKey:`${id}:${presentation.id}:private`,eyebrow:'Your private power',title:role.kind==='HERBALIST'?'Remedy prepared':role.kind==='HEXER'?'Hex sealed':'Whispers compared',
           description:role.result??'Your power is confirmed.',art:roleArt(role.kind),tone:role.kind==='HERBALIST'?'sage':'blue',duration:MOMENT_DURATION.power,
           actor:{name:owner?.name??'You',avatar:owner?.avatar},targets:action.targetIds.map(id=>{const player=next.players.find(player=>player.id===id);return {name:player?.name??'A player',avatar:player?.avatar,label:'USED ON'};})}];
       }
@@ -173,7 +186,7 @@ export function animateGameMoments(previous: RoomView | null, next: RoomView, ef
   if (previous.phase !== next.phase) {
     queue = queue.filter(moment => important(moment.kind));
   }
-  queue = [...queue, ...moments];
+  queue = [...queue, ...moments.map((moment,index)=>({...moment,soundKey:`${id}:${effects.map(effect=>effect.id).join('.')||`${previous.phase}-${next.phase}-${next.day?.dayNumber}`}:${index}`}))];
   while (queue.length > 8) {
     const routine = queue.findIndex(moment => !important(moment.kind));
     queue.splice(routine < 0 ? 0 : routine, 1);

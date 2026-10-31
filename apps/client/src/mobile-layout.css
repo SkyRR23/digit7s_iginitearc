@@ -1,0 +1,194 @@
+/* The phone has one task per view; desktop keeps the council table. */
+#mobile-nav, #mobile-menu-toggle, #mobile-selection, .mobile-turn-time { display: none; }
+body.digital-ui.mobile-layout .topbar,
+body.digital-ui.mobile-layout.game-screen .topbar { height: 56px; min-height: 56px; margin: 0; padding: 6px 14px; gap: 10px; background: #080a0ce8; }
+body.digital-ui.mobile-layout .topbar .brand { flex: 1; font-size: 18px; line-height: 1; gap: 8px; }
+body.digital-ui.mobile-layout .brand > .role-symbol { width: 27px; height: 30px; flex: none; }
+body.digital-ui.mobile-layout .brand small { display: none; }
+body.digital-ui.mobile-layout .connection { flex: none; width: 8px; height: 8px; overflow: hidden; border-radius: 50%; background: #c36756; color: transparent; font-size: 0; }
+body.digital-ui.mobile-layout .connection::before { display: none; }
+body.digital-ui.mobile-layout .connection.online { background: #9ad6ae; }
+body.digital-ui.mobile-layout #mobile-menu-toggle { display: block; min-width: 62px; min-height: 44px; padding: 8px 12px; font-size: 12px; }
+body.digital-ui #mobile-menu { width: min(420px,calc(100vw - 24px)); max-height: calc(100dvh - 32px); padding: 20px; color: #eee9dc; background: #0c0d11f5; border: 1px solid #8d837080; border-radius: 4px; }
+body.digital-ui #mobile-menu::backdrop { background: #030407cf; backdrop-filter: blur(6px); }
+body.digital-ui #mobile-menu > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+body.digital-ui #mobile-menu h2 { margin: 6px 0 18px; font-size: 26px; }
+body.digital-ui #mobile-menu h3 { margin: 22px 0 12px; font: 600 12px 'Segoe UI',sans-serif; color: #c5bdad; }
+body.digital-ui #mobile-menu-close { min-width: 44px; align-self: start; font-size: 24px; }
+body.digital-ui #mobile-menu .game-preferences { display: grid; grid-template-columns: 1fr 1fr; width: 100%; gap: 8px; }
+body.digital-ui #mobile-menu .game-preferences button { width: auto; min-width: 0; min-height: 48px; height: auto; margin: 0; padding: 10px; border-radius: 3px; font: 600 12px 'Segoe UI',sans-serif; }
+body.digital-ui #mobile-menu #game-help { font-size: 0; }
+body.digital-ui #mobile-menu .game-preferences #game-help { width: auto; min-width: 0; border-radius: 3px; font-size: 0; }
+body.digital-ui #mobile-menu #game-help::after { content: 'How to play'; font-size: 12px; }
+body.digital-ui #mobile-menu .room-heading { display: block; height: auto; padding: 16px 0; border-block: 1px solid #d0c2a52b; }
+body.digital-ui #mobile-menu .room-heading > div:first-child { display: none; }
+body.digital-ui #mobile-menu .room-code-box { display: block; position: static; margin: 0; padding: 0; border: 0; background: none; }
+body.digital-ui #mobile-menu .room-code-box button { min-height: 44px; padding: 8px 10px; font-size: 12px; }
+body.digital-ui #mobile-menu .room-code-box > span { display: block; margin-bottom: 10px; color: #bfb7a6; font-size: 10px; letter-spacing: .16em; }
+body.digital-ui #mobile-menu .room-code-box > div { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+body.digital-ui #mobile-menu #code { flex: 1; font-size: 19px; letter-spacing: .08em; }
+body.digital-ui #mobile-menu .controls { margin-top: 18px; }
+body.digital-ui #mobile-menu .controls :is(p,h3,.eyebrow) { display: none; }
+body.digital-ui #mobile-menu #reopen { width: 100%; min-height: 44px; color: #e1b0a8; }
+
+body.digital-ui.mobile-layout.game-screen { --mobile-hand-height: clamp(204px,29dvh,244px); background-image: linear-gradient(#080a0c85,#080a0cb8),url('/art/digital-village.webp'); }
+body.digital-ui.mobile-layout.game-screen::before { background: none; }
+body.digital-ui.mobile-layout.game-screen main { height: calc(100dvh - 56px); padding: 0; overflow: hidden; }
+body.digital-ui.mobile-layout.game-screen #lobby.is-in-match { position: relative; height: 100%; padding-bottom: calc(70px + env(safe-area-inset-bottom)); }
+body.digital-ui.mobile-layout.game-screen #lobby > .match-hud { flex: none; display: grid; grid-template-columns: auto minmax(0,1fr) auto; align-items: center; gap: 4px 10px; min-height: 76px; margin: 0; padding: 12px 16px; background: #080a0ce8; border-bottom: 1px solid #c6bfa52b; text-align: left; }
+body.digital-ui.mobile-layout.game-screen .match-hud .phase-banner { grid-column: 1; grid-row: 1; display: flex; align-items: center; gap: 5px; min-width: 0; padding: 0; border: 0; background: none; font-size: 18px; }
+body.digital-ui.mobile-layout.game-screen .match-hud .phase-banner svg { width: 22px; height: 22px; }
+body.digital-ui.mobile-layout.game-screen .match-hud p { grid-column: 1 / 3; grid-row: 2; margin: 0; font-size: 12px; letter-spacing: 0; overflow-wrap: anywhere; }
+body.digital-ui.mobile-layout.game-screen .match-hud .hud-piles { display: block; grid-column: 2; grid-row: 1; justify-self: end; color: #b7b2a7; font-size: 10px; }
+body.digital-ui.mobile-layout.game-screen .match-hud :is(.mobile-turn-time,.hud-deadline) { display: block; position: static; grid-column: 3; grid-row: 1 / 3; max-width: 92px; color: #ead7aa; font: 24px var(--heading); text-align: right; }
+body.digital-ui.mobile-layout.game-screen #lobby .room-layout { display: block; flex: 1; min-height: 0; height: auto; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; padding: 14px; }
+body.digital-ui.mobile-layout.game-screen #lobby .play-column { display: flex; flex-direction: column; gap: 14px; height: auto; min-height: 100%; }
+body.digital-ui.mobile-layout.game-screen #lobby .tabletop-panel { display: block; flex: none; height: auto; padding: 0; border: 0; background: none; pointer-events: auto; overflow: visible; }
+body.digital-ui.mobile-layout.game-screen #lobby .tabletop-frame { height: auto; overflow: visible; }
+body.digital-ui.mobile-layout.game-screen #lobby .roster-title { position: static; display: flex; align-items: center; width: 100%; height: auto; min-height: 30px; padding: 0 0 10px; margin: 0 0 10px; background: none; border: 0; font: 600 12px 'Segoe UI',sans-serif; letter-spacing: .08em; }
+body.digital-ui.mobile-layout.game-screen #lobby .roster-title small { margin-left: 8px; font-size: 11px; color: #bdb9af; }
+body.digital-ui.mobile-layout.game-screen #lobby .roster-hint { display: none; }
+body.digital-ui.mobile-layout.game-screen #lobby #seats { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); grid-template-rows: none; grid-auto-flow: row; grid-auto-columns: auto; align-items: stretch; gap: 8px; height: auto; padding: 0; overflow: visible; }
+body.digital-ui.mobile-layout.game-screen #lobby #seats .table-seat { position: relative; grid-column: auto; grid-row: auto; grid-template-columns: 28px minmax(0,1fr); grid-template-areas: 'portrait name' 'status status' 'seals seals' 'doubt doubt' 'revealed revealed' 'effects effects' 'choose choose'; align-content: start; gap: 2px 6px; width: 100%; height: auto; min-height: 92px; padding: 8px; border: 1px solid #bab8ad47; border-radius: 4px; background: #121519d9; }
+body.digital-ui.mobile-layout.game-screen #lobby #seats .table-seat .portrait-wrap { width: 28px; height: 28px; }
+body.digital-ui.mobile-layout.game-screen #lobby #seats .table-seat .seat-name { position: static; display: flex; flex-wrap: wrap; gap: 3px; padding: 0; min-height: 28px; background: none; border: 0; box-shadow: none; }
+body.digital-ui.mobile-layout.game-screen #lobby #seats .table-seat .seat-name h3 { font: 17px/1.15 var(--heading); text-transform: uppercase; letter-spacing: .035em; white-space: nowrap; }
+body.digital-ui.mobile-layout.game-screen #lobby #seats .seat-name small { font-size: 8px; color: #d1cbbd; }
+body.digital-ui.mobile-layout.game-screen #lobby #seats :is(.seat-badges,.action-name-label,.history-marker) { display: none; }
+body.digital-ui.mobile-layout.game-screen #lobby #seats .table-seat .seat-status { display: block; margin: 0; color: #bdb7a9; font: 10px/1.35 'Segoe UI',sans-serif; }
+body.digital-ui.mobile-layout.game-screen #lobby #seats .table-seat .seat-seals { grid-area: seals; width: 100%; margin: 0; }
+body.digital-ui.mobile-layout.game-screen #lobby #seats .public-seals { gap: 4px; width: 100%; }
+body.digital-ui.mobile-layout.game-screen #lobby #seats .table-seat .public-seals li { flex: 1; width: auto; height: 22px; max-width: none; padding: 1px; border-radius: 3px; border-color: #b8b09c66; background: #080a0c; }
+body.digital-ui.mobile-layout.game-screen #lobby #seats .table-seat .public-seals li button { min-height: 0; padding: 0; }
+body.digital-ui.mobile-layout.game-screen #lobby #seats :is(.doubt-track,.attached-status) { min-height: 0; height: auto; margin: 0; }
+body.digital-ui.mobile-layout.game-screen #lobby #seats .doubt-track:empty { display: none; }
+body.digital-ui.mobile-layout.game-screen #lobby #seats .doubt-tile { height: 18px; font-size: 22px; line-height: 18px; }
+body.digital-ui.mobile-layout.game-screen #lobby #seats .table-seat .status-icons { position: static; display: flex; flex-wrap: wrap; gap: 4px; margin: 0; }
+body.digital-ui.mobile-layout.game-screen #lobby #seats .status-icons:empty { display: none; }
+body.digital-ui.mobile-layout.game-screen #lobby #seats .status-icon { width: auto; height: auto; min-height: 30px; padding: 4px; }
+body.digital-ui.mobile-layout.game-screen #lobby #seats .status-icon b { display: inline; font-size: 8px; }
+body.digital-ui.mobile-layout.game-screen #lobby #seats .revealed-life-summary { flex-wrap: wrap; overflow: visible; }
+body.digital-ui.mobile-layout.game-screen #lobby #seats .revealed-life-badge { min-height: 32px; font-size: 10px; }
+body.digital-ui.mobile-layout.game-screen #lobby #seats .is-dead .death-mark { font-size: 44px; inset: -7px; }
+body.digital-ui.mobile-layout.game-screen #lobby #seats .table-seat.is-active { border-color: #88d8a46b; background: linear-gradient(110deg,#18372ce8,#101c1aeb); box-shadow: inset 3px 0 #73d99a,0 0 17px #70d99c16; }
+body.digital-ui.mobile-layout.game-screen #lobby #seats .table-seat.is-valid-target { border-color: #e4c47d; background: #30291c; }
+body.digital-ui.mobile-layout.game-screen #lobby #seats .target-callout { width: 100%; min-height: 44px; font-size: 12px; border-radius: 5px; }
+body.digital-ui.mobile-layout.game-screen #lobby .tabletop-panel > .controls { position: static; width: 100%; margin-top: 12px; }
+body.digital-ui.mobile-layout.game-screen #lobby .tabletop-panel > .controls #reopen { width: 100%; min-height: 48px; font-size: 13px; }
+
+body.digital-ui.mobile-layout.game-screen #lobby .action-stage { display: flex; flex: none; position: static; width: 100%; min-height: 0; padding: 0; gap: 0; container-type: normal; }
+body.digital-ui.mobile-layout.game-screen #lobby .action-spotlight { display: block; overflow: visible; padding: 0; }
+body.digital-ui.mobile-layout.game-screen #lobby .action-route { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; max-width: none; padding: 14px; border-radius: 4px; background: #070b10d9; text-align: left; }
+body.digital-ui.mobile-layout.game-screen #lobby .route-state { display: block; grid-column: 1 / -1; margin: 0; font-size: 9px; color: #bdb7a9; }
+body.digital-ui.mobile-layout.game-screen #lobby .action-actor { display: block; grid-column: 1; grid-row: auto; }
+body.digital-ui.mobile-layout.game-screen #lobby .action-actor > span { justify-content: start; margin: 0; }
+body.digital-ui.mobile-layout.game-screen #lobby .action-actor .eyebrow { display: none; }
+body.digital-ui.mobile-layout.game-screen #lobby .action-actor b { font: 600 13px 'Segoe UI',sans-serif; }
+body.digital-ui.mobile-layout.game-screen #lobby .route-card-name { grid-column: 2; grid-row: auto; justify-content: end; margin: 0; }
+body.digital-ui.mobile-layout.game-screen #lobby .route-card-name h2 { font: 18px/1.2 var(--heading); text-transform: uppercase; }
+body.digital-ui.mobile-layout.game-screen #lobby .route-card-name > span { display: none; }
+body.digital-ui.mobile-layout.game-screen #lobby .route-targets { grid-column: 1 / -1; grid-row: auto; justify-content: start; flex-direction: row; gap: 5px; }
+body.digital-ui.mobile-layout.game-screen #lobby .route-targets::before { content: 'To'; font-size: 11px; color: #bdb7a9; }
+body.digital-ui.mobile-layout.game-screen #lobby .route-targets:empty { display: none; }
+body.digital-ui.mobile-layout.game-screen #lobby .route-targets .spotlight-player { flex: none; min-width: 0; max-width: 100%; padding: 0; border: 0; background: none; box-shadow: none; }
+body.digital-ui.mobile-layout.game-screen #lobby .route-targets .spotlight-player > .eyebrow { display: none; }
+body.digital-ui.mobile-layout.game-screen #lobby .route-targets .spotlight-player header { gap: 4px; }
+body.digital-ui.mobile-layout.game-screen #lobby .route-targets .spotlight-player h2 { margin: 0; font: 18px/1.2 var(--heading); text-transform: uppercase; }
+body.digital-ui.mobile-layout.game-screen #lobby .route-targets .spotlight-player header .emblem { display: none; }
+body.digital-ui.mobile-layout.game-screen #lobby .route-help { display: block; grid-column: 1 / -1; margin: 0; color: #bdb7a9; font-size: 11px; line-height: 1.5; }
+body.digital-ui.mobile-layout.game-screen #lobby .action-route.waiting > h2 { grid-column: 1 / -1; margin: 0; font: 22px var(--heading); }
+body.digital-ui.mobile-layout.game-screen #lobby .action-route.waiting .action-actor { display: none; }
+body.digital-ui.mobile-layout.game-screen #lobby .table-center { display: none; }
+body.digital-ui.mobile-layout.game-screen #lobby .action-stage:has(.planning) #action-spotlight { display: none; }
+body.digital-ui.mobile-layout.game-screen #mobile-selection:not([hidden]) { display: flex; flex: none; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; background: #332a1c; border-bottom: 1px solid #c8a7626b; }
+body.digital-ui.mobile-layout.game-screen #mobile-selection small { display: block; margin-bottom: 3px; font-size: 9px; letter-spacing: .08em; color: #dfc38d; }
+body.digital-ui.mobile-layout.game-screen #mobile-selection strong { font-size: 14px; }
+body.digital-ui.mobile-layout.game-screen #action-confirmation:has(.play-preview) { position: fixed; z-index: 45; inset: auto 10px calc(var(--mobile-hand-height) + 80px + env(safe-area-inset-bottom)); width: auto; max-height: min(45dvh,calc(100dvh - var(--mobile-hand-height) - 200px)); overflow-y: auto; box-shadow: 0 -16px 40px #0008; border-radius: 4px; }
+body.digital-ui.mobile-layout.game-screen #action-confirmation .play-preview { padding: 18px; border-radius: 4px; background: #080a0cf0; }
+body.digital-ui.mobile-layout.game-screen .play-preview :is(button,select) { min-height: 48px; font-size: 13px; }
+body.digital-ui.mobile-layout.game-screen .play-preview p { font-size: 13px; line-height: 1.5; }
+
+/* A live hand sits below the table, above the navigation, without another tab. */
+body.digital-ui.mobile-layout.game-screen #lobby #day-panel { flex: none; position: relative; display: flex; flex-direction: column; gap: 4px; height: var(--mobile-hand-height); min-height: 0; padding: 8px 12px; border: 0; border-top: 1px solid #c7c2b45c; background: #080a0cf0; overflow: hidden; }
+body.digital-ui.mobile-layout.game-screen #day-panel .action-dock-heading { display: flex; position: static; height: 44px; min-height: 44px; flex: none; padding: 0; background: none; }
+body.digital-ui.mobile-layout.game-screen #lobby #day-panel:not(:has(.day-buttons button)) { height: calc(var(--mobile-hand-height) - 48px); }
+body.digital-ui.mobile-layout.game-screen #day-panel:not(:has(.day-buttons button)) .action-dock-heading { display: none; }
+body.digital-ui.mobile-layout.game-screen #day-panel .action-dock-heading > .eyebrow,
+body.digital-ui.mobile-layout.game-screen #day-panel .action-dock-heading .turn-clock { display: none; }
+body.digital-ui.mobile-layout.game-screen #day-panel .day-buttons { position: static; display: flex; flex: 1; gap: 8px; margin: 0; }
+body.digital-ui.mobile-layout.game-screen #day-panel .day-buttons button { flex: 1; min-height: 44px; padding: 6px 5px; font-size: 12px; }
+body.digital-ui.mobile-layout.game-screen #day-panel .hand-heading { position: static; display: block; flex: none; height: 14px; min-height: 14px; margin: 0; padding: 0; line-height: 14px; }
+body.digital-ui.mobile-layout.game-screen #day-panel .hand-heading .eyebrow { font-size: 9px; letter-spacing: .06em; }
+body.digital-ui.mobile-layout.game-screen #day-panel .hand-help { display: none; }
+body.digital-ui.mobile-layout.game-screen #day-panel .action-hand.grouped-hand { display: flex; flex: 1; align-items: start; height: auto; min-height: 0; padding: 2px 1px; gap: 10px; overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; }
+body.digital-ui.mobile-layout.game-screen #day-panel .card-stack { position: relative; flex: 0 0 104px; width: 104px; min-width: 0; padding: 0; }
+body.digital-ui.mobile-layout.game-screen #day-panel .action-card { display: flex; width: 100%; max-width: none; height: calc(var(--mobile-hand-height) - 134px); min-height: 0; padding: 5px; border-width: 1px; border-radius: 4px; }
+body.digital-ui.mobile-layout.game-screen #day-panel .action-card .action-card-sigil { flex: none; width: 100%; height: calc(var(--mobile-hand-height) - 170px); min-height: 0; max-height: none; margin: 0 0 4px; }
+body.digital-ui.mobile-layout.game-screen #day-panel .action-card b { margin: 0; font-size: 15px; }
+body.digital-ui.mobile-layout.game-screen #day-panel .action-card.selected { z-index: 1; transform: none; }
+body.digital-ui.mobile-layout.game-screen #day-panel .action-card .card-stack-count { display: block; }
+body.digital-ui.mobile-layout.game-screen #day-panel [data-card][aria-disabled="true"] { touch-action: pan-x; }
+body.digital-ui.mobile-layout.game-screen #day-panel .card-details-button { min-height: 44px; margin-top: 4px; border-radius: 3px; font-size: 12px; }
+body.digital-ui.mobile-layout.game-screen #day-panel .stack-controls { position: absolute; z-index: 2; inset: 3px 3px auto; display: flex; min-height: 44px; height: auto; margin: 0; padding: 0; background: #0d0f12f5; border-radius: 3px; }
+body.digital-ui.mobile-layout.game-screen #day-panel .card-stack:not(:has(.action-card.selected)) .stack-controls { display: none; }
+body.digital-ui.mobile-layout.game-screen #day-panel .stack-controls button { min-height: 44px; }
+body.digital-ui.mobile-layout.game-screen #day-panel .stack-controls :is(button,span) { font-size: 12px; }
+body.digital-ui.mobile-layout.game-screen #day-panel .selection-hint { display: none; }
+
+body.digital-ui.mobile-layout.game-screen #lobby #local-life { flex: none; position: relative; height: auto; min-height: 142px; padding: 16px 16px 64px; background: #080a0cf0; border-radius: 4px; }
+body.digital-ui.mobile-layout.game-screen #local-life header { height: auto; margin-bottom: 12px; }
+body.digital-ui.mobile-layout.game-screen #local-life header h2 { font: 600 16px 'Segoe UI',sans-serif; text-transform: none; }
+body.digital-ui.mobile-layout.game-screen #local-life .public-seals { width: 100%; max-width: none; gap: 8px; }
+body.digital-ui.mobile-layout.game-screen #local-life .public-seals li { height: 54px; max-width: none; }
+body.digital-ui.mobile-layout.game-screen #local-life .inspect-life { inset: auto 16px 12px; min-height: 40px; padding: 8px; border: 1px solid #8d969e66; font-size: 12px; }
+body.digital-ui.mobile-layout.game-screen #lobby .role-toggle { position: static; flex: none; display: flex; width: 100%; height: auto; min-height: 76px; padding: 12px; border-radius: 4px; }
+body.digital-ui.mobile-layout.game-screen #lobby .role-toggle b { font-size: 18px; }
+body.digital-ui.mobile-layout.game-screen #lobby .role-toggle small { font-size: 11px; }
+body.digital-ui.mobile-layout.game-screen #lobby .power-dock { position: static; width: 100%; height: auto; min-height: 76px; }
+body.digital-ui.mobile-layout.game-screen #lobby .power-dock #role-power { flex: 1; min-height: 76px; padding: 12px; }
+body.digital-ui.mobile-layout.game-screen #lobby .power-dock #power-info { min-width: 48px; }
+body.digital-ui.mobile-layout.game-screen #lobby .power-dock :is(b,small) { font-size: 13px; }
+body.digital-ui.mobile-layout.game-screen #lobby #night-panel:not([hidden]) { position: static; width: 100%; max-height: none; margin-top: 12px; padding: 16px; }
+body.digital-ui.mobile-layout.game-screen #lobby[data-phase="NIGHT"] .action-stage { order: -1; }
+body.digital-ui.mobile-layout.game-screen #lobby[data-phase="NIGHT"] #action-spotlight { display: none; }
+body.digital-ui.mobile-layout.game-screen #lobby #night-panel .eyebrow { font-size: 10px; }
+body.digital-ui.mobile-layout.game-screen #lobby .night-choice form { display: grid; gap: 10px; }
+body.digital-ui.mobile-layout.game-screen #lobby .night-choice form select { width: 100%; }
+body.digital-ui.mobile-layout.game-screen #lobby #night-panel .mobile-night-rest { display: block; margin: 0; color: #d3c8b5; font-size: 14px; line-height: 1.6; }
+body.digital-ui.mobile-layout.game-screen #lobby #night-panel:has(.mobile-night-rest) > p:not(.mobile-night-rest) { display: none; }
+.mobile-night-rest { display: none; }
+body.digital-ui.mobile-layout.game-screen #lobby .night-choice :is(select,button) { min-height: 48px; font-size: 13px; }
+
+body.digital-ui.mobile-layout.game-screen #mobile-nav { position: fixed; z-index: 50; inset: auto 0 0; display: grid; grid-template-columns: repeat(3,1fr); gap: 4px; height: calc(70px + env(safe-area-inset-bottom)); padding: 6px 10px calc(6px + env(safe-area-inset-bottom)); background: #080a0cf2; border-top: 1px solid #c7c2b43d; backdrop-filter: blur(16px); }
+body.digital-ui.mobile-layout.game-screen #mobile-nav button { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-width: 0; min-height: 52px; padding: 4px; border: 0; border-radius: 3px; background: transparent; color: #bbb9b0; font-size: 11px; }
+body.digital-ui.mobile-layout.game-screen #mobile-nav button[aria-pressed="true"] { color: #f0d4a0; background: #d6b87716; }
+body.digital-ui.mobile-layout.game-screen #mobile-nav svg { width: 22px; height: 24px; }
+body.digital-ui.mobile-layout.game-screen #lobby .chat-toggle { display: none; }
+body.digital-ui.mobile-layout.game-screen #lobby .council-panel.is-chat-open { display: flex; position: fixed; z-index: 55; inset: 68px 10px calc(80px + env(safe-area-inset-bottom)); width: auto; height: auto; min-height: 0; max-height: none; border-radius: 4px; background: #080a0cf5; }
+body.digital-ui.mobile-layout.game-screen #lobby .council-panel :is(input,button) { min-height: 44px; }
+body.digital-ui.mobile-layout.game-screen #lobby .chat-close { min-width: 44px; }
+body.digital-ui.mobile-layout.game-screen #notice:not([hidden]) { position: fixed; z-index: 65; inset: auto 14px calc(84px + env(safe-area-inset-bottom)); padding: 12px; background: #18171b; font-size: 13px; }
+body.digital-ui.mobile-layout.game-screen .recovery-banner:not([hidden]) { flex: none; margin: 0; padding: 10px 14px; font-size: 12px; }
+body.digital-ui.mobile-layout.game-screen #lobby :is(#day-panel,#local-life,.role-toggle,.power-dock) { display: none; }
+body.digital-ui.mobile-layout.game-screen[data-mobile-view="table"] #lobby #day-panel:not([hidden]),
+body.digital-ui.mobile-layout.game-screen[data-mobile-view="you"] #lobby :is(#local-life,.role-toggle,.power-dock):not([hidden]) { display: flex; }
+body.digital-ui.mobile-layout.game-screen[data-mobile-view="you"] #lobby #local-life:not([hidden]) { display: block; }
+body.digital-ui.mobile-layout.game-screen[data-mobile-view="you"] #lobby #power-dock[data-has-ability="false"] { display: none; }
+body.digital-ui.mobile-layout.game-screen #lobby #day-panel[data-hand-count="0"] { height: auto; }
+body.digital-ui.mobile-layout.game-screen #lobby #day-panel[data-phase="GAME_OVER"],
+body.digital-ui.mobile-layout.game-screen #lobby #day-panel:not(:has(.action-hand,.day-buttons button)) { display: none; }
+body.digital-ui.mobile-layout.game-screen:not([data-mobile-view="table"]) #lobby :is(.tabletop-panel,.action-stage) { display: none; }
+/* The confirmation stays above the hand while the player reviews a target. */
+body.digital-ui.mobile-layout.game-screen #lobby .action-stage:has(.play-preview) { display: contents; }
+body.digital-ui.mobile-layout.game-screen:not([data-mobile-view="table"]) #lobby #action-spotlight { display: none; }
+@media (min-width: 600px) {
+  body.digital-ui.mobile-layout.game-screen #lobby #seats { grid-template-columns: repeat(3,minmax(0,1fr)); }
+}
+@media (max-height: 500px) and (min-width: 681px) {
+  body.digital-ui.mobile-layout.game-screen[data-mobile-view="table"] #lobby .room-layout { width: 58%; flex: 1; }
+  body.digital-ui.mobile-layout.game-screen[data-mobile-view="table"] #lobby #day-panel:not([hidden]) { position: absolute; inset: 76px 0 calc(70px + env(safe-area-inset-bottom)) auto; width: 42%; height: auto; padding: 6px; gap: 2px; border-left: 1px solid #c7c2b43d; }
+  body.digital-ui.mobile-layout.game-screen #day-panel .hand-heading { display: none; }
+  body.digital-ui.mobile-layout.game-screen #day-panel .action-card { height: 76px; }
+  body.digital-ui.mobile-layout.game-screen #day-panel .action-card .action-card-sigil { height: 40px; }
+  body.digital-ui.mobile-layout.game-screen #action-confirmation:has(.play-preview) { inset: auto 10px calc(80px + env(safe-area-inset-bottom)) auto; width: min(480px,calc(100vw - 20px)); max-height: calc(100dvh - 96px); }
+}

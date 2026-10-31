@@ -1,0 +1,7 @@
+.chat-unread-badge { position: absolute; z-index: 2; top: 1px; right: 6px; display: grid; place-items: center; min-width: 19px; height: 19px; padding: 1px 5px; border: 1px solid #e6c58c; border-radius: 50%; background: #8d1020; color: #fff1d8; font: 700 10px/1 'Segoe UI',sans-serif; }
+.chat-unread-badge[hidden] { display: none; }
+body.digital-ui .chat-toggle > .chat-unread-badge:not([hidden]) { display: grid; font-size: 10px; }
+#chat-toast { position: fixed; z-index: 44; right: 14px; bottom: calc(82px + env(safe-area-inset-bottom)); width: min(250px,calc(100vw - 28px)); padding: 10px 13px; border: 1px solid #b8a17b88; border-left: 3px solid #a8313c; border-radius: 3px; color: #f3efdf; background: #080a0cf5; box-shadow: 0 5px 20px #0009; pointer-events: none; }
+#chat-toast strong { color: #e6c58c; font: 600 11px/1.4 'Segoe UI',sans-serif; }
+#chat-toast p { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin: 4px 0 0; font: 12px/1.5 'Segoe UI',sans-serif; overflow-wrap: anywhere; }
+#chat-toast[hidden], body.table-paused #chat-toast, body:has(#game-moment, #role-panel.is-open, #private-panel.is-open, dialog[open], #decision-panel:not([hidden])) #chat-toast { display: none; }

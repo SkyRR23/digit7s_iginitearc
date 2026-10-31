@@ -1,4 +1,8 @@
 import {audio} from './audio';
+import { TutorialDirector, installBeginnerAssistance } from './tutorial';
+import { confirmGameAction, dismissGamePrompt } from './game-prompts';
+import { installMobileLayout } from './mobile-layout';
+import { installChatNotifications } from './chat-notifications';
 import { renderDecisionUI, updateDecisionTimers } from './decision-ui';
 import './decision-ui.css';
 import { AVATARS, canStart, type Avatar, type BotDifficulty, type Command, type DayIntent, type RoomView } from '@ashfall/shared';
@@ -21,7 +25,7 @@ import { installLifeDetails } from './life-details';
 import { roleSymbol } from './role-art';
 import { acceptsView } from './view-order';
 import { emptyTableSelection, renderEmptySeat, renderPlayerSeat, renderTableCenter, type TableSelection } from './tabletop-components';
-import { animateTableChanges, captureTablePositions } from './table-effects';
+import { animateTableChanges, captureTablePositions, clearTableEffects } from './table-effects';
 import './style.css';
 import './tabletop.css';
 import './council-scene.css';
@@ -34,6 +38,10 @@ import './cinematic.css';
 import './game-guide.css';
 import './presentation.css';
 import './cinematic-upgrade.css';
+import './mobile-layout.css';
+import './chat-notifications.css';
+import './game-prompts.css';
+import './event-effects.css';
 
 const root = document.querySelector<HTMLDivElement>('#app')!;
 document.body.classList.add('digital-ui');
@@ -52,7 +60,7 @@ root.innerHTML = `
   <header class="topbar"><a class="brand" href="/" aria-label="Ashfall Council home">${roleSymbol('SCAPEGOAT')}<span>ASHFALL COUNCIL<small>A GAME OF SECRETS</small></span></a><div class="game-preferences"><button id="motion-toggle" type="button" aria-label="Toggle quieter animations">Motion: Full</button><button id="sound-toggle" type="button" aria-label="Toggle game sounds">Sound: On</button></div><span id="connection" class="connection" role="status">Connecting…</span></header>
   <main>
     <section id="entry" class="entry">
-      <div class="intro"><p class="eyebrow">A GAME OF SECRETS</p><h1>ASHFALL<br>COUNCIL</h1><p class="lede">The village has gathered.<br>Someone is hiding in plain sight.</p><div class="intro-menu"><button id="friends-open" type="button" class="primary">Play with friends <span>→</span></button><button id="how-to-open" type="button">How to play <span>→</span></button></div><div class="intro-foot"><span>6–10 PLAYERS</span><span>PRIVATE ROOMS</span><span>PLAY WITH BOTS</span></div></div>
+      <div class="intro"><p class="eyebrow">A GAME OF SECRETS</p><h1>ASHFALL<br>COUNCIL</h1><p class="lede">The village has gathered.<br>Someone is hiding in plain sight.</p><div class="intro-menu"><button id="friends-open" type="button" class="primary">Play with friends <span>→</span></button><button id="how-to-open" type="button">How to play <span>→</span></button><button id="credits-open" type="button">Credits <span>→</span></button></div><div class="intro-foot"><span>6–10 PLAYERS</span><span>PRIVATE ROOMS</span><span>PLAY WITH BOTS</span></div></div>
       <section class="entry-card" aria-labelledby="entry-title"><p class="eyebrow">PLAY WITH FRIENDS</p><h2 id="entry-title">Join the council</h2><p>Create a private room or enter a friend’s code.</p>
         <form id="entry-form"><label for="name">Your name <span>public</span></label><input id="name" name="name" required maxlength="24" autocomplete="nickname" placeholder="What should we call you?"><label for="capacity">Seats for new gathering</label><select id="capacity" name="capacity"><option value="6">6 players</option><option value="7">7 players</option><option value="8">8 players</option><option value="9">9 players</option><option value="10">10 players</option></select>
         <fieldset><legend>Your village sigil <span>cosmetic only</span></legend><div class="avatar-picker">${AVATARS.map((avatar, i) => `<label class="avatar-option"><input type="radio" name="avatar" value="${avatar}" ${i === 0 ? 'checked' : ''}>${emblem(avatar)}<span>${avatar}</span></label>`).join('')}</div></fieldset>
@@ -80,13 +88,24 @@ root.innerHTML = `
     </section>
     <p id="notice" class="notice" role="status" aria-live="polite" hidden></p>
     ${import.meta.env.DEV ? '<details class="debug"><summary>Development connection details</summary><pre id="debug"></pre></details>' : ''}
-  </main><footer class="page-footer"><span>ASHFALL COUNCIL</span><span>A game of secrets.</span></footer><dialog id="how-to-dialog"><button id="how-to-close" type="button" aria-label="Close how to play">×</button><h2>How to play</h2><p>Your role stays with you. Your five hidden Life cards determine survival and allegiance; some cards can move them.</p><p>On your turn, drag a card onto a highlighted player, or tap a card and choose a player. On phones, hold briefly to drag; swipe quickly to browse your hand. Review and confirm the effect to play. Targeted cards must be played on another living player. Keep playing or end your turn. Drawing two is the alternative and ends the turn.</p><p>Seven Doubt reveals one random hidden Life card. Watch for Night: only players with a private choice can submit one. Tap your corner power icon, choose a highlighted player, then confirm Yes or No. Open role info for the council vote.</p><p>Inspect card details for exact targets, durations, and protections.</p></dialog>`;
+  </main><footer class="page-footer"><span>ASHFALL COUNCIL</span><span>A game of secrets.</span></footer><dialog id="how-to-dialog"><button id="how-to-close" type="button" aria-label="Close how to play">×</button><h2>How to play</h2><p>Your role stays with you. Your five hidden Life cards determine survival and allegiance; some cards can move them.</p><p>On your turn, drag a card onto a highlighted player, or tap a card and choose a player. On phones, your hand is below the Table. Swipe sideways to browse cards, tap a card and choose a highlighted player, or hold briefly to drag. Review and confirm the effect to play. Targeted cards must be played on another living player. Keep playing or end your turn. Drawing two is the alternative and ends the turn.</p><p>Seven Doubt reveals one random hidden Life card. Watch for Night: only players with a private choice can submit one. Open You on phones, or use the corner power icon on larger screens, choose a highlighted player, then confirm Yes or No. Open role info for the council vote.</p><p>Inspect card details for exact targets, durations, and protections.</p></dialog>`;
 
 installGamePreferences();
 installGameGuide();
 installPresentationUI();
+const mobileLayout = installMobileLayout(clearDaySelection);
+const chatNotifications = installChatNotifications();
+const beginnerAssistance = installBeginnerAssistance();
+const tutorial = new TutorialDirector({render,reset:clearSeat,normal:async()=>{
+  const name=element<HTMLInputElement>('name').value.trim()||'New councillor';
+  if(!await act({type:'create',actionId:actionId(),name,avatar:selected,capacity:6}))return false;
+  if(!await act({type:'fillBots',actionId:actionId(),expectedVersion:view!.version,difficulty:'EASY'}))return false;
+  if(!await act({type:'ready',actionId:actionId(),expectedVersion:view!.version,ready:true}))return false;
+  return act({type:'start',actionId:actionId(),expectedVersion:view!.version});
+}});
 document.addEventListener('ashfall:presentation-finished',event=>{
   const id=(event as CustomEvent<{id:string}>).detail.id;
+  if(tutorial.active&&view?.deal&&view.presentation?.id===id){tutorial.command({type:'finishPresentation',actionId:actionId(),matchId:view.deal.matchId,presentationId:id});return;}
   if(!socket.connected||!view?.deal||view.presentation?.id!==id)return;
   const matchId=view.deal.matchId;
   void request({type:'finishPresentation',actionId:actionId(),matchId,presentationId:id}).then(reply=>{
@@ -138,7 +157,7 @@ document.addEventListener('ashfall:power-selection', event => {
 });
 function connection(): void {
   const focused = document.activeElement instanceof HTMLElement ? document.activeElement.id : '';
-  const connected = socket.connected && !recovering;
+  const connected = tutorial.active || (socket.connected && !recovering);
   const safeView = view && !connected ? { ...view, private: null, hand: null, night: null, peek: null, handPeek: null, role: null } : view;
   updatePresentationUI(safeView); updateGameGuide(safeView);
   const gameplayBlocked=!connected||busy||!!view?.presentation;
@@ -175,6 +194,10 @@ function connection(): void {
     ? act({ type: 'useRole', actionId: actionId(), matchId: view.deal.matchId, targetId, ...(secondTargetId ? { secondTargetId } : {}) })
     : Promise.resolve(false));
   if (!connected) clearGameMoments();
+  mobileLayout.update(safeView);
+  chatNotifications.update(safeView,connected);
+  beginnerAssistance.update(safeView,tutorial.active);
+  updateDayTimers();
   if (focused) document.getElementById(focused)?.focus({ preventScroll: true });
   if (import.meta.env.DEV) element('debug').textContent = `Transport: ${socket.io.engine?.transport.name ?? 'offline'}\nRoom revision: ${view?.version ?? '—'}\nPhase: ${view?.phase ?? 'entry'}\nReconnect grace: 60 seconds\nNo credentials or private game state shown.`;
 }
@@ -182,10 +205,10 @@ function renderControls(): void {
   if (!view) return;
   const me = view.players.find(p => p.id === view!.you?.playerId);
   const host = view.hostId === me?.id;
-  const blocked = busy || recovering || !socket.connected;
+  const blocked = busy || (!tutorial.active && (recovering || !socket.connected));
   element('controls').innerHTML = view.phase === 'LOBBY'
     ? `<div><p class="eyebrow">${view.players.filter(p => p.ready && p.connected).length} OF ${view.capacity} READY</p><p>Settle in, then let the host know you’re ready. Bots are server-controlled and ready immediately.</p></div><div class="control-buttons"><button id="ready" ${blocked ? 'disabled' : ''} class="${me?.ready ? '' : 'primary'}">${me?.ready ? 'Not ready' : 'I’m ready'}</button>${host ? `<button id="start" class="primary" ${blocked || !canStart(view.players, view.capacity) ? 'disabled' : ''}>Deal the Life cards</button><div class="bot-controls"><label for="lobby-capacity">Players</label><select id="lobby-capacity" ${blocked ? 'disabled' : ''}>${[6,7,8,9,10].map(count => `<option value="${count}" ${count === view!.capacity ? 'selected' : ''} ${count < view!.players.length ? 'disabled' : ''}>${count} seats</option>`).join('')}</select><label for="bot-difficulty">Bot difficulty</label><select id="bot-difficulty" ${blocked ? 'disabled' : ''}><option value="NORMAL" ${botDifficulty === 'NORMAL' ? 'selected' : ''}>Normal</option><option value="EASY" ${botDifficulty === 'EASY' ? 'selected' : ''}>Easy</option></select><button id="add-bot" ${blocked || view.players.length >= view.capacity ? 'disabled' : ''}>Add Bot</button><button id="fill-bots" ${blocked || view.players.length >= view.capacity ? 'disabled' : ''}>Fill Empty Seats</button></div>` : `<span class="host-wait">The host will deal when all ${view.capacity} are ready.</span>`}</div>`
-    : `<div class="sealed">${view.phase === 'PRIVATE_DEAL' ? `<p class="eyebrow">${view.deal?.players.filter(p => p.acknowledged).length ?? 0} OF ${view.capacity} PLAYERS ACKNOWLEDGED</p><h3>Inspect your Life cards privately.</h3><p>Acknowledge above. Day starts when all ${view.capacity} are ready.</p>` : '<p class="eyebrow">PUBLIC TABLE</p>'}${host ? `<button id="reopen" ${blocked ? 'disabled' : ''}>End match &amp; reopen</button>` : ''}</div>`;
+    : `<div class="sealed">${view.phase === 'PRIVATE_DEAL' ? `<p class="eyebrow">${view.deal?.players.filter(p => p.acknowledged).length ?? 0} OF ${view.capacity} PLAYERS ACKNOWLEDGED</p><h3>Inspect your Life cards privately.</h3><p>Acknowledge above. Day starts when all ${view.capacity} are ready.</p>` : '<p class="eyebrow">PUBLIC TABLE</p>'}${host ? `<button id="reopen" ${blocked ? 'disabled' : ''}>End match</button>` : ''}</div>`;
   if (view.phase === 'LOBBY' && host) element('controls').insertAdjacentHTML('beforeend',
     `<label class="scapegoat-setting"><input id="scapegoat-setting" type="checkbox" ${view.scapegoatEnabled ? 'checked' : ''} ${blocked ? 'disabled' : ''}> Include one optional Outcast</label>`);
   element('ready')?.addEventListener('click', () => void act({ type: 'ready', actionId: actionId(), expectedVersion: view!.version, ready: !me?.ready }));
@@ -202,11 +225,13 @@ function renderControls(): void {
   }
 }
 function render(next: RoomView): void {
+  if(tutorial.active&&next.code!=='TRAINING')return;
   if (!acceptsView(view, next)) return;
   const previous = view;
   const positions = captureTablePositions();
   view = next;
-  audio.setScene(next.phase==='GAME_OVER'?'result':next.phase==='LOBBY'?'lobby':next.phase==='DAY'||next.phase==='PRIVATE_DEAL'?'day':'night');
+  audio.setScene(next.phase==='GAME_OVER'?'result':next.phase==='LOBBY'?'lobby':['DAY','PRIVATE_DEAL','REVEAL_RESOLUTION'].includes(next.phase)?'day':'night');
+  if(next.phase==='PRIVATE_DEAL')audio.prepare('curse');
   element('entry').hidden = true;
   element('lobby').hidden = false;
   const inGame = !!next.deal || !!next.day;
@@ -215,8 +240,8 @@ function render(next: RoomView): void {
   element('lobby').dataset.phase = next.phase;
   element('code').textContent = next.code;
   element('phase-label').textContent = phaseName(next.phase);
-  element('scope-footer').textContent = next.day && next.phase !== 'GAME_OVER' ? 'Leaving forfeits your seat and reveals your remaining Seals. A disconnect has 60 seconds of grace.' : next.phase === 'PRIVATE_DEAL' ? 'Leaving cancels this private deal. No Seals are revealed.' : 'Your public sigil carries no ability.';
-  element('room-summary').textContent = `${next.players.length} of ${next.capacity} seats filled · ${next.players.filter(p => p.connected).length} connected · Invite friends with the room code.`;
+  element('scope-footer').textContent = tutorial.active ? 'Private practice with five bots. Training options let you restart or leave at any time.' : next.day && next.phase !== 'GAME_OVER' ? 'Leaving forfeits your seat and reveals your remaining Seals. A disconnect has 60 seconds of grace.' : next.phase === 'PRIVATE_DEAL' ? 'Leaving cancels this private deal. No Seals are revealed.' : 'Your public sigil carries no ability.';
+  element('room-summary').textContent = tutorial.active ? 'Private training · You and five practice bots' : `${next.players.length} of ${next.capacity} seats filled · ${next.players.filter(p => p.connected).length} connected · Invite friends with the room code.`;
   const viewerIndex = Math.max(0, next.players.findIndex(player => player.id === next.you?.playerId));
   const selection = activeSelection();
   element('seats').dataset.capacity = String(next.capacity);
@@ -271,6 +296,7 @@ function render(next: RoomView): void {
   animateTableChanges(recovering ? null : previous, next, positions);
 }
 function clearSeat(): void {
+  dismissGamePrompt();
   connectionEpoch++; busy = false; recovering = false;
   coverPrivateIdentities();
   document.body.classList.remove('game-screen');
@@ -283,13 +309,33 @@ function clearSeat(): void {
   renderDayPanel(element('day-panel'), null, true, () => {});
   renderNightPanel(element('night-panel'), null, true, () => {});
   renderRolePanel(element('role-panel'), null, true, () => {}, () => {});
-  renderPowerControls(null, true, async () => false); clearGameMoments();
+  renderPowerControls(null, true, async () => false); clearGameMoments(); clearTableEffects();
+  mobileLayout.update(null);
+  chatNotifications.update(null,false);
+  beginnerAssistance.update(null,false);
 }
+let confirmingExit=false;
 async function act(command: Command): Promise<boolean> {
+  if(tutorial.active){
+    if(command.type==='leave'||command.type==='reopen'){
+      if(await confirmGameAction('leave',false))tutorial.exit();
+      return true;
+    }
+    const reply=tutorial.command(command);notice(reply.ok?'':reply.message);return reply.ok;
+  }
   if(view?.presentation&&['drawCards','endTurn','playCard','playCards','shiftSeal','revealSeal','nightAttack','nightProtect','useRole','councilVote'].includes(command.type))return false;
   if (busy || recovering || !socket.connected) return false;
-  if (command.type === 'reopen' && !window.confirm('End this match for everyone and return to the lobby?')) return false;
-  if (command.type === 'leave' && view?.day && view.phase !== 'GAME_OVER' && !window.confirm('Forfeit your seat? Your remaining Seals will be revealed and you cannot return to this match.')) return false;
+  if(command.type==='reopen'||command.type==='leave') {
+    if(confirmingExit||!view)return false;
+    const room=view.code,match=view.deal?.matchId,seat=view.you?.playerId,before=connectionEpoch;
+    confirmingExit=true;
+    const confirmed=await confirmGameAction(command.type==='reopen'?'end':'leave',!!view.day&&view.phase!=='GAME_OVER'&&!!view.deal?.players.find(player=>player.playerId===seat)?.alive);
+    confirmingExit=false;
+    if(!confirmed||busy||recovering||!socket.connected||connectionEpoch!==before||view?.code!==room||view.you?.playerId!==seat)return false;
+    if(view.deal?.matchId!==match){notice('The match changed while the confirmation was open. Review the table and try again.');return false;}
+    // Unlike a blocking browser confirm, a game dialog lets live updates arrive.
+    command={...command,expectedVersion:view.version};
+  }
   const epoch = connectionEpoch;
   busy = true; notice(''); connection();
   const reply = await request(command);
@@ -300,6 +346,20 @@ async function act(command: Command): Promise<boolean> {
       if (!saveSession(session)) notice('Browser storage is unavailable. Refresh recovery will not work in this session.');
     }
     if (reply.view) render(reply.view);
+    if(command.type==='reopen') {
+      // The confirmation covers ending the shared match and leaving this seat.
+      let left=await request({type:'leave',actionId:actionId(),expectedVersion:view!.version});
+      if(epoch!==connectionEpoch)return false;
+      if(!left.ok&&(left.code==='STALE'||left.code==='NETWORK')) {
+        const synced=await request({type:'sync',actionId:actionId()});
+        if(epoch!==connectionEpoch)return false;
+        if(synced.ok&&synced.view){render(synced.view);left=await request({type:'leave',actionId:actionId(),expectedVersion:synced.view.version});}
+        else if(!synced.ok&&(synced.code==='NO_SESSION'||synced.code==='SESSION_EXPIRED')){clearSeat();connection();return true;}
+        if(epoch!==connectionEpoch)return false;
+      }
+      if(left.ok)clearSeat();else notice(left.message);
+      busy=false;connection();return left.ok;
+    }
     if (command.type === 'leave') clearSeat();
     if (command.type === 'chat') element<HTMLInputElement>('message').value = '';
   } else {
@@ -323,6 +383,7 @@ function toggleChat(open: boolean): void {
   const panel = element('council-panel');
   panel.classList.toggle('is-chat-open', open);
   element<HTMLButtonElement>('chat-toggle').setAttribute('aria-expanded', String(open));
+  document.querySelector('[data-mobile-view="chat"]')?.setAttribute('aria-expanded', String(open));
   if (open) element<HTMLInputElement>('message').focus({ preventScroll: true });
 }
 element('chat-toggle').addEventListener('click', () => toggleChat(!element('council-panel').classList.contains('is-chat-open')));
@@ -332,17 +393,18 @@ element('role-toggle').addEventListener('click', toggleRolePanel);
 element('chat-close').addEventListener('click', () => toggleChat(false));
 document.addEventListener('keydown', event => {
   if (event.key === 'Escape') {
-    if(element<HTMLDialogElement>('how-to-dialog').open)return;
+    if(document.querySelector('dialog[open]'))return;
     coverPrivateIdentities();
     coverRolePanel();
     toggleChat(false);
   }
 });
 element('friends-open').addEventListener('click', () => element<HTMLInputElement>('name').focus());
-element('how-to-open').addEventListener('click', () => openGameGuide('howto'));
+element('how-to-open').addEventListener('click', () => tutorial.openMenu());
+element('credits-open').addEventListener('click', () => openGameGuide('credits'));
 document.addEventListener('keydown', event => {
   if (event.key !== 'Tab') return;
-  if(element<HTMLDialogElement>('how-to-dialog').open)return;
+  if(document.querySelector('dialog[open]'))return;
   const modal = document.querySelector<HTMLElement>('#private-panel:not([hidden]) [aria-modal="true"], #role-panel.is-open:not([hidden])');
   if (!modal) return;
   const items = Array.from(modal.querySelectorAll<HTMLElement>('button:not([disabled]),select:not([disabled]),input:not([disabled]),[tabindex="0"]')).filter(item => item.getClientRects().length);
@@ -371,6 +433,7 @@ element('copy').addEventListener('click', () => {
 });
 socket.on('state', render);
 async function recoverSeat(): Promise<void> {
+  if(tutorial.active)return;
   const epoch = connectionEpoch;
   notice('');
   recovering = !!session; connection();

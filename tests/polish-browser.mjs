@@ -45,7 +45,8 @@ try {
     const badge = root.querySelector('[data-stack-kind="EVIDENCE"] .card-stack-count')?.textContent;
     root.querySelector('[data-stack-kind="EVIDENCE"] [data-card]').click();
     const one = root.querySelector('.selection-hint b')?.textContent;
-    root.querySelector('[data-group-all="EVIDENCE"]').click();
+    root.querySelector('[data-group-plus="EVIDENCE"]').click();
+    root.querySelector('[data-group-plus="EVIDENCE"]').click();
     const all = root.querySelector('.selection-hint b')?.textContent;
     root.querySelector('[data-group-minus="EVIDENCE"]').click();
     const two = root.querySelector('.selection-hint b')?.textContent;
@@ -55,7 +56,7 @@ try {
     root.remove();
     return { count, badge, one, all, two, vow, vowBadge };
   });
-  assert.deepEqual(group, { count:2, badge:'×3', one:'1 selected', all:'3 selected', two:'2 selected', vow:'1 selected', vowBadge:'×2' });
+  assert.deepEqual(group, { count:2, badge:'×3', one:'1 selected', all:'3 selected', two:'2 selected', vow:'1 selected', vowBadge:'1/2' });
   const life = await page.evaluate(async () => {
     const { renderPlayerSeat, emptyTableSelection } = await import('/src/tabletop-components.ts');
     const id = '22222222-2222-4222-8222-222222222222';

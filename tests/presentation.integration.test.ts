@@ -36,6 +36,13 @@ async function play(host:Client,target:Client,kind:'WHISPER'|'STOCKS'){
     cardId:v.hand!.find(card=>card.kind===kind)!.id,targetId:id(target)});
 }
 describe('authoritative cinematic pause',()=>{
+  it('includes the opening Curse event in the same synchronized Day 1 pause',async()=>{
+    const party=await begin(),view=party[0]!.view!,presentation=view.presentation!;
+    expect(presentation.previousPhase).toBe('PRIVATE_DEAL');
+    expect(presentation.events).toContainEqual(expect.objectContaining({type:'STATUS',statusKind:'BLACK_CAT',targetId:view.day!.activePlayerId,count:1}));
+    expect(view.day!.deadline).toBeNull();
+    await finishAll(party);expect(party[0]!.view!.presentation).toBeNull();
+  });
   it('freezes the clock, rejects gameplay, and resumes only after every reader finishes',async()=>{
     const party=await begin(),host=party[0]!,v=host.view!,remaining=v.presentation!.remainingMs;
     expect(v.day!.deadline).toBeNull();expect(remaining).toBeGreaterThan(0);

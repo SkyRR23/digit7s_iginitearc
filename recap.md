@@ -1,102 +1,86 @@
-# Ashfall Council — development recap
+# Ashfall Council — current development recap
 
-Date: October 28, 2026
+Updated: 31 October 2026
+Repository: https://github.com/SkyRR23/digit7s_iginitearc
+Local project: `D:\HeinLin\digit7s_iginitearc`
+Branch prepared for delivery: `main`
 
-## Project and purpose
+This recap describes the current local source snapshot, including the mobile, audio, cinematic and tutorial work. The older 28 October recap is preserved in `docs/recaps/2026-10-28.md`; its card counts, timings and upload status describe that older version.
 
-- Private GitHub repository: https://github.com/SkyRR23/digit7s_iginitearc
-- Local project folder: `D:\HeinLin\digit7s_iginitearc`
-- Browser preview: `http://localhost:5173/`
-- Goal: improve the local Digit7s game-jam build, especially animation, readability, teamwork and player controls.
-- Online hosting was deferred at the owner's request.
+## Latest changes
 
-## Controls and game readability
+### Optional tutorial and first-player experience
 
-- Added drag-to-play cards with eligible target highlighting and confirmation before spending a card.
-- Phone controls support a short hold to drag, quick swipes to browse, and tap-to-select.
-- Moved role-power use to a corner icon: select the power, select an eligible player, then review the description and answer Yes or No. Gossip selects two players.
-- Added sun and moon symbols with plain Day and Night labels.
-- Added clear actor and recipient information to card close-ups, including both Scapegoat transfer endpoints.
-- Added glowing green actor/target name tags and PLAYED / TARGET labels on the table.
-- Ashbound see their teammates during the private opening and through red ALLY markers during play.
-- The current turn uses green name lighting and a drifting dust effect; reduced-motion settings suppress drifting particles.
-- Corrected action-panel, target-panel and draw/discard pile overlaps, with phone and landscape layout checks.
+- Main menu **How to play** now opens **The council’s handbook**, with Interactive tutorial, Game guide, and Cards & roles. The in-game question mark still opens the guide directly.
+- Added private, local training with one human and five practice bots using the actual shared game rules and authorized view projections.
+- Training covers the private Villager role, five Life cards, Evidence, seven Doubt, choosing the actual Life position, continuing a turn after a reveal, saving cards, empty hands, End turn, fresh-turn Draw 2, Night, Dawn and victory conditions.
+- Added compact objectives, gold highlights, timed hints, Show me (focus/scroll only), restart, exit and replay. Reading is untimed; normal match timers are unchanged.
+- Completion is saved locally. Continue playing discards training and creates a fresh normal match with five Easy bots, random roles/Lives and the normal private acknowledgement flow.
+- Optional persistent Beginner assistance provides small normal-match turn reminders. It can be disabled in Audio settings or dismissed from the reminder.
+- See `TUTORIAL_IMPLEMENTATION_REPORT.md` for architecture, stages, privacy, tests and limitations.
 
-## Animation and presentation
+### Mobile layout and usability
 
-- Added illustrated close-ups inspired by Darkest Dungeon's impact and atmosphere, using the project's existing artwork and original ink/glow effects.
-- Added colored background auras that fade before the foreground content disappears.
-- Card and private-power scenes last 6.5 seconds; phase/verdict scenes 6 seconds; deaths 7 seconds; victories 8 seconds.
-- Added Keep open, Next and Back to table controls, plus access to card information during a close-up.
-- Opening presentation now uses separate screens: full role portrait, Ashbound teammates where applicable, then private Life cards. Ashbound allegiance uses red glow; others use gold.
-- Life reveals first announce the owner's name, then show a full public Life portrait, then identify the exact numbered position in the five-card row.
-- Added the “Ashbound still live among us” follow-up when no Ashbound Life has been publicly caught and the match has not ended.
-- Added motion and sound preferences.
+- Added Table / You / Chat navigation and kept the hand directly below the table instead of a separate Hand tab.
+- Improved phone card browsing, tap selection, held drag targeting, rotation and compact controls while retaining the Gothic visual style.
+- Added public chat unread badges and a brief, nonblocking message preview so hidden chat is easier to notice. Private information is not included.
+- Repeatable card stacks support repeated taps, plus/minus controls and a quantity picker; confirmation sends exactly the selected cards.
+- Leave and End match use styled in-game confirmation dialogs. Host End match returns the host to the menu and peers to the lobby.
 
-## Gameplay pauses during close-ups
+### Recorded music, ambience and sound effects
 
-- Added an authoritative server pause, rather than only a visual browser overlay.
-- Player actions and bot actions stop while the presentation is being read.
-- The phase timer preserves its remaining time and resumes from that value.
-- Players who finish early wait for the other connected readers.
-- Private powers show their details only to the owner; others receive a neutral waiting screen.
-- Added reconnect/disconnect handling and stale-presentation protection.
-- Added an absent-reader safety limit: at least 45 seconds, or the planned sequence plus 15 seconds when longer.
-- Sleuth retains its intentional exposure countdown. Whisper insight lifetime is preserved across presentation pauses.
+- Replaced the procedural continuous soundtrack/noise beds with local, properly credited prerecorded music and environmental recordings.
+- Menu, lobby, Day and Night have distinct continuous scenes. Ordinary game-state updates do not restart music; phase transitions crossfade. Victory and defeat use short conclusions.
+- Added recorded card/paper handling, physical bell/wood/metal sounds and licensed tonal glow accents for good, bad and mysterious public events.
+- Retained Master, Music, Ambience and SFX controls, mute, persistent preferences, autoplay handling, visibility handling, event deduplication, asynchronous loading, bounded memory and ducking.
+- Added in-game Credits and local source/licence previews. Runtime audio is included in this archive in Ogg and MP3 formats; no external streaming service is required.
+- Imported music/SFX are externally authored, not team-composed or generated AI music. Full filenames, creators, licences, sources and modifications are in `AUDIO_ASSET_CREDITS.csv`, `AUDIO_LICENSES.md`, `AUDIO_IMPLEMENTATION_REPORT.md` and `docs/audio-source-records.json`.
+- Historical procedural audio documentation/source is preserved under `docs/audio-history/`.
 
-## Rules and deck changes
+### Cinematic event effects and fixes
 
-- Targeted cards generally require another living player, encouraging interaction and teamwork. Scapegoat uses two other players; Conspiracy affects the living council globally.
-- Scapegoat now transfers all Doubt and active attached effects, including Hearts, Bound, protections, Black Cat and Herbalist remedy, with duplicate-effect and remedy ownership handling.
-- Added private opening Black Cat voting for Ashbound. The selected holder starts Day 1.
-- Conspiracy reveals a random hidden Life on the current Black Cat holder before shifting Life cards. Scapegoat moves the marker; Curse removes it.
-- Rebalanced the 83-card deck toward pressure: 38 Evidence and 6 Witness, with fewer utility/power cards.
-- Preserved the distinction between fixed roles and movable Life cards. Lanternkeeper protection belongs to its hidden Life card.
+- Added the public opening Curse close-up without exposing the secret voter.
+- Connected finite visual/audio milestones to existing card/event presentations, including per-Doubt stamps, neutral reveal announcements, public Good/Evil portraits, position reveals and major events.
+- Preserved privacy: unauthorized players do not receive secret-action cues. Skip, hold and reconnect avoid replaying consumed sounds.
+- Fixed the Village Survives result overlap and reserved space for its portrait, text and controls on phone/landscape layouts.
+- Restored the red Resume the Hunt / Evil still lurks treatment. Card close-up backgrounds use artwork-related accent colours, including white Evidence and red Testimony.
+- Added cleanup of pending table effects when leaving/restarting, and a Paused label for untimed tutorial Life decisions.
 
-## In-game help
+## Verification available for this snapshot
 
-- Added a corner question-mark field guide with three tabs:
-  1. Roles & portraits: all seven roles and their explanations.
-  2. Cards & effects: all 14 playable cards, target rules and interactions, plus the opening Black Cat marker.
-  3. How to play: eight illustrated steps using demonstration-match screenshots.
-- Replaced cluttered guide captures with focused screenshots.
-- Kept the guide tabs and close button accessible while scrolling the card library.
+Most recent completed checks:
 
-## Verification completed
+- `npm test`: **215 tests passed in 25 files**.
+- `npm run typecheck`: passed.
+- `npm run build`: passed; existing runtime-copied artwork URLs produce the known Vite resolution warnings.
+- Complete tutorial browser walkthrough: desktop **1280×720** and phone **360×640**, with desktop keyboard selection, native touch card selection and reduced motion.
+- Tutorial checks include real-time hint escalation, non-playing Show me, restart/exit, saved-hand and empty-hand branches, actual selected Life reveal, Night/Dawn, completion, menu return, replay, fresh five-bot normal match, normal private acknowledgement, assistance persistence and direct in-game help.
+- Production phone smoke test: gold handbook, role portrait, private Life inspection, training note and actual Day setup passed.
+- Existing event audiovisual browser checks passed, including recorded playback, cue timing, cleanup, privacy and result layouts.
+- Existing mobile browser checks passed for six and ten players, targeting, touch, chat, private views, rotation, reconnect and Night.
+- Production Credits/audio-settings browser checks passed, including all four sliders, mute, assistance checkbox and missing audio responses.
+- Earlier complete-match audio and lifecycle checks are detailed in `AUDIO_IMPLEMENTATION_REPORT.md`.
 
-- 176 automated tests passed across 20 files.
-- Production build passed.
-- Six-player and ten-player browser flows passed, covering cards, powers, reveals, Night, Dawn, deaths, reconnects, voting and rematches.
-- Desktop, phone and short-landscape presentation/guide checks passed.
-- Teammate privacy, ally/turn colors and ten-seat bot-lobby checks passed.
-- 100 bot matches completed with zero stalls/crashes and zero invalid bot actions: 38 Village wins and 62 Ashbound wins.
-- Local server and browser health checks passed at the end of implementation.
+Automated playback is not a subjective listening audition. Physical phone testing, human usability/completion-time evaluation and final listening/balance review remain. Browser tests use local isolated servers and do not change the running user match.
 
-## GitHub upload
+## Using the source ZIP on another PC
 
-The complete update was committed and pushed to `main`.
+Requirements: Node.js **22.12 or later**, npm, and a modern browser.
 
-- Commit: `25a4a2db9390e11980f4db2831ed09ee79af13e2`
-- Title: Improve game presentation, controls, and action readability
-- Link: https://github.com/SkyRR23/digit7s_iginitearc/commit/25a4a2db9390e11980f4db2831ed09ee79af13e2
-- Upload contained 62 changed files, including code, artwork, guide images, documentation and tests.
-- GitHub's branch was verified to match the local commit. The working tree was clean after the push.
+1. Extract the ZIP and open its `digit7s_iginitearc/` folder in a terminal.
+2. Run `npm ci --include=dev` to install workspace dependencies, including TypeScript. This avoids the missing `tsc` error.
+3. Run `npm run play` (equivalent to `npm run dev`). Keep the terminal open.
+4. Open `http://localhost:5173/`.
+5. Choose **How to play → Interactive tutorial** for the new-player experience.
 
-## ZIP backup and shared-PC cleanup
+If ports 5173 or 3001 are already in use, check whether the game is already running. Run `npm run doctor`; avoid launching a second copy on the same ports.
 
-- Created an archive named `version 0.2.0.zip` from the committed project.
-- Archive root: `digit7s_iginitearc-0.2.0/`.
-- Verified 201 files and ZIP integrity; size approximately 117.1 MB.
-- Excluded dependencies, build output, Git history, local test results and environment secrets.
-- The version number was used for the archive name; package-version changes or a GitHub release were not part of this step.
-- Original ZIP location was `D:\HeinLin\version 0.2.0.zip`. When this recap was created, that path no longer contained the ZIP. It may have been moved or removed; check the saved copy before relying on it.
-- The owner discussed deleting the local project because this is a school library PC. No project deletion was performed in this conversation. The project folder still exists when this recap was written.
-- Before leaving the shared PC, sign out of GitHub and remove saved GitHub credentials.
+The archive includes source, package lockfile, artwork, edited runtime audio, credits, licence records, tests and documentation. It excludes `node_modules`, build output, Git metadata, environment secrets, test screenshots/results and release staging. Install/build after extraction. External original audio downloads and FFmpeg tooling are not needed to play the included runtime assets; they are only needed to regenerate edited recordings.
 
-## Continuing development
+## Delivery and continuation
 
-Clone or pull the private repository on the next computer using an authorized GitHub account. The latest uploaded work is on `main` at the commit above.
-
-Further implementation notes are in `README.md`, `docs/GAME_FEEL.md` and `docs/ACCOUNT_HANDOFF.md` inside the repository. Hosting remains deferred; continue local gameplay and playtesting work as needed.
-
-This recap was created separately from the repository and has not been committed or uploaded to GitHub.
+- Source ZIP: `AshfallCouncil-2026-10-31-source.zip`.
+- This `recap.md` is included at the project root inside the ZIP and GitHub source.
+- The archive is generated from the delivery commit. The final commit, ZIP SHA-256 and verified GitHub upload result are reported alongside the ZIP and in the delivery message.
+- GitHub publishing was explicitly requested for this delivery; no hosted-site deployment is included.
+- Preserve the existing Gothic design, current audio, card mechanics and private-information boundaries when continuing. The earlier exploratory Myanmar theme remains unapproved.

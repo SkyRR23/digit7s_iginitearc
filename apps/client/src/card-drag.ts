@@ -26,6 +26,9 @@ export function installCardDragging(root: HTMLElement, actions: DragActions): vo
   let hovered: HTMLElement | null = null;
   let suppressClickUntil = 0;
   let lastTouchTap = { pointer: -1, until: 0 };
+  // Browsers may reuse a touch pointer ID. A new gesture must be allowed to
+  // activate quantity/settings buttons even immediately after a card tap.
+  document.addEventListener('pointerdown',()=>{lastTouchTap={pointer:-1,until:0};},{capture:true,passive:true});
   const capture = (pointer: number) => { try { document.body.setPointerCapture(pointer); } catch { /* The pointer may already be released. */ } };
   const cleanup = () => {
     clearTimeout(hold); cancelAnimationFrame(frame);
@@ -57,7 +60,7 @@ export function installCardDragging(root: HTMLElement, actions: DragActions): vo
       const box = roster.getBoundingClientRect();
       if (gesture.y >= box.top && gesture.y <= box.bottom && gesture.x >= box.left && gesture.x <= box.right) {
         if (roster.scrollWidth > roster.clientWidth) roster.scrollLeft += gesture.x > box.right - 38 ? 7 : gesture.x < box.left + 38 ? -7 : 0;
-        const vertical = roster.closest<HTMLElement>('.tabletop-frame') ?? roster;
+        const vertical = document.body.classList.contains('mobile-layout') ? roster.closest<HTMLElement>('.room-layout') ?? roster : roster.closest<HTMLElement>('.tabletop-frame') ?? roster;
         const verticalBox = vertical.getBoundingClientRect();
         if (vertical.scrollHeight > vertical.clientHeight) vertical.scrollTop += gesture.y > verticalBox.bottom - 35 ? 6 : gesture.y < verticalBox.top + 35 ? -6 : 0;
       }

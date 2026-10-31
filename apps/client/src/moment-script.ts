@@ -6,7 +6,10 @@ import { matchResult } from './match-result';
 import { roleArt } from './role-art';
 
 export interface GameMoment {
-  kind: 'card' | 'reveal' | 'position' | 'death' | 'phase' | 'victory' | 'power' | 'verdict' | 'resume';
+  kind: 'card' | 'event' | 'reveal' | 'position' | 'death' | 'phase' | 'victory' | 'power' | 'verdict' | 'resume';
+  event?: 'opening-curse';
+  soundKey?:string; blocked?:boolean; doubtMarks?:number; targetId?:string; reachesSeven?:boolean;
+  soundMood?:'good'|'bad'|'mystery';
   title: string; eyebrow: string; description: string; route?: string;
   art?: string; sealKind?: IdentityKind; phase?: RoomView['phase']; tone: 'crimson' | 'ivory' | 'blue' | 'sage'; duration: number;
   heavy?: boolean; cardKind?: import('@ashfall/shared').ActionKind;
@@ -22,13 +25,25 @@ export function publicMoments(previous: RoomView, next: RoomView, effects: Table
   const moments: GameMoment[] = [];
   const reveals = effects.filter(effect => effect.type === 'REVEAL' && next.deal?.players.find(player => player.playerId === effect.targetId)?.seals.some(seal => seal.slot === effect.slot && seal.revealed));
   for (const effect of effects) {
+    if(previous.phase==='PRIVATE_DEAL'&&next.phase==='DAY'&&effect.type==='STATUS'&&effect.statusKind==='BLACK_CAT'&&(effect.count??0)>0&&next.deal?.players.some(player=>player.playerId===effect.targetId&&player.alive)) {
+      moments.push({kind:'event',event:'opening-curse',cardKind:'CURSE',eyebrow:'THE OPENING CURSE',title:name(effect.targetId),
+        description:'The Curse has fallen on this player. They take the first turn of Day 1.',art:cardArt('CURSE'),tone:'crimson',duration:MOMENT_DURATION.event,
+        targets:[{...person(effect.targetId),label:'CURSED · FIRST TO ACT'}],heavy:true});
+    }
     if (effect.type === 'PLAY' && effect.cardKind && (!reveals.length || effect.cardKind === 'EVIDENCE') &&
       ['EVIDENCE','TESTIMONY','CURSE','COUNCIL_BELL','EAVESDROP','WITNESS','STOCKS','DISPEL','CONSPIRACY','CINDER_SHIFT','SCAPEGOAT','VOW_OF_HEARTS','WHISPER','ASYLUM'].includes(effect.cardKind)) {
       const kind = effect.cardKind;
       const supportive = ['ALIBI','MERCY','HEARTHWARD','PIETY','ASYLUM'].includes(kind);
+      const plays=effects.filter(item=>item.type==='PLAY'&&item.cardKind===kind&&item.targetId===effect.targetId&&item.actorId===effect.actorId).length;
+      const blocks=effects.filter(item=>['BLOCK','ROLE_BLOCK'].includes(item.type)&&item.targetId===effect.targetId&&item.cardKind===kind&&item.actorId===effect.actorId).length;
+      const blocked=blocks>=plays&&plays>0;
       moments.push({ kind: 'card', cardKind:kind, eyebrow: `${name(effect.actorId)} plays`, title: cardTitle(kind), art: cardArt(kind),
+        targetId:effect.targetId,blocked,
+        soundMood:kind==='DISPEL'?(effects.some(item=>item.type==='STATUS'&&item.targetId===effect.targetId&&item.count===0&&item.statusKind==='BLACK_CAT')?'good':effects.some(item=>item.type==='STATUS'&&item.targetId===effect.targetId&&item.count===0&&['PIETY','HEARTHWARD','ASYLUM'].includes(item.statusKind??''))?'bad':'mystery'):undefined,
+        reachesSeven:effects.some(item=>item.type==='REVEAL_PENDING'&&item.targetId===effect.targetId),
+        doubtMarks:Math.min(7,effects.filter(item=>item.type==='DOUBT'&&item.targetId===effect.targetId&&item.actorId===effect.actorId).reduce((sum,item)=>sum+Math.max(0,item.count??0),0)),
         route: ['CONSPIRACY','COUNCIL_BELL'].includes(kind) ? 'All living players' : `${name(effect.targetId)}${effect.secondTargetId ? ` → ${name(effect.secondTargetId)}` : ''}`,
-        description: kind==='DISPEL' ? `Removed: ${effects.filter(item=>item.type==='STATUS'&&item.targetId===effect.targetId&&item.count===0).map(item=>item.statusKind==='BLACK_CAT'?'Curse':item.statusKind==='VOW_HEART'?'Vow of Hearts':item.statusKind?.replaceAll('_',' ')).filter(Boolean).join(', ') || 'effect blocked; nothing removed'}.` : kind==='COUNCIL_BELL'?'Hear ye, hear ye! The council is called. Cast your vote.':CARD_INFO[kind].brief, tone: supportive ? 'sage' : kind === 'WHISPER' ? 'blue' : 'crimson', duration: MOMENT_DURATION.card,
+        description: blocked?'The action was blocked. Its effect did not reach this player.':kind==='DISPEL' ? `Removed: ${effects.filter(item=>item.type==='STATUS'&&item.targetId===effect.targetId&&item.count===0).map(item=>item.statusKind==='BLACK_CAT'?'Curse':item.statusKind==='VOW_HEART'?'Vow of Hearts':item.statusKind?.replaceAll('_',' ')).filter(Boolean).join(', ') || 'effect blocked; nothing removed'}.` : kind==='COUNCIL_BELL'?'Hear ye, hear ye! The council is called. Cast your vote.':CARD_INFO[kind].brief, tone: supportive ? 'sage' : kind === 'WHISPER' ? 'blue' : 'crimson', duration: MOMENT_DURATION.card,
         actor: person(effect.actorId),
         targets: ['CONSPIRACY','COUNCIL_BELL'].includes(kind) ? [{ name: 'All living players', label: 'AFFECTS' }]
           : [{ ...person(effect.targetId), label: kind === 'SCAPEGOAT' ? 'TRANSFER FROM' : 'USED ON' },

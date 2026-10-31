@@ -1,0 +1,20 @@
+body.digital-ui dialog.game-prompt {position:fixed;inset:0;margin:auto;width:min(450px,calc(100vw - 28px));max-width:none;max-height:calc(100dvh - 28px);box-sizing:border-box;overflow:auto;padding:24px;border:1px solid #c5ad79;border-radius:4px;color:#eee5d1;background:radial-gradient(ellipse at top,#74604118,transparent 70%),#0a0e14;box-shadow:0 18px 80px #000b;}
+.game-prompt::backdrop {background:#020408d9;backdrop-filter:blur(5px);}
+.game-prompt header {display:flex;align-items:center;justify-content:space-between;gap:12px;}
+body.digital-ui .game-prompt h2 {margin:10px 0 12px;font:34px/1.1 var(--heading);color:#edd4a1;}
+.game-prompt .prompt-message,.game-prompt .prompt-note {font:14px/1.65 'Segoe UI',sans-serif;color:#d0c9b8;}
+body.digital-ui .game-prompt button {min-height:44px;padding:10px 14px;font:600 13px/1.3 'Segoe UI',sans-serif;border-radius:3px;}
+body.digital-ui .game-prompt .prompt-close {min-width:44px;padding:0;font-size:26px;background:none;}
+.game-prompt footer {display:flex;justify-content:flex-end;gap:10px;margin-top:24px;}
+body.digital-ui .prompt-destructive .prompt-confirm {color:#fff1df;border-color:#ab4c53;background:#66212b;}
+.game-prompt label {display:block;margin:20px 0 9px;color:#d9c8a7;font:13px 'Segoe UI',sans-serif;}
+.prompt-quantity {display:grid;grid-template-columns:54px minmax(0,1fr) 54px;gap:10px;}
+body.digital-ui .prompt-quantity input {width:100%;min-width:0;box-sizing:border-box;padding:10px;background:#070a0e;border:1px solid #a99265;color:#f3e3bc;text-align:center;font:32px/1 var(--heading);border-radius:3px;}
+body.digital-ui .prompt-quantity button {font-size:24px;}
+body.digital-ui .game-prompt .prompt-all {display:block;margin:10px auto;background:none;color:#e3c68a;}
+.game-prompt :focus-visible {outline:2px solid #e6c581;outline-offset:3px;}
+@media(max-width:480px) {body.digital-ui dialog.game-prompt {padding:18px;}body.digital-ui .game-prompt h2 {font-size:30px;}.game-prompt footer {display:grid;grid-template-columns:1fr 1fr;gap:8px;}}
+.moment-event-target {display:flex;align-items:center;justify-content:center;gap:12px;margin:12px auto;color:#f0bdac;}
+.moment-event-target small {font:600 12px/1.4 'Segoe UI',sans-serif;letter-spacing:.12em;}
+.moment-event-target svg {width:44px;height:44px;}
+body.digital-ui .moment-event .moment-content h2 {overflow-wrap:anywhere;}

@@ -1,0 +1,69 @@
+/* A reserved controls row keeps results, long names and portraits apart. */
+.game-moment {box-sizing:border-box;grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto;gap:10px;padding:16px 12px max(12px,env(safe-area-inset-bottom));--event-light:#d8b983;}
+.game-moment > .moment-content {grid-row:1;min-width:0;min-height:0;max-width:100%;max-height:100%;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;z-index:2;pointer-events:auto;box-sizing:border-box;}
+.game-moment > .moment-controls {position:relative;inset:auto;grid-row:2;justify-content:center;width:max-content;max-width:100%;margin:0;z-index:4;}
+body.digital-ui .game-moment .moment-content h2 {white-space:normal;overflow-wrap:anywhere;text-wrap:balance;line-height:1.06;}
+.game-moment.moment-victory .moment-art {width:clamp(110px,23dvh,240px);height:clamp(120px,28dvh,260px);overflow:hidden;}
+body.digital-ui .game-moment.moment-victory .moment-content h2 {font-size:clamp(30px,5vw,58px);}
+.moment-victory .moment-description {max-width:520px;margin-inline:auto;}
+.game-moment.moment-victory .moment-veil {background:radial-gradient(ellipse at 50% 40%,#14151cec,#04060bf7 70%);animation:none;}
+body:has(#game-moment.moment-victory) #mobile-nav {visibility:hidden;}
+.game-moment[data-effect='eavesdrop'] {--event-light:#b8a0eb;}
+.game-moment[data-effect] {--accent:var(--event-light);}
+.game-moment:is(.moment-resume,.moment-verdict) {--event-light:#d62f3c;--accent:#d62f3c;}
+.game-moment:is(.moment-resume,.moment-verdict) .event-fx-layer {background:none;}
+.game-moment:is(.moment-resume,.moment-verdict) .event-fx-layer > i {display:none;}
+body.digital-ui .moment-resume.moment-paused .moment-content h2 {opacity:1!important;clip-path:inset(0)!important;transform:none!important;}
+.game-moment[data-effect='announcement'] {--event-light:#d8b983;--accent:#d8b983;}
+.game-moment[data-effect='whisper'] {--event-light:#97b7d4;}
+.game-moment[data-effect='curse'],.game-moment[data-effect='reveal-evil'] {--event-light:#d75066;}
+.game-moment[data-effect='conspiracy'] {--event-light:#b56d9b;}
+.game-moment[data-effect='shift'],.game-moment[data-effect='transfer'] {--event-light:#d99e6c;}
+.game-moment[data-effect='vow'] {--event-light:#d68c98;}
+.game-moment[data-effect='shield'],.game-moment[data-effect='dispel'] {--event-light:#b2ccb7;}
+.game-moment[data-effect='blocked'] {--event-light:#a69d92;}
+.game-moment[data-effect='blocked'] .moment-target {border-color:#978b81;background:#231f21;box-shadow:none;}
+.game-moment[data-effect='blocked'] .moment-target strong {color:#c9b7ae;text-shadow:none;}
+.game-moment[data-effect='night'],.game-moment[data-effect='death'] {--event-light:#7c8cae;}
+/* Card artwork supplies the background colour; typography and animation stay unchanged. */
+.game-moment[data-card-kind='EVIDENCE'] {--event-light:#f0e9df;}
+.game-moment[data-card-kind='TESTIMONY'] {--event-light:#d94b57;}
+.game-moment[data-card-kind='WITNESS'] {--event-light:#d64c53;}
+.game-moment[data-card-kind='STOCKS'] {--event-light:#bb4b4f;}
+.game-moment[data-card-kind='CURSE'] {--event-light:#aa80d4;}
+.game-moment[data-card-kind='DISPEL'] {--event-light:#ac86d5;}
+.game-moment[data-card-kind='WHISPER'] {--event-light:#bd8bdc;}
+.game-moment[data-card-kind='EAVESDROP'] {--event-light:#b8a0eb;}
+.game-moment[data-card-kind='CINDER_SHIFT'] {--event-light:#d7554d;}
+.game-moment[data-card-kind='CONSPIRACY'] {--event-light:#c98663;}
+.game-moment[data-card-kind='VOW_OF_HEARTS'] {--event-light:#dd657a;}
+.game-moment[data-card-kind='COUNCIL_BELL'] {--event-light:#d4a168;}
+.game-moment[data-card-kind='SCAPEGOAT'] {--event-light:#dfb067;}
+.game-moment[data-card-kind='PIETY'] {--event-light:#e3bf61;}
+.game-moment[data-card-kind='HEARTHWARD'] {--event-light:#e9964c;}
+.game-moment[data-card-kind='ASYLUM'] {--event-light:#88b9e5;}
+.game-moment[data-card-kind='ALIBI'] {--event-light:#a2c1dd;}
+.game-moment[data-card-kind='MERCY'] {--event-light:#b3c58c;}
+.game-moment[data-card-kind][data-effect='blocked'] {--event-light:#a69d92;}
+.event-fx-layer {position:absolute;inset:0;z-index:0;pointer-events:none;color:var(--event-light);background:radial-gradient(ellipse at 50% 42%,color-mix(in srgb,currentColor 17%,transparent),transparent 58%);overflow:hidden;}
+.event-orbit,.event-ripple {position:absolute;left:calc(50% - 140px);top:calc(44% - 140px);width:280px;height:280px;box-sizing:border-box;border:1px solid currentColor;border-radius:50%;box-shadow:0 0 24px color-mix(in srgb,currentColor 28%,transparent),inset 0 0 24px color-mix(in srgb,currentColor 15%,transparent);}
+.event-orbit.orbit-two {border-style:dashed;border-width:1px;opacity:.5;}
+.event-ripple {border-width:2px;}
+.event-veil-thread {position:absolute;left:20%;top:40%;width:60%;height:15%;background:linear-gradient(100deg,transparent,color-mix(in srgb,currentColor 24%,transparent),transparent);filter:blur(16px);transform:rotate(-12deg);}
+.event-mote {position:absolute;left:calc(30% + var(--mote)*4%);top:calc(45% + var(--mote)*1%);width:3px;height:3px;border-radius:50%;background:currentColor;box-shadow:0 0 9px currentColor;}
+.fx-eavesdrop .event-orbit {border-radius:50% 20% 50% 20%;width:330px;height:180px;left:calc(50% - 165px);top:calc(44% - 90px);}
+.fx-whisper .event-orbit {border-color:transparent;border-top-color:currentColor;border-bottom-color:currentColor;}
+.fx-vow .event-orbit {border-radius:48% 48% 18% 48%;width:220px;height:220px;left:calc(50% - 110px);top:calc(44% - 110px);}
+.fx-shift .event-orbit,.fx-transfer .event-orbit {border-left-width:5px;border-right-width:0;}
+.fx-dispel .event-orbit {border-style:dotted;}
+.fx-shield .event-orbit {border-radius:50% 50% 45% 45%;border-width:2px;}
+.fx-accusation .event-orbit,.fx-stocks .event-orbit {border-radius:3px;border-style:double;border-width:4px;box-shadow:none;}
+.fx-accusation .event-orbit,.fx-accusation .event-ripple {display:none;}
+.fx-blocked .event-orbit {border-style:dashed;box-shadow:none;}
+.fx-conspiracy .event-orbit {border-radius:35%;border-style:dotted;}
+.fx-death .event-orbit,.fx-announcement .event-orbit {border-color:transparent;box-shadow:0 0 45px color-mix(in srgb,currentColor 22%,transparent);}
+.event-doubt-marks {display:flex;justify-content:center;gap:8px;min-height:30px;margin:8px auto;color:#df5361;}
+.event-doubt-marks i {opacity:0;font:700 30px/1 Georgia,serif;font-style:normal;text-shadow:0 0 14px #a72d3d88;}
+.event-doubt-marks .mark-visible {opacity:1;}
+@media(max-width:680px){.game-moment{gap:7px;padding:10px 9px max(10px,env(safe-area-inset-bottom));}.game-moment > .moment-content{width:100%;padding:10px 6px;}.game-moment > .moment-controls{gap:5px;}.event-orbit,.event-ripple{width:220px;height:220px;left:calc(50% - 110px);top:calc(44% - 110px);}}
+@media(max-height:500px) and (orientation:landscape){.moment-victory > .moment-content{display:grid;grid-template-columns:140px minmax(0,1fr);gap:4px 18px;width:min(850px,96vw);text-align:left;align-items:center;}.moment-victory .moment-content>.moment-rule{display:none;}.game-moment.moment-victory .moment-art{grid-column:1;grid-row:1/span 4;width:140px;height:clamp(100px,44dvh,190px);}.moment-victory .moment-content>:not(.moment-art){grid-column:2;margin:4px 0;}body.digital-ui .moment-victory .moment-content h2{font-size:30px;}.moment-victory .moment-description{font-size:12px;}}

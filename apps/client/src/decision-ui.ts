@@ -75,6 +75,7 @@ export function renderDecisionUI(view: RoomView | null, blocked: boolean, choose
 }
 export function updateDecisionTimers():void {
   panel?.querySelectorAll<HTMLElement>('[data-decision-deadline]').forEach(el=>{
+    if(!Number(el.dataset.decisionDeadline)){el.textContent='Paused';return;}
     const seconds=Math.max(0,Math.ceil((Number(el.dataset.decisionDeadline)-Date.now()-clockOffset)/1000));el.textContent=`${seconds}s`;
     if(seconds===0&&panel?.querySelector('#close-hand-insight')) {panel.hidden=true;panel.replaceChildren();}
   });

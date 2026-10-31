@@ -99,6 +99,7 @@ export function renderPowerControls(next: RoomView | null, disabled: boolean,
   root.hidden = !role || !view?.day;
   if (root.hidden || !role) { root.replaceChildren(); return; }
   const ability = abilities[role.kind];
+  root.dataset.hasAbility = String(!!ability);
   const status = role.ability === 'USED' ? 'Power used' : role.ability === 'ACTIVE' ? 'Remedy active' : available()
     ? aiming ? 'Choose a player · Esc to cancel' : 'Choose a player' : role.kind === 'HEXER' ? 'Available at Night' : 'Available during Day';
   root.innerHTML = `<button id="role-power" type="button" aria-label="${ability?.name ?? 'Role information'}" aria-pressed="${aiming}" ${ability && !available() ? 'disabled' : ''}><span class="power-symbol">${roleSymbol(role.kind)}</span><span><b>${ability?.name ?? 'Your role'}</b><small>${ability ? status : 'View your role & win condition'}</small></span>${ability && available() ? '<span class="power-ready" aria-hidden="true"></span>' : ''}</button><button id="power-info" type="button" aria-label="Read your private role description">?</button>`;

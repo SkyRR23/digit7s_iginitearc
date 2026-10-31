@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import type { RoomView, TableEffect } from '@ashfall/shared';
 import { MOMENT_DURATION, REVEAL_STAGES, publicMoments } from '../apps/client/src/moment-script';
 import { lifePosition, renderLifeReveal } from '../apps/client/src/life-reveal';
+import {eventSoundMood} from '../apps/client/src/event-sound-mood';
+import type {GameMoment} from '../apps/client/src/moment-script';
 
 function snapshot(): RoomView {
   return {
@@ -14,6 +16,52 @@ function snapshot(): RoomView {
   };
 }
 describe('public animation story', () => {
+  it('keeps every Life announcement mysterious until the public portrait stage',()=>{
+    for(const sealKind of ['HUMAN','WITCH','CONSTABLE'] as const){
+      const moment={kind:'reveal',sealKind} as GameMoment;
+      expect(eventSoundMood(moment,'announcement')).toBe('mystery');
+      expect(eventSoundMood(moment,'portrait')).toBe(sealKind==='WITCH'?'bad':'good');
+    }
+  });
+  it('uses helpful, harmful and mysterious event sounds without consulting hidden investigation results',()=>{
+    expect(eventSoundMood({kind:'card',cardKind:'ASYLUM'} as GameMoment)).toBe('good');
+    expect(eventSoundMood({kind:'card',cardKind:'CURSE'} as GameMoment)).toBe('bad');
+    expect(eventSoundMood({kind:'card',cardKind:'ASYLUM',blocked:true} as GameMoment)).toBe('bad');
+    for(const cardKind of ['WHISPER','EAVESDROP','CINDER_SHIFT','CONSPIRACY'] as const)expect(eventSoundMood({kind:'card',cardKind,sealKind:'WITCH'} as GameMoment)).toBe('mystery');
+  });
+  it('derives Dispel mood from public removed effects and keeps results local to the authorized outcome',()=>{
+    const view=snapshot(),play:TableEffect={id:'dispel',type:'PLAY',actorId:'a',targetId:'b',cardKind:'DISPEL'};
+    for(const [statusKind,mood] of [['BLACK_CAT','good'],['PIETY','bad']] as const){const moment=publicMoments(view,view,[play,{id:'removed',type:'STATUS',targetId:'b',statusKind,count:0}])[0]!;expect(eventSoundMood(moment)).toBe(mood);}
+    expect(eventSoundMood({kind:'victory',soundMood:'good'} as GameMoment)).toBe('good');
+    expect(eventSoundMood({kind:'victory',soundMood:'bad'} as GameMoment)).toBe('bad');
+  });
+  it('distinguishes a fully blocked action from a partially blocked card stack using public events',()=>{
+    const view=snapshot();
+    const play:TableEffect={id:'p',type:'PLAY',actorId:'a',targetId:'b',cardKind:'TESTIMONY'};
+    const block:TableEffect={id:'b',type:'BLOCK',actorId:'a',targetId:'b',cardKind:'TESTIMONY',blocked:true};
+    const failed=publicMoments(view,view,[play,block])[0]!;
+    expect(failed.blocked).toBe(true);expect(failed.description).toContain('blocked');
+    const mixed=publicMoments(view,view,[play,{...play,id:'p2'},block,{id:'d',type:'DOUBT',actorId:'a',targetId:'b',count:3}])[0]!;
+    expect(mixed).toMatchObject({blocked:false,doubtMarks:3});
+    expect(JSON.stringify([failed,mixed])).not.toContain('SECRET INVESTIGATION');
+  });
+  it('carries only public Doubt marks and the seventh-mark milestone into a Witness effect',()=>{
+    const before=snapshot(),after=snapshot();after.phase='REVEAL_RESOLUTION';
+    const effect=publicMoments(before,after,[{id:'play-witness',type:'PLAY',actorId:'a',targetId:'b',cardKind:'WITNESS'},{id:'doubt',type:'DOUBT',actorId:'a',targetId:'b',count:7},{id:'pending',type:'REVEAL_PENDING',actorId:'a',targetId:'b',count:7}])[0]!;
+    expect(effect).toMatchObject({doubtMarks:7,reachesSeven:true,targetId:'b'});
+    expect(effect.reveal).toBeUndefined();expect(effect.sealKind).toBeUndefined();
+  });
+  it('announces the public opening Curse once before Day 1 without revealing the voters',()=>{
+    const before=snapshot(),after=snapshot();before.phase='PRIVATE_DEAL';
+    const effects:TableEffect[]=[{id:'opening-curse',type:'STATUS',statusKind:'BLACK_CAT',targetId:'b',count:1},{id:'day-start',type:'DAY_STARTED',actorId:'b'}];
+    const moments=publicMoments(before,after,effects);
+    expect(moments.map(moment=>moment.kind)).toEqual(['event','phase']);
+    expect(moments[0]).toMatchObject({event:'opening-curse',title:'River',duration:4000,cardKind:'CURSE',targets:[{name:'River',label:'CURSED · FIRST TO ACT'}]});
+    expect(moments[0]!.actor).toBeUndefined();
+    expect(JSON.stringify(moments[0])).not.toMatch(/SECRET|SLEUTH|everWitch|witchTeammate/);
+    expect(publicMoments(after,after,effects).some(moment=>moment.kind==='event')).toBe(false);
+    expect(publicMoments(before,after,[{...effects[0]!,count:0}]).some(moment=>moment.kind==='event')).toBe(false);
+  });
   it('shows a public Scapegoat portrait victory through the server presentation plan',()=>{
     const before=snapshot(),after=structuredClone(before);
     after.phase='GAME_OVER';

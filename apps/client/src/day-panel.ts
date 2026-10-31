@@ -2,6 +2,8 @@ import { matchResult } from './match-result';
 import { cardRequiresOtherPlayer, type ActionKind, type DayIntent, type ProtectionKind, type RoomView } from '@ashfall/shared';
 import { renderActionCard, type TableSelection } from './tabletop-components';
 import { CARD_INFO, cardTitle } from './card-info';
+import { askCardQuantity, cancelCardQuantity } from './game-prompts';
+import {audio,cardSound} from './audio';
 
 const escape = (text: string) => text.replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]!);
 const twoTargets = (kind: ActionKind) => kind === 'SCAPEGOAT';
@@ -24,7 +26,7 @@ let currentDispatch: (intent: DayIntent) => void = () => {};
 let currentRoot: HTMLElement | null = null;
 let dismissedPeekKey = '';
 const peekKey = (view: RoomView) => `${view.deal?.matchId}:${view.peek?.id ?? view.peek?.expiresAt}`;
-let chooseCurrentGroup: (kind: ActionKind, operation: 'add' | 'minus' | 'all') => void = () => {};
+let chooseCurrentGroup: (kind: ActionKind, operation: 'add' | 'minus') => void = () => {};
 
 export function tapHandCard(cardId: string): void {
   const card = currentView?.hand?.find(item => item.id === cardId);
@@ -40,6 +42,7 @@ export function beginCardDrag(cardId: string): boolean {
   if (currentBlocked || view?.phase !== 'DAY' || view.day?.activePlayerId !== view.you?.playerId ||
     !view.deal?.players.find(p => p.playerId === view.you?.playerId)?.alive || !view.hand?.some(card => card.id === cardId)) return false;
   document.dispatchEvent(new Event('ashfall:choose-card'));
+  audio.prepare(cardSound(view.hand.find(card=>card.id===cardId)!.kind),'swell');
   if (!selectedCards.includes(cardId)) selectedCards = [cardId];
   first = second = ''; preview = false; protection = ''; redraw();
   return true;
@@ -76,19 +79,22 @@ function validFor(view: RoomView, me: string, kind: ActionKind, id: string, firs
   return true;
 }
 export function renderDayPanel(root: HTMLElement, view: RoomView | null, blocked: boolean, dispatch: (intent: DayIntent) => void): void {
+  const handScroll=root.querySelector('.action-hand')?.scrollLeft??0;
   currentRoot = root; currentView = view; currentBlocked = blocked; currentDispatch = dispatch;
   const confirmation = document.getElementById('action-confirmation');
   confirmation?.replaceChildren();
   const day = view?.day;
   root.hidden = !day;
-  if (!view || !day) { root.replaceChildren(); validTargetIds = []; selectedCards = []; selectedCardKind = null; announceSelection(); return; }
+  if (!view || !day) { cancelCardQuantity();root.replaceChildren(); validTargetIds = []; selectedCards = []; selectedCardKind = null; announceSelection(); return; }
   root.dataset.gameVersion = String(day.version); root.dataset.phase = view.phase;
   if (matchId !== view.deal!.matchId || selectionTurn !== day.turnNumber || selectionVersion !== day.version) {
+    cancelCardQuantity();
     matchId = view.deal!.matchId; selectionTurn = day.turnNumber; selectionVersion = day.version;
     selectedCards = []; first = second = ''; preview = false; protection = '';
   }
   const me = view.you!.playerId;
   const active = view.phase === 'DAY' && !day.council?.open && day.activePlayerId === me && view.deal!.players.find(p => p.playerId === me)?.alive;
+  if(!active||blocked)cancelCardQuantity();
   selectedCards = selectedCards.filter(id => view.hand?.some(card => card.id === id));
   if (!selectedCards.length) { first = second = ''; preview = false; }
   const cards = selectedCards.map(id => view.hand!.find(card => card.id === id)!);
@@ -107,11 +113,11 @@ export function renderDayPanel(root: HTMLElement, view: RoomView | null, blocked
   if (view.phase === 'GAME_OVER') content += `<div class="outcome"><h2>${escape(matchResult(view).title)}</h2></div>`;
   else if (view.hand) {
     const groups = [...new Set(view.hand.map(card => card.kind))].map(kind => ({ kind, cards: view.hand!.filter(card => card.kind === kind) }));
-    content += `<div class="hand-heading"><span class="eyebrow">YOUR HAND · ${view.hand.length} cards / ${groups.length} types</span><span class="hand-help">${active ? 'Tap a stack to choose a card. + and − adjust repeatable cards.' : 'Your cards remain yours through night.'}</span></div>
+    content += `<div class="hand-heading"><span class="eyebrow">YOUR HAND · ${view.hand.length} cards / ${groups.length} types</span><span class="hand-help">${active ? 'Tap again to add a card. Tap the selected count to choose how many.' : 'Your cards remain yours through night.'}</span></div>
       <div class="action-hand grouped-hand" role="list" data-hand-size="${groups.length}" style="--hand-columns:${Math.max(1,Math.min(groups.length,5))};--hand-rows:${Math.max(1,Math.ceil(groups.length/5))};--hand-count:${groups.length}" aria-label="Your action card stacks">${groups.map((group,i) => {
         const chosen = group.cards.filter(card => selectedCards.includes(card.id)).length;
         const canRepeat = repeatable(group.kind);
-        return `<div class="card-stack" role="listitem" data-stack-kind="${group.kind}">${renderActionCard(group.cards[0]!, chosen > 0, blocked || !active, i, groups.length, group.cards.length, chosen)}<button type="button" class="card-details-button" data-card-details="${group.kind}" aria-label="${cardTitle(group.kind)} card details">Details</button>${group.cards.length > 1 ? `<div class="stack-controls"><button type="button" data-group-minus="${group.kind}" aria-label="Remove one ${group.kind.toLowerCase().replaceAll('_',' ')} from selection" ${!chosen || blocked || !active ? 'disabled' : ''}>−</button><span aria-live="polite">${chosen} / ${group.cards.length}</span><button type="button" data-group-all="${group.kind}" aria-label="Select ${canRepeat ? 'all' : 'one'} ${group.kind.toLowerCase().replaceAll('_',' ')}" ${blocked || !active ? 'disabled' : ''}>${canRepeat ? 'All' : '+1'}</button></div>` : ''}</div>`;
+        return `<div class="card-stack" role="listitem" data-stack-kind="${group.kind}">${renderActionCard(group.cards[0]!, chosen > 0, blocked || !active, i, groups.length, group.cards.length, chosen)}<button type="button" class="card-details-button" data-card-details="${group.kind}" aria-label="${cardTitle(group.kind)} card details">Details</button>${group.cards.length > 1 ? `<div class="stack-controls"><button type="button" data-group-minus="${group.kind}" aria-label="Remove one ${group.kind.toLowerCase().replaceAll('_',' ')} from selection" ${!chosen || blocked || !active ? 'disabled' : ''}>−</button><button type="button" data-group-quantity="${group.kind}" aria-label="Choose how many ${cardTitle(group.kind)} cards to play" ${blocked || !active || !canRepeat ? 'disabled' : ''}><span aria-live="polite">${chosen} / ${group.cards.length}</span>${canRepeat?' ▾':''}</button><button type="button" data-group-plus="${group.kind}" aria-label="Add one ${group.kind.toLowerCase().replaceAll('_',' ')} to selection" ${blocked || !active || chosen >= (canRepeat?group.cards.length:1) ? 'disabled' : ''}>+</button></div>` : ''}</div>`;
       }).join('') || '<p class="empty-hand">Your hand is empty.</p>'}</div>`;
     content += `<div class="selection-hint" role="status">${cards.length ? `<b>${cards.length} selected</b><span>${escape(cardCopy[selectedCardKind!])}</span>` : ''}</div>`;
   }
@@ -122,16 +128,18 @@ export function renderDayPanel(root: HTMLElement, view: RoomView | null, blocked
   if (view.peek && (view.presentation || view.peek.expiresAt > Date.now()) && dismissedPeekKey !== peekKey(view))
     content += `<div class="whisper-peek" role="dialog" aria-label="Private Whisper insight"><span class="eyebrow">YOUR EYES ONLY · ${name(view.peek.targetId)}</span><strong>One hidden Life card: ${escape(view.peek.kind)}</strong><button id="close-peek">Close</button></div>`;
   root.innerHTML = content;
-  const chooseGroup = (kind: ActionKind, operation: 'add' | 'minus' | 'all') => {
+  const hand=root.querySelector('.action-hand');if(hand)hand.scrollLeft=handScroll;
+  const chooseGroup = (kind: ActionKind, operation: 'add' | 'minus') => {
     if (!active || blocked) return;
+    audio.prepare(cardSound(kind),...(!['EVIDENCE','TESTIMONY','ALIBI','MERCY','STOCKS'].includes(kind)?['swell' as const]:[]));
     document.dispatchEvent(new Event('ashfall:choose-card'));
     const group = view.hand!.filter(card => card.kind === kind);
     const current = selectedCards.filter(id => group.some(card => card.id === id));
     const same = current.length === selectedCards.length;
     if (operation === 'minus') selectedCards = same ? current.slice(0,-1) : [];
-    else if (operation === 'all') selectedCards = group.slice(0, repeatable(kind) ? group.length : 1).map(card => card.id);
     else if (!same || !current.length) selectedCards = [group[0]!.id];
-    else if (!repeatable(kind) || current.length === group.length) selectedCards = [];
+    else if (!repeatable(kind)) selectedCards = [];
+    else if (current.length === group.length) {if(group.length===1)selectedCards=[];else return;}
     else selectedCards = [...current, group.find(card => !current.includes(card.id))!.id];
     first = second = ''; protection = ''; preview = false; redraw();
   };
@@ -142,8 +150,16 @@ export function renderDayPanel(root: HTMLElement, view: RoomView | null, blocked
   }));
   root.querySelectorAll<HTMLButtonElement>('[data-group-minus]').forEach(button => button.addEventListener('click', () =>
     chooseGroup(button.dataset.groupMinus as ActionKind, 'minus')));
-  root.querySelectorAll<HTMLButtonElement>('[data-group-all]').forEach(button => button.addEventListener('click', () =>
-    chooseGroup(button.dataset.groupAll as ActionKind, 'all')));
+  root.querySelectorAll<HTMLButtonElement>('[data-group-plus]').forEach(button => button.addEventListener('click', () =>
+    chooseGroup(button.dataset.groupPlus as ActionKind, 'add')));
+  root.querySelectorAll<HTMLButtonElement>('[data-group-quantity]').forEach(button => button.addEventListener('click',async () => {
+    const kind=button.dataset.groupQuantity as ActionKind,group=view.hand!.filter(card=>card.kind===kind);
+    const count=await askCardQuantity(cardTitle(kind),group.length,group.filter(card=>selectedCards.includes(card.id)).length);
+    if(count===null||currentBlocked||currentView?.phase!=='DAY'||currentView.deal?.matchId!==view.deal?.matchId||currentView.day?.turnNumber!==day.turnNumber||currentView.day?.version!==day.version)return;
+    document.dispatchEvent(new Event('ashfall:choose-card'));
+    selectedCards=group.slice(0,count).map(card=>card.id);first=second='';protection='';preview=false;redraw();
+    currentRoot?.querySelector<HTMLButtonElement>(`[data-group-quantity="${kind}"]`)?.focus({preventScroll:true});
+  }));
   root.querySelector('#select-all')?.addEventListener('click', () => {
     const firstKind = view.hand?.find(card => card.id === selectedCards[0])?.kind ?? view.hand?.[0]?.kind;
     selectedCards = selectedCards.length || !firstKind ? [] : view.hand!.filter(card => card.kind === firstKind).slice(0, repeatable(firstKind) ? undefined : 1).map(card => card.id);
@@ -185,6 +201,7 @@ function coverPeek(): void {
 window.addEventListener('blur', coverPeek);
 document.addEventListener('visibilitychange', () => { if (document.hidden) coverPeek(); });
 document.addEventListener('keydown', event => {
+  if(document.querySelector('dialog[open]'))return;
   if (event.key === 'Escape' && selectedCards.length) {
     selectedCards = []; first = second = ''; preview = false; protection = ''; redraw();
   }

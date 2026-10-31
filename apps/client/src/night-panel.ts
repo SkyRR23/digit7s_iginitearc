@@ -23,6 +23,7 @@ export function renderNightPanel(root: HTMLElement, view: RoomView | null, block
         ${choice.submitted ? `<p class="sealed-choice" data-sealed="${ability}">Choice sealed: <strong>${choice.targetId ? name(choice.targetId) : 'Abstain'}</strong></p>` :
           `<form data-night="${ability}"><label for="night-${ability}">Your ${ability === 'attack' ? 'vote' : 'protection target'}</label><select id="night-${ability}" ${blocked ? 'disabled' : ''}><option value="">Abstain</option>${targets.map(p => `<option value="${p.playerId}" ${drafts[ability] === p.playerId ? 'selected' : ''}>${name(p.playerId)}</option>`).join('')}</select><button class="primary" ${blocked ? 'disabled' : ''}>Seal ${ability === 'attack' ? 'attack vote' : 'protection'}</button></form>`}</section>`;
     }).join('');
+  if (!view.night.attack && !view.night.protection) root.insertAdjacentHTML('beforeend', '<p class="mobile-night-rest">No attack or protection to submit. Wait for Dawn, or check your role power in You.</p>');
   root.querySelectorAll<HTMLFormElement>('[data-night]').forEach(form => form.addEventListener('submit', event => {
     event.preventDefault();
     dispatch({ type: form.dataset.night === 'attack' ? 'nightAttack' : 'nightProtect', targetId: form.querySelector('select')!.value || null });
