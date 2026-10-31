@@ -1,9 +1,11 @@
 # Ashfall Council
 
-Continuing on another PC/account? Start with [the latest library-PC handover](docs/SCHOOL_LIBRARY_HANDOFF.md).
+Browser-based multiplayer social deduction for 6?10 players, with private rooms, server-controlled bots, an optional interactive tutorial, and desktop/mobile controls.
+
+For reviewers and hosting, see [submission and release instructions](SUBMISSION_README.md). Historical development handovers remain in `docs/` as development evidence; they are not the current setup instructions.
 
 An original folk-horror social deduction game in development for Digit7 Jam 2026.
-**Playable vertical slice:** six to ten mixed human/server-bot seats, secure private Life cards, day turns,
+**Current implementation:** six to ten mixed human/server-bot seats, secure private Life cards, day turns,
 18 action card types, seven-Doubt accusations, accuser-chosen ten-second Life reveals, deaths, and both victory checks.
 Server-owned deadlines keep turns, reveals and Night moving. Secret Witch votes,
 Constable protection, dawn deaths and the next day now complete the gameplay loop.
@@ -238,8 +240,7 @@ strict TypeScript and unused-symbol checks are configured.
 - Identity history is in-memory match state and survives client refresh/reconnect.
   Server restarts still erase it. The browser stores only its reconnect credential;
   no identity cards are saved to browser storage or written to production logs.
-- HTML/CSS/SVG are sufficient for this milestone. Phaser can be introduced for
-  board effects later; no runtime or asset API is needed for the current art.
+- The interface uses HTML/CSS/SVG and local artwork. No external asset API is required.
 
 See [architecture](docs/ARCHITECTURE.md), [rules provenance](docs/RULES_REFERENCE_VS_ORIGINAL.md),
 [build plan](docs/BUILD_PLAN.md), [voice design](docs/VOICE_PHASE2.md), and
