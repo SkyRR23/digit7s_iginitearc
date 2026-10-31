@@ -23,7 +23,9 @@ if(!sharedTarball)throw new Error('Shared runtime tarball was not created.');
 // Only the compiled server is ESM; Passenger's root app.js stays CommonJS.
 fs.writeFileSync(path.join(root,'server/package.json'),JSON.stringify({type:'module'},null,2));
 fs.copyFileSync('deployment/app.js',path.join(root,'app.js'));
-fs.writeFileSync(path.join(root,'package.json'),JSON.stringify({name:'ashfall-council-production',version:'0.1.0',private:true,engines:{node:'>=22.12.0'},scripts:{start:'node app.js'},dependencies:{'@ashfall/shared':`file:vendor/${sharedTarball}`,'socket.io':JSON.parse(fs.readFileSync('node_modules/socket.io/package.json','utf8')).version}},null,2));
+fs.copyFileSync('deployment/play.cjs',path.join(root,'play.cjs'));
+fs.copyFileSync('deployment/README-RUN.txt',path.join(root,'README-RUN.txt'));
+fs.writeFileSync(path.join(root,'package.json'),JSON.stringify({name:'ashfall-council-production',version:'0.1.0',private:true,engines:{node:'>=22.12.0'},scripts:{start:'node app.js',play:'node play.cjs'},dependencies:{'@ashfall/shared':`file:vendor/${sharedTarball}`,'socket.io':JSON.parse(fs.readFileSync('node_modules/socket.io/package.json','utf8')).version}},null,2));
 // A self-contained production lockfile, not the development workspace lockfile.
 execFileSync(process.env.ComSpec??'cmd.exe',['/d','/s','/c','npm.cmd install --package-lock-only --ignore-scripts --omit=dev'],{cwd:root,stdio:'inherit'});
 const walk=d=>fs.readdirSync(d,{withFileTypes:true}).flatMap(e=>e.isDirectory()?walk(path.join(d,e.name)):[path.join(d,e.name)]);
