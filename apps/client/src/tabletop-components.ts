@@ -79,7 +79,7 @@ export function renderPlayerSeat(view: RoomView, player: PublicPlayer, absoluteI
   const secondTarget = selection.secondTargetId === player.id;
   const state = player.abandoned ? 'Departed · seat forfeited' : !player.connected ? 'Reconnecting' : !alive ? 'Dead' : active ? 'Taking turn' : dealt ? 'Alive' : player.ready ? 'Ready' : 'Waiting';
   const history = dealt?.historicalWitch === undefined ? '' :
-    `<span class="history-marker">${dealt.historicalWitch ? 'Was Ashbound' : 'Never Ashbound'}</span>`;
+    `<span class="history-marker">${dealt.historicalWitch ? 'Was a Cultist' : 'Never a Cultist'}</span>`;
   const targetLabel = validTarget ? `, valid target for ${selection.selectedCardKind === 'CINDER_SHIFT' ? 'Cinder Shift' : 'selected card'}` : '';
   const canRemoveBot = view.phase === 'LOBBY' && view.hostId === view.you?.playerId && player.isBot;
   const statuses = counters?.statuses ?? [];
@@ -89,7 +89,7 @@ export function renderPlayerSeat(view: RoomView, player: PublicPlayer, absoluteI
     .map(id => view.players.find(other => other.id === id)?.name ?? 'Council member');
   return `<article class="seat table-seat position-${position} ${you ? 'is-you' : ''} ${teammate ? 'is-teammate' : ''} ${player.ready && player.connected ? 'is-ready' : ''} ${alive ? 'is-alive' : 'is-dead'} ${active ? 'is-active' : ''} ${validTarget ? 'is-valid-target' : ''} ${selectedTarget ? 'is-selected-target' : ''} ${secondTarget ? 'is-second-target' : ''} ${statuses.map(status => `has-${status.kind.toLowerCase()}`).join(' ')} ${vow ? 'has-vow' : heart ? 'has-lone-heart' : ''}"
       data-player="${player.id}" data-seat-index="${absoluteIndex}" data-table-position="${position}" ${validTarget ? 'tabindex="0" role="button"' : ''}
-      aria-label="Seat ${absoluteIndex + 1}, ${escape(player.name)}, ${state}${teammate ? ', your Ashbound teammate' : ''}${targetLabel}">
+      aria-label="Seat ${absoluteIndex + 1}, ${escape(player.name)}, ${state}${teammate ? ', your Cultist teammate' : ''}${targetLabel}">
     <div class="seat-badges"><span class="seat-number">${String(absoluteIndex + 1).padStart(2, '0')}</span>
       ${player.id === view.hostId ? '<span class="host-tag">HOST</span>' : ''}
       ${player.isBot ? `<span class="bot-tag">BOT · ${player.botDifficulty}</span>` : ''}

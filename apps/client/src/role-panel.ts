@@ -49,11 +49,11 @@ export function renderRolePanel(root: HTMLElement, view: RoomView | null, blocke
   if (presentation && !role.peek) {
     const ashbound = !!view.private?.everWitch;
     const steps = ashbound ? 3 : 2;
-    const allegiance = role.kind === 'SCAPEGOAT' ? 'Neutral' : ashbound ? 'Ashbound' : 'Village';
+    const allegiance = role.kind === 'SCAPEGOAT' ? 'Neutral' : ashbound ? 'Cultist' : 'Village';
     root.dataset.openingStep = openingStep;
     root.innerHTML = `<div class="opening-screen ${ashbound ? 'opening-ashbound' : 'opening-gold'}"><header><span>PRIVATE REVEAL · ${openingStep === 'team' ? 2 : 1} OF ${steps}</span><button id="role-close" type="button" aria-label="Cover private reveal">×</button></header>
-      ${openingStep === 'portrait' ? `<div class="opening-character role-profile-art"><img src="${roleArt(role.kind)}" alt="Your ${roleName(role.kind).toLowerCase()} portrait"></div><div class="opening-copy"><span class="opening-allegiance">${allegiance}</span><h2>You are ${role.kind === 'ASHBOUND' ? 'Ashbound' : `the ${escape(roleName(role.kind).toLowerCase())}`}</h2><div class="role-profile-symbol">${roleSymbol(role.kind)}</div><p>${roleDescriptions[role.kind]}</p><small>Your role stays with you. Your Life cards determine allegiance and survival.</small></div>`
-        : `<div class="opening-team-page"><span class="opening-allegiance">You are not alone in the dark</span><h2>Your Ashbound team</h2>${renderTeamInfo(view)}</div>`}
+      ${openingStep === 'portrait' ? `<div class="opening-character role-profile-art"><img src="${roleArt(role.kind)}" alt="Your ${roleName(role.kind).toLowerCase()} portrait"></div><div class="opening-copy"><span class="opening-allegiance">${allegiance}</span><h2>You are ${role.kind === 'ASHBOUND' ? 'a Cultist' : `the ${escape(roleName(role.kind).toLowerCase())}`}</h2><div class="role-profile-symbol">${roleSymbol(role.kind)}</div><p>${roleDescriptions[role.kind]}</p><small>Your role stays with you. Your Life cards determine allegiance and survival.</small></div>`
+        : `<div class="opening-team-page"><span class="opening-allegiance">You are not alone in the dark</span><h2>Your Cultist team</h2>${renderTeamInfo(view)}</div>`}
       <footer>${openingStep === 'team' ? '<button id="role-back" type="button">← Your portrait</button>' : '<span>Only you can see this screen</span>'}<button id="role-continue" class="primary" type="button" ${blocked ? 'disabled' : ''}>${openingStep === 'portrait' && ashbound ? 'Meet your teammates' : 'View your Life cards'} <span aria-hidden="true">→</span></button></footer></div>`;
     root.querySelector('#role-close')?.addEventListener('click', coverRolePanel);
     root.querySelector('#role-back')?.addEventListener('click', () => { openingStep = 'portrait'; renderRolePanel(root, view, blocked, close, vote); });

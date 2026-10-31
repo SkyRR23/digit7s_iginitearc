@@ -21,7 +21,7 @@ export function submitNight(input: DayState, actorId: string, action: NightActio
     if (action.targetId === actorId) deny('SELF_TARGET', 'Choose another living player.');
     if (!alive(input, action.targetId)) deny('TARGET', 'Choose a living player.');
     if (attack && input.identity.players.find(p => p.id === action.targetId)!.everWitch && !input.neutralIds?.includes(action.targetId))
-      deny('ALLY_TARGET', 'Ashbound attacks must target someone outside your team.');
+      deny('ALLY_TARGET', 'Cultist attacks must target someone outside your team.');
   }
   const choices = attack ? input.night.attacks : input.night.protections;
   if (Object.hasOwn(choices, actorId)) deny('LOCKED_CHOICE', 'Your choice is already sealed for this night.');

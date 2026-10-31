@@ -1,13 +1,13 @@
 export const roleDescriptions: Record<string, string> = {
   VILLAGER: 'You have no special ability. Watch the council, play your cards, and use your vote. Your Life cards determine your allegiance.',
-  ASHBOUND: 'While Witch-aligned, join the private Ashbound attack vote at Night. Your actual allegiance comes from your Life-card history.',
+  ASHBOUND: 'While Witch-aligned, join the private Cultist attack vote at Night. Your actual allegiance comes from your Life-card history.',
   SLEUTH: 'Once per match during Day, privately inspect whether one other living player is Witch-aligned. Close the result before its secret timer expires to avoid exposure.',
   HERBALIST: 'During Day, set a remedy on one other living player. It blocks one targeted harmful card or night attack. An unused remedy fades at Dawn.',
   GOSSIP: 'Once per match during Day, privately compare the current allegiance of two different living players.',
   HEXER: 'Once per match during Night, suppress an active protection on one other living player for that night.',
   SCAPEGOAT: 'Win individually only if a completed council vote eliminates you. Your victory ends the match for everyone. Accusation reveals and night deaths do not grant your individual victory.',
 };
-export const roleName = (kind: string) => kind === 'SCAPEGOAT' ? 'Outcast' : kind.replaceAll('_', ' ');
+export const roleName = (kind: string) => kind === 'SCAPEGOAT' ? 'Outcast' : kind === 'ASHBOUND' ? 'Cultist' : kind.replaceAll('_', ' ');
 export const roleArt = (kind: string) => `/art/roles/${kind === 'SCAPEGOAT' ? 'outcast-chained-transparent' : kind.toLowerCase()}.webp`;
 export const lifeArt = (kind: string) => kind === 'HUMAN' ? '/art/roles/good-life-v2.webp' : kind === 'WITCH' ? '/art/roles/evil-life.webp' : roleArt('VILLAGER');
 const paths: Record<string, string> = {

@@ -9,5 +9,5 @@ export function matchResult(view: RoomView): { title: string; description: strin
   }
   return outcome?.winner === 'HUMAN'
     ? { title: 'The village survives', description: 'Every Evil Life card has been revealed.', roleArt: 'VILLAGER' }
-    : { title: 'The Ashbound prevail', description: 'Every surviving player is Witch-aligned.', roleArt: 'ASHBOUND' };
+    : { title: 'The Cultists prevail', description: 'Every surviving player is Witch-aligned.', roleArt: 'ASHBOUND' };
 }

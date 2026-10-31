@@ -79,17 +79,17 @@ is never silently replaced by a bot.
    tab. The host's deal button becomes available only when every seat is ready and
    connected. The server deals five Life cards per player; more than one Witch card
    may land on one person.
-5. Each player first sees their full role portrait, with red Ashbound or gold
-   non-Ashbound glow. Ashbound then see a separate private teammate screen.
+5. Each player first sees their full role portrait, with red Cultist or gold
+   non-Cultist glow. Cultists then see a separate private teammate screen.
    Continue to the Life-card screen, then **Reveal all Seals** privately. Labels are Villager (Human),
-   Ashbound (Witch), and Lanternkeeper (Constable). The private summary tracks
-   allegiance and ability independently. Living Ashbound players know their living
+   Cultist (Witch), and Lanternkeeper (Constable). The private summary tracks
+   allegiance and ability independently. Living Cultist players know their living
    allies, but cannot see allies' Seals. Public seats show only face-down slots.
 6. Before confirming, tap two Seals to swap their positions, drag them, or choose
-   **Shuffle positions**. Ashbound also choose a player for the opening Black Cat
+   **Shuffle positions**. Cultists also choose a player for the opening Black Cat
    and select **Seal opening curse** before confirming. Choices are private;
    most votes determines the single cursed player, with earliest seat breaking a
-   tie. An Ashbound may choose themselves to disguise their allegiance.
+   tie. A Cultist may choose themselves to disguise their allegiance.
    Choose **Confirm & continue** in every tab. This locks
    the order, covers the private display,
    and shares only acknowledgement status. The final acknowledgement begins
@@ -125,17 +125,17 @@ is never silently replaced by a bot.
    The corner **?** opens role portraits, all 14 cards and their interactions,
    and an eight-step illustrated how-to-play guide. Green name tags identify
    the card actor and recipients. No blank accusation slots are drawn.
-   An Ashbound reveal or exhausting a player's hidden Seals kills them, publicly
+   A Cultist reveal or exhausting a player's hidden Seals kills them, publicly
    reveals their remaining Seals/history, and removes their hand/private access.
-   All Ashbound Seals revealed means village victory; only Ashbound living means
-   Ashbound victory. The former takes precedence if both become true together.
+   All Cultist Seals revealed means village victory; only Cultist living means
+   Cultist victory. The former takes precedence if both become true together.
 
    The 83-card deck is now focused on pressure: **38 Evidence and 6 Witness**.
    Utility counts are lower, including 6 Whisper, 3 Hearthward, and 2 Cinder Shift.
    The revised composition applies to new matches.
 8. Turns have 60-second server deadlines: an idle turn draws and ends; a turn
    that played cards simply ends. The seventh X opens the ten-second accuser choice. An empty action deck reaches Night after the victory check.
-9. Night lasts **45 seconds**, with public chat silenced. Living Ashbound players
+9. Night lasts **45 seconds**, with public chat silenced. Living Cultist players
    secretly choose an attack target outside their team (or abstain). Most votes
    wins; ties use the earliest target in seat order. The living Lanternkeeper
    secretly protects another living player (or abstains), never themselves.

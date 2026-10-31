@@ -227,7 +227,7 @@ export class RoomStore {
         if (room.phase !== 'PRIVATE_DEAL') fail('PHASE', 'The opening curse is already sealed.');
         const actor = room.match.players.find(p => p.id === player.id);
         if (!actor?.alive || !actor.everWitch || room.roles?.[player.id]?.kind === 'SCAPEGOAT')
-          fail('ABILITY', 'Only Ashbound may choose the opening Black Cat.');
+          fail('ABILITY', 'Only Cultists may choose the opening Black Cat.');
         if (actor.acknowledged || Object.hasOwn(room.blackCatVotes ?? {}, player.id)) fail('LOCKED_CHOICE', 'Your opening choice is already sealed.');
         if (!room.match.players.some(p => p.id === command.targetId && p.alive)) fail('TARGET', 'Choose a living player.');
         (room.blackCatVotes ??= {})[player.id] = command.targetId;

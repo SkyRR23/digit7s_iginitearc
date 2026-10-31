@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest';
 import type { RoomView } from '@ashfall/shared';
 import { renderTeamInfo, teammates } from '../apps/client/src/team-info';
 import { emptyTableSelection, renderPlayerSeat } from '../apps/client/src/tabletop-components';
+import {roleName,roleArt,roleDescriptions} from '../apps/client/src/role-art';
+import {matchResult} from '../apps/client/src/match-result';
+import {IDENTITY_LABELS} from '@ashfall/shared';
 
 function snapshot(): RoomView {
   return {
@@ -16,6 +19,18 @@ function snapshot(): RoomView {
 }
 
 describe('private teammate presentation', () => {
+  it('renames visible Cultist text without changing role IDs, art paths or Good/Evil Life labels', () => {
+    expect(roleName('ASHBOUND')).toBe('Cultist');
+    expect(roleArt('ASHBOUND')).toBe('/art/roles/ashbound.webp');
+    expect(roleDescriptions.ASHBOUND).toContain('Cultist attack vote');
+    expect(IDENTITY_LABELS.WITCH).toBe('Evil');
+    const view=snapshot();
+    view.day!.outcome={winner:'WITCH',reason:'ONLY_WITCHES_ALIVE'};
+    expect(matchResult(view).title).toBe('The Cultists prevail');
+    expect(matchResult(view).roleArt).toBe('ASHBOUND');
+    expect(renderTeamInfo(view)).toContain('You are a Cultist');
+    expect(renderTeamInfo(view)).not.toContain('Ashbound');
+  });
   it('shows authorized allies for converted roles, including a Lanternkeeper holder', () => {
     const view = snapshot();
     expect(teammates(view).map(player => player.id)).toEqual(['b']);
@@ -55,7 +70,7 @@ describe('private teammate presentation', () => {
     const seat = renderPlayerSeat(view, view.players[1]!, 1, 1, emptyTableSelection());
     expect(seat).toContain('is-teammate');
     expect(seat).toContain('is-active');
-    expect(seat).toContain('your Ashbound teammate');
+    expect(seat).toContain('your Cultist teammate');
     expect(seat).toContain('class="ally-tag"');
     expect(seat).toContain('class="turn-dust" aria-hidden="true"');
     view.phase = 'NIGHT';

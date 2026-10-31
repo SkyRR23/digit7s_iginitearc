@@ -18,7 +18,7 @@ export function renderNightPanel(root: HTMLElement, view: RoomView | null, block
       const choice = view.night![ability]; if (!choice) return '';
       const targets = view.deal!.players.filter(p => p.alive && p.playerId !== me && (ability !== 'attack' || !allies.has(p.playerId)));
       if (!targets.some(p => p.playerId === drafts[ability])) drafts[ability] = '';
-      return `<section class="night-choice"><h3>${ability === 'attack' ? 'Ashbound attack vote' : 'Lanternkeeper protection'}</h3>
+      return `<section class="night-choice"><h3>${ability === 'attack' ? 'Cultist attack vote' : 'Lanternkeeper protection'}</h3>
         <p>${ability === 'attack' ? 'Most votes decide the attack. Ties choose the earliest target in seat order. You cannot target an ally.' : 'Protect another living player. You cannot protect yourself. Your allegiance does not change this ability.'}</p>
         ${choice.submitted ? `<p class="sealed-choice" data-sealed="${ability}">Choice sealed: <strong>${choice.targetId ? name(choice.targetId) : 'Abstain'}</strong></p>` :
           `<form data-night="${ability}"><label for="night-${ability}">Your ${ability === 'attack' ? 'vote' : 'protection target'}</label><select id="night-${ability}" ${blocked ? 'disabled' : ''}><option value="">Abstain</option>${targets.map(p => `<option value="${p.playerId}" ${drafts[ability] === p.playerId ? 'selected' : ''}>${name(p.playerId)}</option>`).join('')}</select><button class="primary" ${blocked ? 'disabled' : ''}>Seal ${ability === 'attack' ? 'attack vote' : 'protection'}</button></form>`}</section>`;
